@@ -1,4 +1,4 @@
-function [xout, flag, relres, iter] = mypcg(A, b, t, maxint, M, toCache)
+function [xout, flag, relres, iter] = custom_pcg(A, b, t, maxint, M, toCache)
     % A: matrix
     % b: right hand side vector
     % t: tolerance
