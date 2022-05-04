@@ -1,15 +1,20 @@
+pkg load tablicious
+
 % TEST custom PCG algorithm with IEEE vs BFloat data types
-test_count = 20;
+test_count = 3; 
 sz = [0 6];
 
 table_cell = cell(test_count,6);
-name_cell = cell(6,1);
+name_cell = cell(9,1);
 name_cell{1,1}="Test Number";
 name_cell{2,1}="Matrix";
 name_cell{3,1}="Size";
 name_cell{4,1}="Density";
-name_cell{5,1}="Default Iteration Count";
-name_cell{6,1}="Bfloat16 Iteration Count";
+name_cell{5,1}="Condition Number";
+name_cell{6,1}="Default IC";
+name_cell{7,1}="Bfloat16 IC";
+name_cell{8,1}="RCM Default IC";
+name_cell{9,1}="RCM Bfloat16 IC";
 
 % Sparse Matrix files from Suitesparse Collection
 matrices = {'arc130.mtx','494_bus.mtx','662_bus.mtx','685_bus.mtx','1138_bus.mtx'...
@@ -20,6 +25,8 @@ matrices = {'arc130.mtx','494_bus.mtx','662_bus.mtx','685_bus.mtx','1138_bus.mtx
 % counters
 it_total1 = 1;
 it_total2 = 1;
+it_total3 = 1;
+it_total4 = 1;
 nonzero_its = 0;
 
 fprintf("Tests done:")
@@ -32,18 +39,28 @@ for cur_test=1:test_count
 
     % calculate iteration count using standard floats
     [~, ~, ~, itcount1] = custom_pcg(A, b, 1e-7, 10000, eye(A_size), 1);
-
      % calculate iteration count using brain floats
-    A = chop(A,7);
-    [~, ~, ~, itcount2] = custom_pcg(A, b, 1e-7, 10000, eye(A_size), 1);
+    [~, ~, ~, itcount2] = custom_pcg_bfloat16(A, b, 1e-7, 10000, eye(A_size), 1);
+
+    perm = symrcm(A);
+    A = A(perm,perm);
+
+
+    % calculate iteration count using standard floats
+    [~, ~, ~, itcount3] = custom_pcg(A, b, 1e-7, 10000, eye(A_size), 1);
+     % calculate iteration count using brain floats
+    [~, ~, ~, itcount4] = custom_pcg_bfloat16(A, b, 1e-7, 10000, eye(A_size), 1);
 
     % add data to table, show progress, get mean
     table_cell{cur_test,1} = cur_test;
     table_cell{cur_test,2} = cur_matrix;
     table_cell{cur_test,3} = A_size;
     table_cell{cur_test,4} = A_size/nonzero_count;
-    table_cell{cur_test,5} = itcount1;
-    table_cell{cur_test,6} = itcount2;
+    table_cell{cur_test,5} = cond(A);
+    table_cell{cur_test,6} = itcount1;
+    table_cell{cur_test,7} = itcount2;
+    table_cell{cur_test,8} = itcount3;
+    table_cell{cur_test,9} = itcount4;
 
     fprintf("%3d",cur_test)
     if(itcount1 ~= 0 && itcount2 ~= 0)
