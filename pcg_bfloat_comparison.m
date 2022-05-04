@@ -1,7 +1,8 @@
+
 pkg load tablicious
 
 % TEST custom PCG algorithm with IEEE vs BFloat data types
-test_count = 3; 
+test_count = 2; 
 sz = [0 6];
 
 table_cell = cell(test_count,6);
@@ -69,6 +70,24 @@ for cur_test=1:test_count
         nonzero_its = nonzero_its + 1;
     end
 end
-fprintf("\n")
 table = cell2table(table_cell,'VariableNames',name_cell);
+fprintf("\n")
 prettyprint(table)
+
+t = table_cell;
+fid = fopen( 'results.cvs', 'wt' );
+for i = 1:size(name_cell,1) fprintf(fid,"%s,",name_cell{i}) end
+fprintf(fid," CRLF\n");
+
+for i = 1:test_count
+  for j = 1:size(name_cell,1)
+    if j != 2
+        fprintf(fid,"%d,",table_cell{i,j});
+    end
+    if j == 2
+	fprintf(fid,"%s,",t{i,j});
+    end
+  end
+  fprintf(fid," CLRF\n");
+end
+fprintf("# table written to results.cvs")
