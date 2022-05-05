@@ -2,7 +2,7 @@
 pkg load tablicious
 
 % TEST custom PCG algorithm with IEEE vs BFloat data types
-test_count = 2; 
+test_count = 1; 
 sz = [0 6];
 
 table_cell = cell(test_count,6);
@@ -36,21 +36,24 @@ for cur_test=1:test_count
     % Read matrix files
     cur_matrix = matrices{cur_test};%'arc130.mtx';
     [A, ~, A_size, nonzero_count] = mmread(cur_matrix);
-    b = randn(size(A,1), 1);
+    
+    x = randn(size(A,2), 1) * max(A);
+    b = A * x;
+    %b = randn(size(A,1), 1);
 
     % calculate iteration count using standard floats
-    [~, ~, ~, itcount1] = custom_pcg(A, b, 1e-7, 10000, eye(A_size), 1);
+    [~, ~, ~, itcount1] = custom_pcg(A, b, 1e-7, 100000, eye(A_size), 0);
      % calculate iteration count using brain floats
-    [~, ~, ~, itcount2] = custom_pcg_bfloat16(A, b, 1e-7, 10000, eye(A_size), 1);
+    [~, ~, ~, itcount2] = custom_pcg_bfloat16(A, b, 1e-7, 100000, eye(A_size), 0);
 
     perm = symrcm(A);
     A = A(perm,perm);
 
 
     % calculate iteration count using standard floats
-    [~, ~, ~, itcount3] = custom_pcg(A, b, 1e-7, 10000, eye(A_size), 1);
+    [~, ~, ~, itcount3] = custom_pcg(A, b, 1e-7, 100000, eye(A_size), 0);
      % calculate iteration count using brain floats
-    [~, ~, ~, itcount4] = custom_pcg_bfloat16(A, b, 1e-7, 10000, eye(A_size), 1);
+    [~, ~, ~, itcount4] = custom_pcg_bfloat16(A, b, 1e-7, 100000, eye(A_size), 0);
 
     % add data to table, show progress, get mean
     table_cell{cur_test,1} = cur_test;
@@ -90,4 +93,4 @@ for i = 1:test_count
   end
   fprintf(fid," CLRF\n");
 end
-fprintf("# table written to results.csv")
+fprintf("# table written to results.csv/n")
