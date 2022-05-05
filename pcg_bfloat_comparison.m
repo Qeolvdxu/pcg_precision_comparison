@@ -75,7 +75,7 @@ fprintf("\n")
 prettyprint(table)
 
 t = table_cell;
-fid = fopen( 'results.cvs', 'wt' );
+fid = fopen( 'results.csv', 'wt' );
 for i = 1:size(name_cell,1) fprintf(fid,"%s,",name_cell{i}) end
 fprintf(fid," CRLF\n");
 
@@ -90,4 +90,4 @@ for i = 1:test_count
   end
   fprintf(fid," CLRF\n");
 end
-fprintf("# table written to results.cvs")
+fprintf("# table written to results.csv")
