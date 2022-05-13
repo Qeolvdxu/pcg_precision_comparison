@@ -1,4 +1,3 @@
-
 pkg load tablicious
 
 % TEST custom PCG algorithm with IEEE vs BFloat data types
@@ -29,6 +28,7 @@ it_total2 = 1;
 it_total3 = 1;
 it_total4 = 1;
 nonzero_its = 0;
+max_iters = 50000;
 
 fprintf("Tests done:")
 for cur_test=1:test_count
@@ -41,19 +41,20 @@ for cur_test=1:test_count
     b = A * x;
     %b = randn(size(A,1), 1);
 
+   %Standard Ordering
     % calculate iteration count using standard floats
-    [~, ~, ~, itcount1] = custom_pcg(A, b, 1e-7, 100000, eye(A_size), 0);
+    [~, ~, ~, itcount1] = custom_pcg(A, b, 1e-7, max_iters, eye(A_size), 0);
      % calculate iteration count using brain floats
-    [~, ~, ~, itcount2] = custom_pcg_bfloat16(A, b, 1e-7, 100000, eye(A_size), 0);
+    [~, ~, ~, itcount2] = custom_pcg_bfloat16(A, b, 1e-7, max_iters, eye(A_size), 0);
 
     perm = symrcm(A);
     A = A(perm,perm);
 
-
+   %RMC Ordering
     % calculate iteration count using standard floats
-    [~, ~, ~, itcount3] = custom_pcg(A, b, 1e-7, 100000, eye(A_size), 0);
+    [~, ~, ~, itcount3] = custom_pcg(A, b, 1e-7, max_iters, eye(A_size), 0);
      % calculate iteration count using brain floats
-    [~, ~, ~, itcount4] = custom_pcg_bfloat16(A, b, 1e-7, 100000, eye(A_size), 0);
+    [~, ~, ~, itcount4] = custom_pcg_bfloat16(A, b, 1e-7, max_iters, eye(A_size), 0);
 
     % add data to table, show progress, get mean
     table_cell{cur_test,1} = cur_test;
@@ -65,6 +66,7 @@ for cur_test=1:test_count
     table_cell{cur_test,7} = itcount2;
     table_cell{cur_test,8} = itcount3;
     table_cell{cur_test,9} = itcount4;
+    table_cell
 
     fprintf("%3d",cur_test)
     if(itcount1 ~= 0 && itcount2 ~= 0)

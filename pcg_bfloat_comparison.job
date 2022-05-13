@@ -4,7 +4,7 @@
 #SBATCH --mail-user=hve0002@uah.edu
 #SBATCH --mail-type=ALL
 #SBATCH -o pcg_bfloat_comparison.out
-#SBATCH -t 05:00:00
+#SBATCH -t 48:00:00
 #SBATCH -N 1
 #SBATCH -n 128
 octave ./pcg_bfloat_comparison.m 
