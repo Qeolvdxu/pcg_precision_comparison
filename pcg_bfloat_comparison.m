@@ -2,7 +2,7 @@ pkg load tablicious
 
 % TEST custom PCG algorithm with IEEE vs BFloat data types
 test_count = 20;
-max_iters = 100;
+max_iters = 20000;
 tol = 1e-5
 
 sz = [0 6];
@@ -36,19 +36,18 @@ fprintf("Tests done:\n")
 for cur_test=1:test_count
 
     % Read matrix files
-    cur_matrix = matrices{cur_test};%'arc130.mtx';
+    cur_matrix = matrices{cur_test};
     [A, ~, A_size, nonzero_count] = mmread(cur_matrix);
     
     x = randn(size(A,2), 1) * max(A);
     b = A * x;
     %b = randn(size(A,1), 1);
-    disp("test setup\n")
+
     %Standard Ordering
     % calculate iteration count using standard floats
     [~, ~, ~, itcount1] = custom_pcg(A, b, tol, max_iters, eye(A_size), 0);
      % calculate iteration count using brain floats
     [~, ~, ~, itcount2] = custom_pcg_bfloat16(A, b, tol, max_iters, eye(A_size), 0);
-    disp("test standard order\n")
 
     perm = symrcm(A);
     A = A(perm,perm);
@@ -58,7 +57,6 @@ for cur_test=1:test_count
     [~, ~, ~, itcount3] = custom_pcg(A, b, tol, max_iters, eye(A_size), 0);
      % calculate iteration count using brain floats
     [~, ~, ~, itcount4] = custom_pcg_bfloat16(A, b, tol, max_iters, eye(A_size), 0);
-    disp("test rcm\n")
 
     % add data to table, show progress, get mean
     table_cell{cur_test,1} = cur_test;
@@ -70,14 +68,17 @@ for cur_test=1:test_count
     table_cell{cur_test,7} = itcount2;
     table_cell{cur_test,8} = itcount3;
     table_cell{cur_test,9} = itcount4;
-    disp("test table cell\n")
 
     fprintf("%3d: %s, %3d, %3d, %3d, %3d, %3d, %3d, %3d\n",cur_test,cur_matrix,A_size,A_size/nonzero_count,cond(A),itcount1,itcount2,itcount3,itcount4)
 end
+
+% Create and print table
 table = cell2table(table_cell,'VariableNames',name_cell);
 fprintf("\n")
 prettyprint(table)
 
+
+% Write to CVS File
 t = table_cell;
 fid = fopen( 'results.csv', 'wt' );
 for i = 1:size(name_cell,1) fprintf(fid,"%s,",name_cell{i}) end
