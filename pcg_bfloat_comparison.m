@@ -1,7 +1,10 @@
 pkg load tablicious
 
 % TEST custom PCG algorithm with IEEE vs BFloat data types
-test_count = 20; 
+test_count = 20;
+max_iters = 100;
+tol = 1e-5
+
 sz = [0 6];
 
 table_cell = cell(test_count,6);
@@ -28,9 +31,8 @@ it_total2 = 1;
 it_total3 = 1;
 it_total4 = 1;
 nonzero_its = 0;
-max_iters = 50000;
 
-fprintf("Tests done:")
+fprintf("Tests done:\n")
 for cur_test=1:test_count
 
     % Read matrix files
@@ -40,21 +42,23 @@ for cur_test=1:test_count
     x = randn(size(A,2), 1) * max(A);
     b = A * x;
     %b = randn(size(A,1), 1);
-
-   %Standard Ordering
+    disp("test setup\n")
+    %Standard Ordering
     % calculate iteration count using standard floats
-    [~, ~, ~, itcount1] = custom_pcg(A, b, 1e-7, max_iters, eye(A_size), 0);
+    [~, ~, ~, itcount1] = custom_pcg(A, b, tol, max_iters, eye(A_size), 0);
      % calculate iteration count using brain floats
-    [~, ~, ~, itcount2] = custom_pcg_bfloat16(A, b, 1e-7, max_iters, eye(A_size), 0);
+    [~, ~, ~, itcount2] = custom_pcg_bfloat16(A, b, tol, max_iters, eye(A_size), 0);
+    disp("test standard order\n")
 
     perm = symrcm(A);
     A = A(perm,perm);
-
-   %RMC Ordering
+    
+    %RMC Ordering
     % calculate iteration count using standard floats
-    [~, ~, ~, itcount3] = custom_pcg(A, b, 1e-7, max_iters, eye(A_size), 0);
+    [~, ~, ~, itcount3] = custom_pcg(A, b, tol, max_iters, eye(A_size), 0);
      % calculate iteration count using brain floats
-    [~, ~, ~, itcount4] = custom_pcg_bfloat16(A, b, 1e-7, max_iters, eye(A_size), 0);
+    [~, ~, ~, itcount4] = custom_pcg_bfloat16(A, b, tol, max_iters, eye(A_size), 0);
+    disp("test rcm\n")
 
     % add data to table, show progress, get mean
     table_cell{cur_test,1} = cur_test;
@@ -66,14 +70,9 @@ for cur_test=1:test_count
     table_cell{cur_test,7} = itcount2;
     table_cell{cur_test,8} = itcount3;
     table_cell{cur_test,9} = itcount4;
-    table_cell
+    disp("test table cell\n")
 
-    fprintf("%3d",cur_test)
-    if(itcount1 ~= 0 && itcount2 ~= 0)
-        it_total1 = it_total1 * itcount1;
-        it_total2 = it_total2 * itcount2;
-        nonzero_its = nonzero_its + 1;
-    end
+    fprintf("%3d: %s, %3d, %3d, %3d, %3d, %3d, %3d, %3d\n",cur_test,cur_matrix,A_size,A_size/nonzero_count,cond(A),itcount1,itcount2,itcount3,itcount4)
 end
 table = cell2table(table_cell,'VariableNames',name_cell);
 fprintf("\n")
