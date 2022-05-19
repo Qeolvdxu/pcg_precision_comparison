@@ -39,9 +39,10 @@ for cur_test=1:test_count
     cur_matrix = matrices{cur_test};
     [A, ~, A_size, nonzero_count] = mmread(cur_matrix);
     
-    x = randn(size(A,2), 1) * max(A);
-    b = A * x;
+    %x = randn(size(A,2), 1) * max(A);
+    %b = A * x;
     %b = randn(size(A,1), 1);
+    b = ones(soze(A,1),1);
 
     %Standard Ordering
     % calculate iteration count using standard floats
