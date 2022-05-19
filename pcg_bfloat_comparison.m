@@ -3,7 +3,7 @@ pkg load tablicious
 % TEST custom PCG algorithm with IEEE vs BFloat data types
 test_count = 20;
 max_iters = 20000;
-tol = 1e-5
+tol = 1e-6
 
 sz = [0 6];
 
