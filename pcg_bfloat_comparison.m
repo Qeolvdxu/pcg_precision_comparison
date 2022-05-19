@@ -42,7 +42,7 @@ for cur_test=1:test_count
     %x = randn(size(A,2), 1) * max(A);
     %b = A * x;
     %b = randn(size(A,1), 1);
-    b = ones(soze(A,1),1);
+    b = ones(size(A,1),1);
 
     %Standard Ordering
     % calculate iteration count using standard floats
