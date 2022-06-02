@@ -4,32 +4,34 @@ function [xout, flag, relres, iter] = custom_pcg_bfloat16(A, b, t, maxint, M, to
     % t: tolerance
     % max inter: maximum number of iteractions
     % M: preconditioner, approximate of inv(A)
-    % toCache: set to 1 to cache best results, 0 otherwise
-
-    chop(A);
+% toCache: set to 1 to cache best results, 0 otherwise
+    
+    options.format = 'bfloat16' % bfloat16 percision 
+    options.subnormal = 0; %denormal flushing enabled
+    A = chop(A);
     
     % initial setup
     x = zeros(size(A,1), 1);    % zero initial guess
-    r = chop(b - A*x,7);     %residual
-    z = chop(M * r,7);       % preconditioning
+    r = chop(b - A*x,options);     %residual
+    z = chop(M * r,options);       % preconditioning
     p = z;
     i = 0;
 
     % best results
     best_x = x;
-    best_rel_res = chop(norm(r)/norm(b),7);
+    best_rel_res = chop(norm(r)/norm(b),options);
     best_it = i;
 
     % loop
     while (i < maxint) && (norm(r)/norm(b) > t)
-        q = chop(A*p,7);
-        v = chop(dot(r,z),7);
-        alpha = chop(v / chop(dot(p,q),7),7);
-        x = chop(x + alpha*p,7);    % improve approximation
-        r = chop(r - alpha*q,7);    % update residual
-        z = chop(M*r,7);            % preconditioning
-        beta = chop(chop(dot(r,z),7) /  v,7);
-        p = chop(z + chop(beta*p,7),7);     % new search direction
+        q = chop(A*p,options);
+        v = chop(dot(r,z),options);
+        alpha = chop(v / chop(dot(p,q),options),options);
+        x = chop(x + alpha*p,options);    % improve approximation
+        r = chop(r - alpha*q,options);    % update residual
+        z = chop(M*r,options);            % preconditioning
+        beta = chop(chop(dot(r,z),options) /  v,options);
+        p = chop(z + chop(beta*p,options),options);     % new search direction
         i = i+1;
 
         % cache if this approximation is the best so far
