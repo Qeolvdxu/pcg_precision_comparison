@@ -19,6 +19,8 @@ name_cell{7,1}="Bfloat16 IC";
 name_cell{8,1}="RCM Default IC";
 name_cell{9,1}="RCM Bfloat16 IC";
 
+matrices = dir('test_subjects/*.mtx')
+
 % Sparse Matrix files from Suitesparse Collection
 matrices = {'arc130.mtx','494_bus.mtx','662_bus.mtx','685_bus.mtx','1138_bus.mtx'...
             ,'bcsstk01.mtx','bcsstk02.mtx','bcsstk03.mtx','bcsstk04.mtx','bcsstk05.mtx'...
