@@ -3,7 +3,8 @@ pkg load tablicious
 
 max_iters = 20000;
 tol = 1e-6
-
+matrices = dir('test_subjects/*.mtx')
+test_count = size(matrices,1)
 sz = [0 6];
 
 table_cell = cell(test_count,6);
@@ -18,8 +19,7 @@ name_cell{7,1}="Bfloat16 IC";
 name_cell{8,1}="RCM Default IC";
 name_cell{9,1}="RCM Bfloat16 IC";
 
-matrices = dir('test_subjects/*.mtx')
-test_count = size(matrices,1)
+
 
 % counters
 it_total1 = 1;
