@@ -4,6 +4,6 @@ Octave program to compare data types to see if the floating level will change th
 
 ## Requires
 This program requires librarys:
-* Chop
+* Chop : https://github.com/higham/chop
 * Tablicious : https://github.com/apjanke/octave-tablicious
 * MMRead : https://github.com/computablee/gpu-spmv-csr/blob/main/helpers/mmread.m
