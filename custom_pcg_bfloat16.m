@@ -6,7 +6,7 @@ function [xout, flag, relres, iter] = custom_pcg_bfloat16(A, b, t, maxint, M, to
     % M: preconditioner, approximate of inv(A)
 % toCache: set to 1 to cache best results, 0 otherwise
     
-    options.format = 'bfloat16' % bfloat16 percision 
+    options.format = 'bfloat16'; % bfloat16 percision 
     options.subnormal = 0; %denormal flushing enabled
     A = chop(A);
     
