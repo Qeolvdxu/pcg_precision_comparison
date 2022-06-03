@@ -1,12 +1,15 @@
-% TEST custom PCG algorithm with IEEE vs BFloat data types
+% test custom PCG algorithm with IEEE vs BFloat data types
 pkg load tablicious
 
+% customizable settings 
 max_iters = 20000;
-tol = 1e-6
-matrices = dir('test_subjects/*.mtx')
-test_count = size(matrices,1)
-sz = [0 6];
+tol = 1e-6;
 
+% find mtx sparse matrix files
+matrices = dir('test_subjects/*.mtx');
+test_count = size(matrices,1);
+
+% table data vars
 table_cell = cell(test_count,6);
 name_cell = cell(9,1);
 name_cell{1,1}="Test Number";
@@ -20,14 +23,6 @@ name_cell{8,1}="RCM Default IC";
 name_cell{9,1}="RCM Bfloat16 IC";
 
 
-
-% counters
-it_total1 = 1;
-it_total2 = 1;
-it_total3 = 1;
-it_total4 = 1;
-nonzero_its = 0;
-
 fprintf("Tests done:\n")
 for cur_test=1:test_count
 
@@ -35,13 +30,13 @@ for cur_test=1:test_count
      cur_matrix = matrices(cur_test).name;
      [A, ~, A_size, nonzero_count] = mmread(strcat('test_subjects/',cur_matrix));
 
-     %x = randn(size(A,2), 1) * max(A);
-     %b = A * x;
+     x = randn(size(A,2), 1) * max(A);
+     b = A * x;
      %b = randn(size(A,1), 1);
-     b = ones(size(A,1),1);
+     %b = ones(size(A,1),1);
 
-     %Standard Ordering
-     % calculate iteration count using standard floats
+    %Standard Ordering
+    % calculate iteration count using standard floats
      [~, ~, ~, itcount1] = custom_pcg(A, b, tol, max_iters, eye(A_size), 0);
      % calculate iteration count using brain floats
      [~, ~, ~, itcount2] = custom_pcg_bfloat16(A, b, tol, max_iters, eye(A_size), 0);
@@ -49,25 +44,26 @@ for cur_test=1:test_count
      perm = symrcm(A);
      A = A(perm,perm);
 
-     %RMC Ordering
-     % calculate iteration count using standard floats
+    %RMC Ordering
+    % calculate iteration count using standard floats
      [~, ~, ~, itcount3] = custom_pcg(A, b, tol, max_iters, eye(A_size), 0);
      % calculate iteration count using brain floats
-     [~, ~, ~, itcount4] = custom_pcg_bfloat16(A, b, tol, max_iters, eye(A_size), 0);
+      [~, ~, ~, itcount4] = custom_pcg_bfloat16(A, b, tol, max_iters, eye(A_size), 0);
 
-     % add data to table, show progress, get mean
-     table_cell{cur_test,1} = cur_test;
-     table_cell{cur_test,2} = cur_matrix;
-     table_cell{cur_test,3} = A_size;
-     table_cell{cur_test,4} = A_size/nonzero_count;
-     table_cell{cur_test,5} = cond(A);
-     table_cell{cur_test,6} = itcount1;
-     table_cell{cur_test,7} = itcount2;
-     table_cell{cur_test,8} = itcount3;
-     table_cell{cur_test,9} = itcount4;
+      % add data to table, show progress, get mean
+      table_cell{cur_test,1} = cur_test;
+      table_cell{cur_test,2} = cur_matrix;
+      table_cell{cur_test,3} = A_size;
+      table_cell{cur_test,4} = A_size/nonzero_count;
+      table_cell{cur_test,5} = cond(A);
+      table_cell{cur_test,6} = itcount1;
+      table_cell{cur_test,7} = itcount2;
+      table_cell{cur_test,8} = itcount3;
+      table_cell{cur_test,9} = itcount4;
 
-     fprintf("%3d: %s, %3d, %3d, %3d, %3d, %3d, %3d, %3d\n",cur_test,cur_matrix,A_size,A_size/nonzero_count,cond(A),itcount1,itcount2,itcount3,itcount4)
-     end
+      fprintf("%3d: %s, %3d, %3d, %3d, %3d, %3d, %3d, %3d\n", ...
+              cur_test,cur_matrix,A_size,A_size/nonzero_count,cond(A),itcount1,itcount2,itcount3,itcount4)
+end
 
 % Create and print table
 table = cell2table(table_cell,'VariableNames',name_cell);
@@ -76,7 +72,6 @@ prettyprint(table)
 
 
 % Write to CVS File
-t = table_cell;
 fid = fopen( 'results.csv', 'wt' );
 for i = 1:size(name_cell,1) fprintf(fid,"%s,",name_cell{i}) end
 fprintf(fid," CRLF\n");
@@ -90,6 +85,6 @@ for i = 1:test_count
 	fprintf(fid,"%s,",t{i,j});
     end
   end
-  fprintf(fid," CLRF\n");
+  fprintf(fid," CRLF\n");
 end
 fprintf("# table written to results.csv/n")
