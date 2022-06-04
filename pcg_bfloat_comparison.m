@@ -82,7 +82,7 @@ for i = 1:test_count
         fprintf(fid,"%d,",table_cell{i,j});
     end
     if j == 2
-	fprintf(fid,"%s,",t{i,j});
+	fprintf(fid,"%s,",table_cell{i,j});
     end
   end
   fprintf(fid," CRLF\n");
