@@ -33,10 +33,10 @@ for cur_test=1:test_count
     cur_matrix = matrices(cur_test).name;
     [A, ~, A_size, nonzero_count] = mmread(strcat('test_subjects/',cur_matrix));
 
-    %x = randn(size(A,2), 1) * max(A);
-    %b = A * x;
+    x = randn(size(A,2), 1) * max(A);
+    b = A * x;
     %b = randn(size(A,1), 1);
-    b = ones(size(A,1),1);
+    %b = ones(size(A,1),1);
 
     % start print output
     fprintf("%3d: %s, %3d, %3d, %3d, ", ...
