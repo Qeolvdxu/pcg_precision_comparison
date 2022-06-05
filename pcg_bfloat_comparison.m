@@ -56,7 +56,7 @@ for cur_test=1:test_count
      fprintf(".")
 
      % calculate iteration count using brain floats
-     [~, ~, ~, itcount4] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp32', 0);
+     [~, ~, ~, itcount4] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'bfloat16', 0);
      fprintf(".\n")
 
 
