@@ -25,8 +25,7 @@ name_cell{9,1}="RCM Bfloat16 IC";
 iteration_cell = cell(4,1);
 for i=1:4
     iteration_cell{i,1} = 0;
-end 
-
+end
 
 for cur_test=1:test_count
 
@@ -64,8 +63,6 @@ for cur_test=1:test_count
     [~, ~, ~, iteration_cell{4,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'bfloat16', 0);
     fprintf("%3d\n",iteration_cell{4,1})
 
-
-
     % add data to table, show progress, get mean
     table_cell{cur_test,1} = cur_test;
     table_cell{cur_test,2} = cur_matrix;
@@ -76,33 +73,28 @@ for cur_test=1:test_count
     table_cell{cur_test,7} = iteration_cell{2,1};
     table_cell{cur_test,8} = iteration_cell{3,1};
     table_cell{cur_test,9} = iteration_cell{4,1};
-
-
-    fprintf("%3d, %3d, %3d, %3d\n", ...
-            itcount1,itcount2,itcount3,itcount4)
-
 end
 
 % Create and print table
-table = cell2table(table_cell,'VariableNames',name_cell);
-fprintf("\n")
-prettyprint(table)
+        table = cell2table(table_cell,'VariableNames',name_cell);
+        fprintf("\n")
+        prettyprint(table)
 
 
-% Write to CVS File
-fid = fopen( 'results.csv', 'wt' );
-for i = 1:size(name_cell,1) fprintf(fid,"%s,",name_cell{i}) end
-fprintf(fid," CRLF\n");
+        % Write to CVS File
+        fid = fopen( 'results.csv', 'wt' );
+        for i = 1:size(name_cell,1) fprintf(fid,"%s,",name_cell{i}) end
+        fprintf(fid," CRLF\n");
 
-for i = 1:test_count
-  for j = 1:size(name_cell,1)
-    if j != 2
-        fprintf(fid,"%d,",table_cell{i,j});
-    end
-    if j == 2
-	fprintf(fid,"%s,",table_cell{i,j});
-    end
-  end
-  fprintf(fid," CRLF\n");
-end
-fprintf("# table written to results.csv/n")
+        for i = 1:test_count
+            for j = 1:size(name_cell,1)
+                if j != 2
+                    fprintf(fid,"%d,",table_cell{i,j});
+                    end
+                if j == 2
+	            fprintf(fid,"%s,",table_cell{i,j});
+                    end
+                end
+            fprintf(fid," CRLF\n");
+            end
+        fprintf("# table written to results.csv/n")
