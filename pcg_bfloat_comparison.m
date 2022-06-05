@@ -45,7 +45,7 @@ for cur_test=1:test_count
 
     %Standard Ordering
     % calculate iteration count using standard floats
-    [~, ~, ~, iteration_cell{1,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp32', 0);
+    [~, ~, ~, iteration_cell{1,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp64', 0);
     fprintf("%3d, ",iteration_cell{1,1})
     
     % calculate iteration count using brain floats
@@ -57,7 +57,7 @@ for cur_test=1:test_count
 
     %RMC Ordering
     % calculate iteration count using standard floats
-    [~, ~, ~, iteration_cell{3,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp32', 0);
+    [~, ~, ~, iteration_cell{3,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp64', 0);
     fprintf("%3d, ",iteration_cell{3,1})
 
     % calculate iteration count using brain floats
