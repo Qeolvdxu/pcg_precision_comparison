@@ -6,6 +6,6 @@
 #SBATCH -o pcg_bfloat_comparison.out
 #SBATCH -t 48:00:00
 #SBATCH -N 1
-#SBATCH -n 128
+#SBATCH -n 4
 module load octave
 octave ./pcg_bfloat_comparison.m 
