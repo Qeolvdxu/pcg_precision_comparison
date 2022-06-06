@@ -76,25 +76,25 @@ for cur_test=1:test_count
 end
 
 % Create and print table
-        table = cell2table(table_cell,'VariableNames',name_cell);
-        fprintf("\n")
-        prettyprint(table)
+table = cell2table(table_cell,'VariableNames',name_cell);
+fprintf("\n")
+prettyprint(table)
 
 
-        % Write to CVS File
-        fid = fopen( 'results.csv', 'wt' );
-        for i = 1:size(name_cell,1) fprintf(fid,"%s,",name_cell{i}) end
-        fprintf(fid," CRLF\n");
+% Write to CVS File
+fid = fopen( 'results.csv', 'wt' );
+for i = 1:size(name_cell,1) fprintf(fid,"%s,",name_cell{i}) end
+fprintf(fid," CRLF\n");
 
-        for i = 1:test_count
-            for j = 1:size(name_cell,1)
-                if j != 2
-                    fprintf(fid,"%d,",table_cell{i,j});
-                    end
-                if j == 2
-	            fprintf(fid,"%s,",table_cell{i,j});
-                    end
-            end
-            fprintf(fid," CRLF\n");
+for i = 1:test_count
+    for j = 1:size(name_cell,1)
+        if j != 2
+            fprintf(fid,"%d,",table_cell{i,j});
         end
-        fprintf("# table written to results.csv/n")
+        if j == 2
+	    fprintf(fid,"%s,",table_cell{i,j});
+        end
+    end
+    fprintf(fid," CRLF\n");
+end
+fprintf("# table written to results.csv/n")
