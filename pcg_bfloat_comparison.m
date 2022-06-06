@@ -1,5 +1,4 @@
 % test custom PCG algorithm with IEEE vs BFloat data types
-pkg load tablicious
 
 % customizable settings 
 max_iters = 20000;
@@ -74,12 +73,6 @@ for cur_test=1:test_count
     table_cell{cur_test,8} = iteration_cell{3,1};
     table_cell{cur_test,9} = iteration_cell{4,1};
 end
-
-% Create and print table
-table = cell2table(table_cell,'VariableNames',name_cell);
-fprintf("\n")
-prettyprint(table)
-
 
 % Write to CVS File
 fid = fopen( 'results.csv', 'wt' );
