@@ -94,7 +94,7 @@ end
                 if j == 2
 	            fprintf(fid,"%s,",table_cell{i,j});
                     end
-                end
-            fprintf(fid," CRLF\n");
             end
+            fprintf(fid," CRLF\n");
+        end
         fprintf("# table written to results.csv/n")
