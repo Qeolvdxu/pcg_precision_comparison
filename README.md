@@ -3,7 +3,8 @@
 Octave/Matlab program to compare data types to see if the floating level will change the interaction counts when running a precondition conjugate gradient algorithm. 
 
 ## Requires
-This program requires :
+This program requires the following functions: 
+(they are also included here for portability but may not be a recent version)
 * Chop : https://github.com/higham/chop
 * MMRead : https://www.mathworks.com/matlabcentral/fileexchange/8028-mmread
 
