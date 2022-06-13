@@ -1,4 +1,4 @@
-function [xout, flag, relres, iter, percision, flush_flag] = custom_datatype_pcg(A, b, t, maxint, M, toCache, perci, flush)
+function [xout, flag, relres, iter, percision, flush_flag] = custom_datatype_pcg(A, b, t, maxint, M, toCache, perci, flush, Aperci)
 % A: matrix
 % b: right hand side vector
 % t: tolerance
@@ -7,10 +7,14 @@ function [xout, flag, relres, iter, percision, flush_flag] = custom_datatype_pcg
 % toCache: set to 1 to cache best results, 0 otherwise
 % perci: floating point percision
 % flush: flush denormal flag
-    
+
+    options.format = Aperci; % bfloat16 percision 
+    options.subnormal = flush; %denormal flushing enabled
+
+    A = chop(A,options);
+
     options.format = perci; % bfloat16 percision 
     options.subnormal = flush; %denormal flushing enabled
-    A = chop(A);
     
     % initial setup
     x = zeros(size(A,1), 1);    % zero initial guess
@@ -29,9 +33,11 @@ function [xout, flag, relres, iter, percision, flush_flag] = custom_datatype_pcg
         q = chop(A*p,options);
         v = chop(dot(r,z),options);
         alpha = chop(v / chop(dot(p,q),options),options);
+
         x = chop(x + alpha*p,options);    % improve approximation
         r = chop(r - alpha*q,options);    % update residual
         z = chop(M*r,options);            % preconditioning
+
         beta = chop(chop(dot(r,z),options) /  v,options);
         p = chop(z + chop(beta*p,options),options);     % new search direction
         i = i+1;
