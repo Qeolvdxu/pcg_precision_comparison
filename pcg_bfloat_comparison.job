@@ -9,3 +9,6 @@
 #SBATCH -n 4
 module load octave
 octave ./pcg_bfloat_comparison.m 
+
+#module load matlab
+#octave pcg_bfloat_comparison.m
