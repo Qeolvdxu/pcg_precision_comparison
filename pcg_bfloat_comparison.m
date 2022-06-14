@@ -30,7 +30,7 @@ name_cell{13,1}="RCM BFloat16";
 name_cell{14,1}="RCM 64A IEEE 16";
 name_cell{15,1}="RCM 64A IEEE 32 IC";
 
-iteration_cell = cell(size(name_cell)-5,1);
+iteration_cell = cell(datatype_count*2,1);
 
 for i=1:4
     iteration_cell{i,1} = 0;
