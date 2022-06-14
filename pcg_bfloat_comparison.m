@@ -21,13 +21,13 @@ name_cell{5,1}="Condition Number";
 name_cell{6,1}="IEEE 64";
 name_cell{7,1}="IEEE 32";
 name_cell{8,1}="BFloat16";
-name_cell{9,1}="64A IEEE 16";
+name_cell{9,1}="64A BFloat16";
 name_cell{10,1}="64A IEEE 32 IC";
 
 name_cell{11,1}="RCM IEEE 64";
 name_cell{12,1}="RCM IEEE 32";
 name_cell{13,1}="RCM BFloat16";
-name_cell{14,1}="RCM 64A IEEE 16";
+name_cell{14,1}="RCM 64A BFloat16";
 name_cell{15,1}="RCM 64A IEEE 32 IC";
 
 iteration_cell = cell(datatype_count*2,1);
@@ -49,7 +49,7 @@ for cur_test=1:test_count
 
     % start print output
     fprintf("%3d: %s, %3d, %3d, %3d, ", ...
-            cur_test,cur_matrix,A_size,A_size/nonzero_count,cond(A))
+            cur_test,cur_matrix,A_size,A_size/nonzero_count,condest(A))
 
     %Standard Ordering
     % calculate iteration count using 
@@ -62,7 +62,7 @@ for cur_test=1:test_count
     [~, ~, ~, iteration_cell{3,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'bfloat16', 0, 'bfloat16');
     fprintf("%3d, ",iteration_cell{3,1})
 
-    [~, ~, ~, iteration_cell{4,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp16', 0, 'fp64');
+    [~, ~, ~, iteration_cell{4,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'bfloat16', 0, 'fp64');
     fprintf("%3d, ",iteration_cell{4,1})
 
     [~, ~, ~, iteration_cell{5,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp32', 0, 'fp64');
@@ -84,7 +84,7 @@ for cur_test=1:test_count
     [~, ~, ~, iteration_cell{8,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'bfloat16', 0, 'bfloat16');
     fprintf("%3d, ",iteration_cell{3,1})
 
-    [~, ~, ~, iteration_cell{9,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp16', 0, 'fp64');
+    [~, ~, ~, iteration_cell{9,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'bfloat16', 0, 'fp64');
     fprintf("%3d, ",iteration_cell{4,1})
 
     [~, ~, ~, iteration_cell{10,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp32', 0, 'fp64');
