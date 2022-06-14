@@ -96,7 +96,7 @@ for cur_test=1:test_count
     table_cell{cur_test,2} = cur_matrix;
     table_cell{cur_test,3} = A_size;
     table_cell{cur_test,4} = A_size/nonzero_count;
-    table_cell{cur_test,5} = cond(A);
+    table_cell{cur_test,5} = condest(A);
 
     for i=1+5:(datatype_count*2)+5
         table_cell{cur_test,i} = iteration_cell{i-5,1};
