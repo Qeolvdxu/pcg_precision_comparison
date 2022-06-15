@@ -51,21 +51,25 @@ for cur_test=1:test_count
     fprintf("%3d: %s, %3d, %3d, %3d, ", ...
             cur_test,cur_matrix,A_size,A_size/nonzero_count,condest(A))
 
+    alpha = max(sum(abs(A),2)./diag(A))-2;
+    precond = ichol(A, struct('type','ict','droptol',1e-3,'diagcomp',alpha));
+    %precond = eye(A_size);
+    
     %Standard Ordering
     % calculate iteration count using 
-    [~, ~, ~, iteration_cell{1,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp64', 0, 'fp64');
+    [~, ~, ~, iteration_cell{1,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp64', 0, 'fp64');
     fprintf("%3d, ",iteration_cell{1,1})
     
-    [~, ~, ~, iteration_cell{2,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp32', 0, 'fp32');
+    [~, ~, ~, iteration_cell{2,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp32');
     fprintf("%3d, ",iteration_cell{2,1})
 
-    [~, ~, ~, iteration_cell{3,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'bfloat16', 0, 'bfloat16');
+    [~, ~, ~, iteration_cell{3,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'bfloat16');
     fprintf("%3d, ",iteration_cell{3,1})
 
-    [~, ~, ~, iteration_cell{4,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'bfloat16', 0, 'fp64');
+    [~, ~, ~, iteration_cell{4,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'fp64');
     fprintf("%3d, ",iteration_cell{4,1})
 
-    [~, ~, ~, iteration_cell{5,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp32', 0, 'fp64');
+    [~, ~, ~, iteration_cell{5,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp64');
     fprintf("%3d, ",iteration_cell{5,1})
 
 
@@ -75,19 +79,19 @@ for cur_test=1:test_count
 
 
     %RCM Ordering
-    [~, ~, ~, iteration_cell{6,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp64', 0, 'fp64');
+    [~, ~, ~, iteration_cell{6,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp64', 0, 'fp64');
     fprintf("%3d, ",iteration_cell{1,1})
     
-    [~, ~, ~, iteration_cell{7,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp32', 0, 'fp32');
+    [~, ~, ~, iteration_cell{7,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp32');
     fprintf("%3d, ",iteration_cell{2,1})
 
-    [~, ~, ~, iteration_cell{8,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'bfloat16', 0, 'bfloat16');
+    [~, ~, ~, iteration_cell{8,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'bfloat16');
     fprintf("%3d, ",iteration_cell{3,1})
 
-    [~, ~, ~, iteration_cell{9,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'bfloat16', 0, 'fp64');
+    [~, ~, ~, iteration_cell{9,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'fp64');
     fprintf("%3d, ",iteration_cell{4,1})
 
-    [~, ~, ~, iteration_cell{10,1}] = custom_datatype_pcg(A, b, tol, max_iters, eye(A_size), 0, 'fp32', 0, 'fp64');
+    [~, ~, ~, iteration_cell{10,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp64');
     fprintf("%3d, ",iteration_cell{5,1})
 
 
