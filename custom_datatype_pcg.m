@@ -9,17 +9,19 @@ function [xout, flag, relres, iter, percision, flush_flag] = custom_datatype_pcg
 % flush: flush denormal flag
 
     options.format = Aperci; % bfloat16 percision 
-    options.subnormal = flush; %denormal flushing enabled
+    options.subnormal = flush; %denormal flushing 
 
     A = chop(A,options);
 
     options.format = perci; % bfloat16 percision 
-    options.subnormal = flush; %denormal flushing enabled
+    options.subnormal = flush; %denormal flushing 
     
+    MT = M';
+
     % initial setup
     x = zeros(size(A,1), 1);    % zero initial guess
     r = chop(b - A*x,options);     %residual
-    z = chop(M * r,options);       % preconditioning
+    z = chop(MT\(M\r),options);       % preconditioning
     p = z;
     i = 0;
 
@@ -28,6 +30,7 @@ function [xout, flag, relres, iter, percision, flush_flag] = custom_datatype_pcg
     best_rel_res = chop(norm(r)/norm(b),options);
     best_it = i;
 
+    
     % loop
     while (i < maxint) && (norm(r)/norm(b) > t)
         q = chop(A*p,options);
@@ -36,7 +39,8 @@ function [xout, flag, relres, iter, percision, flush_flag] = custom_datatype_pcg
 
         x = chop(x + alpha*p,options);    % improve approximation
         r = chop(r - alpha*q,options);    % update residual
-        z = chop(M*r,options);            % preconditioning
+        z = MT\(M\r);            % preconditioning
+        z = chop(z,options);
 
         beta = chop(chop(dot(r,z),options) /  v,options);
         p = chop(z + chop(beta*p,options),options);     % new search direction
@@ -44,6 +48,8 @@ function [xout, flag, relres, iter, percision, flush_flag] = custom_datatype_pcg
 
         % cache if this approximation is the best so far
         if (toCache)
+            fprintf(1,"CACHE\n")
+
             if (norm(r)/norm(b) < best_rel_res)
                 best_x = x;
                 best_rel_res = norm(r)/norm(b);
@@ -54,6 +60,8 @@ function [xout, flag, relres, iter, percision, flush_flag] = custom_datatype_pcg
 
     % assign output
     if (toCache)
+        fprintf(1,"CACHE\n")
+
         xout = best_x;
         relres = best_rel_res;
         iter = best_it;
