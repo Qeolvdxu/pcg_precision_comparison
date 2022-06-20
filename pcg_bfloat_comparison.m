@@ -57,6 +57,7 @@ for cur_test=1:test_count
     
     %Standard Ordering
     % calculate iteration count using 
+    %iteration_cell{1,1} = pcg(A,b,tol,max_iters,precond);
     [~, ~, ~, iteration_cell{1,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp64', 0, 'fp64');
     fprintf("%3d, ",iteration_cell{1,1})
     
