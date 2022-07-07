@@ -7,11 +7,13 @@ datatype_count = 5;
 
 % find mtx sparse matrix files
 matrices = dir('test_subjects/*.mtx');
-test_count = size(matrices,1);
+test_count = 1; %size(matrices,1);
 
 % table data vars
 table_cell = cell(test_count,5+(datatype_count*2));
+ans_cell = cell(test_count,datatype_count*2);
 name_cell = cell(9,1);
+
 name_cell{1,1}="Test Number";
 name_cell{2,1}="Matrix";
 name_cell{3,1}="Size";
@@ -58,19 +60,23 @@ for cur_test=1:test_count
     %Standard Ordering
     % calculate iteration count using 
     %iteration_cell{1,1} = pcg(A,b,tol,max_iters,precond);
-    [~, ~, ~, iteration_cell{1,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp64', 0, 'fp64');
-    fprintf("%3d, ",iteration_cell{1,1})
+    [ans_cell{cur_test,1}, ~, ~, iteration_cell{1,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp64', 0, 'fp64');
+    fprintf("%3d,",iteration_cell{1,1})
+    %disp(ans_cell{1,1})
     
-    [~, ~, ~, iteration_cell{2,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp32');
+
+    
+    
+    [ans_cell{cur_test,2}, ~, ~, iteration_cell{2,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp32');
     fprintf("%3d, ",iteration_cell{2,1})
 
-    [~, ~, ~, iteration_cell{3,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'bfloat16');
+    [ans_cell{cur_test,3}, ~, ~, iteration_cell{3,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'bfloat16');
     fprintf("%3d, ",iteration_cell{3,1})
 
-    [~, ~, ~, iteration_cell{4,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'fp64');
+    [ans_cell{cur_test,4}, ~, ~, iteration_cell{4,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'fp64');
     fprintf("%3d, ",iteration_cell{4,1})
 
-    [~, ~, ~, iteration_cell{5,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp64');
+    [ans_cell{cur_test,5}, ~, ~, iteration_cell{5,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp64');
     fprintf("%3d, ",iteration_cell{5,1})
 
 
@@ -80,20 +86,21 @@ for cur_test=1:test_count
 
 
     %RCM Ordering
-    [~, ~, ~, iteration_cell{6,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp64', 0, 'fp64');
-    fprintf("%3d, ",iteration_cell{1,1})
+    [ans_cell{cur_test,6}, ~, ~, iteration_cell{6,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp64', 0, 'fp64');
+    fprintf("%3d, ",iteration_cell{6,1})
     
-    [~, ~, ~, iteration_cell{7,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp32');
-    fprintf("%3d, ",iteration_cell{2,1})
+    
+    [ans_cell{cur_test,7}, ~, ~, iteration_cell{7,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp32');
+    fprintf("%3d, ",iteration_cell{7,1})
 
-    [~, ~, ~, iteration_cell{8,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'bfloat16');
-    fprintf("%3d, ",iteration_cell{3,1})
+    [ans_cell{cur_test,8}, ~, ~, iteration_cell{8,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'bfloat16');
+    fprintf("%3d, ",iteration_cell{8,1})
 
-    [~, ~, ~, iteration_cell{9,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'fp64');
-    fprintf("%3d, ",iteration_cell{4,1})
+    [ans_cell{cur_test,9}, ~, ~, iteration_cell{9,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'bfloat16', 0, 'fp64');
+    fprintf("%3d, ",iteration_cell{9,1})
 
-    [~, ~, ~, iteration_cell{10,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp64');
-    fprintf("%3d, ",iteration_cell{5,1})
+    [ans_cell{cur_test,10}, ~, ~, iteration_cell{10,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp64');
+    fprintf("%3d \n",iteration_cell{10,1})
 
 
     % add data to table, show progress, get mean
@@ -115,8 +122,7 @@ for i=1:size(name_cell,1)
     fprintf(fid,"%s,",name_cell{i})
 end
 
-fprintf(fid," CRLF\n");
-
+fprintf(fid," \n");
 for i = 1:test_count
     for j = 1:size(name_cell,1)
         if j ~= 2
@@ -126,6 +132,20 @@ for i = 1:test_count
 	    fprintf(fid,"%s,",table_cell{i,j});
         end
     end
-    fprintf(fid," CRLF\n");
+    fprintf(fid," \n");
 end
+
+% Write vectors to pcg output
+%for i = 1:test_count
+%    for j = 1:datatype_count*2
+%        for k = 1:length(ans_cell{i,j})
+%            fprintf(fid,"%d,",ans_cell{i,j}(k));
+%        end
+%        fprintf(fid,"$ \n");
+%end
+%fprintf(fid,"# \n\n");
+%
+%end
+
+
 fprintf("# table written to results.csv/n")
