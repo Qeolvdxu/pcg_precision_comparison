@@ -1,0 +1,24 @@
+function [v1_max, v1_min] = ans_compare( v1, v2)
+    v1_max = max(v1)
+    v1_min = min(v1)
+    v1_norm = norm(v1)
+    v1_norm_fro = norm(v1,"fro")
+
+    v2_max = max(v2)
+    v2_min = min(v2)
+    v2_norm = norm(v2) 
+    v2_norm_fro = norm(v2,"fro")
+
+    mae(v1-v2) % mean(abs(A-B))
+    sae(v1-v2) % sum(abs(A-B))
+    norm(v1-v2,1) % sum(abs(A-B))
+    norm(v1-v2,INF) % max(abs(A-B))
+    mse(v1-v2) % mean((A-B).^2)
+    sse(v1-v2) % sum((A-B).^2)
+    norm(v1-v2) % sqrt(sse(A-B))
+    norm(v1-v2,"fro") 
+
+
+
+
+end

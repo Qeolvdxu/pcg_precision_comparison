@@ -7,7 +7,7 @@ datatype_count = 5;
 
 % find mtx sparse matrix files
 matrices = dir('test_subjects/*.mtx');
-test_count = 1; %size(matrices,1);
+test_count = 2;%size(matrices,1);
 
 % table data vars
 table_cell = cell(test_count,5+(datatype_count*2));
@@ -132,20 +132,16 @@ for i = 1:test_count
 	    fprintf(fid,"%s,",table_cell{i,j});
         end
     end
-    fprintf(fid," \n");
+    fprintf(fid," \n|\n");
+    for j = 1:datatype_count*2
+        fprintf(fid,"%s,",name_cell{5+j})
+        for k = 1:length(ans_cell{i,j})
+            fprintf(fid,"%d,",ans_cell{i,j}(k));
+        end
+        fprintf(fid,"\n");
+    end
+    fprintf(fid,"\n");
 end
-
-% Write vectors to pcg output
-%for i = 1:test_count
-%    for j = 1:datatype_count*2
-%        for k = 1:length(ans_cell{i,j})
-%            fprintf(fid,"%d,",ans_cell{i,j}(k));
-%        end
-%        fprintf(fid,"$ \n");
-%end
-%fprintf(fid,"# \n\n");
-%
-%end
 
 
 fprintf("# table written to results.csv/n")
