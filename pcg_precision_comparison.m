@@ -64,9 +64,6 @@ for cur_test=1:test_count
     fprintf("%3d,",iteration_cell{1,1})
     %disp(ans_cell{1,1})
     
-
-    
-    
     [ans_cell{cur_test,2}, ~, ~, iteration_cell{2,1}] = custom_datatype_pcg(A, b, tol, max_iters, precond, 0, 'fp32', 0, 'fp32');
     fprintf("%3d, ",iteration_cell{2,1})
 
@@ -132,16 +129,28 @@ for i = 1:test_count
 	    fprintf(fid,"%s,",table_cell{i,j});
         end
     end
-    fprintf(fid," \n|\n");
-    for j = 1:datatype_count*2
-        fprintf(fid,"%s,",name_cell{5+j})
-        for k = 1:length(ans_cell{i,j})
-            fprintf(fid,"%d,",ans_cell{i,j}(k));
-        end
-        fprintf(fid,"\n");
-    end
-    fprintf(fid,"\n");
+    fprintf(fid," \n");
 end
 
+fprintf(fid,"\nVECTOR COMPARISON\n");
+for i=1:20
+    for j=1:datatype_count*2
+        for k=1:datatype_count*2
+            test = ans_compare(ans_cell{i,j},ans_cell{i,k});
+            for i=1:4
+                for j=1:10
+                    if i == 1
+                        fprintf(fid,"%s, ",test{i,j})
+                    end
+                    if i ~= 1
+                        fprintf(fid,"%d, ",test{i,j})
+                    end
+                end
+                fprintf(fid,"\n")
 
+            end
+            fprintf(fid,"\n")
+        end
+    end
+end
 fprintf("# table written to results.csv/n")

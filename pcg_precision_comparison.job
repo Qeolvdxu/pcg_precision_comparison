@@ -1,13 +1,11 @@
 #!/bin/bash 
-#SBATCH -p RM
 #SBATCH -J pcg_bfloat_comparison
 #SBATCH --mail-user=hve0002@uah.edu
 #SBATCH --mail-type=ALL
 #SBATCH -o pcg_bfloat_comparison.out
 #SBATCH -t 48:00:00
 #SBATCH -N 1
-#SBATCH -n 4
-module load octave
+#SBATCH -n 1
 octave ./pcg_precision_comparison.m 
 
 #module load matlab
