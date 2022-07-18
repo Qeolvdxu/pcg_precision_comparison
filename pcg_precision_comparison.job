@@ -1,8 +1,8 @@
 #!/bin/bash 
-#SBATCH -J pcg_bfloat_comparison
+#SBATCH -J pcg_precision_comparison
 #SBATCH --mail-user=hve0002@uah.edu
 #SBATCH --mail-type=ALL
-#SBATCH -o pcg_bfloat_comparison.out
+#SBATCH -o results.out
 #SBATCH -t 48:00:00
 #SBATCH -N 1
 #SBATCH -n 1
