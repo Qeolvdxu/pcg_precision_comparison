@@ -1,4 +1,4 @@
-% test custom PCG algorithm with various data types
+%lrighty test custom PCG algorithm with various data types
 
 % customizable settings 
 max_iters = 8000;
@@ -7,7 +7,7 @@ datatype_count = 5;
 
 % find mtx sparse matrix files
 matrices = dir('test_subjects/*.mtx');
-test_count = 2;%size(matrices,1);
+test_count = size(matrices,1);
 
 % table data vars
 table_cell = cell(test_count,5+(datatype_count*2));
@@ -132,18 +132,35 @@ for i = 1:test_count
     fprintf(fid," \n");
 end
 
+compare_cell = cell(4,10);
+
 fprintf(fid,"\nVECTOR COMPARISON\n");
-for i=1:20
+for i=1:test_count
+    fprintf(fid,"Test %d , Matrix %s, \n",i,matrices(i).name)
     for j=1:datatype_count*2
         for k=1:datatype_count*2
-            test = ans_compare(ans_cell{i,j},ans_cell{i,k});
-            for i=1:4
-                for j=1:10
-                    if i == 1
-                        fprintf(fid,"%s, ",test{i,j})
+	    fprintf(fid,"%s vs %s\n",name_cell{j+5},name_cell{k+5})
+            compare_cell = ans_compare(ans_cell{i,j},ans_cell{i,k});
+
+            fprintf(fid,"%s,",name_cell{j+5})
+            for l=1:size(ans_cell{i,j})
+                fprintf(fid,"%d, ",ans_cell{i,j}(l))
+            end
+            fprintf(fid,"\n")
+
+            fprintf(fid,"%s,",name_cell{k+5})
+            for l=1:size(ans_cell{i,k})
+                fprintf(fid,"%d, ",ans_cell{i,j}(l))
+            end
+            fprintf(fid,"\n")
+            
+            for l=1:4
+                for m=1:10
+                    if l == 1
+                        fprintf(fid,"%s, ",compare_cell{l,m})
                     end
-                    if i ~= 1
-                        fprintf(fid,"%d, ",test{i,j})
+                    if l ~= 1
+                        fprintf(fid,"%d, ",compare_cell{l,m})
                     end
                 end
                 fprintf(fid,"\n")
