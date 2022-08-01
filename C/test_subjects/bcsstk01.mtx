@@ -1,3 +1,16 @@
+%%MatrixMarket matrix coordinate real symmetric
+%-------------------------------------------------------------------------------
+% UF Sparse Matrix Collection, Tim Davis
+% http://www.cise.ufl.edu/research/sparse/matrices/HB/bcsstk01
+% name: HB/bcsstk01
+% [SYMMETRIC STIFFNESS MATRIX SMALL GENERALIZED EIGENVALUE PROBLEM]
+% id: 23
+% date: 1982
+% author: J. Lewis
+% ed: I. Duff, R. Grimes, J. Lewis
+% fields: title A name id date author ed kind
+% kind: structural problem
+%-------------------------------------------------------------------------------
 48 48 224
 1 1 2832268.51852
 5 1 1e6

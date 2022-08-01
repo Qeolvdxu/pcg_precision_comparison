@@ -1,3 +1,16 @@
+%%MatrixMarket matrix coordinate real symmetric
+%-------------------------------------------------------------------------------
+% UF Sparse Matrix Collection, Tim Davis
+% http://www.cise.ufl.edu/research/sparse/matrices/HB/bcsstk09
+% name: HB/bcsstk09
+% [SYMMETRIC STIFFNESS MATRIX, SQUARE PLATE CLAMPED]
+% id: 31
+% date: 1982
+% author: J. Lewis
+% ed: I. Duff, R. Grimes, J. Lewis
+% fields: title A name id date author ed kind
+% kind: structural problem
+%-------------------------------------------------------------------------------
 1083 1083 9760
 1 1 39411962.7427
 2 1 2.98023223877e-8
