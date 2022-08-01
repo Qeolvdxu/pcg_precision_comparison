@@ -49,7 +49,7 @@ my_csr_matrix *mm2csr(char *name) {
 
   for (i = 1; i < M->n; i++) {
     M->rowptr[i] = rowctr[i - 1] + M->rowptr[i - 1];
-    printf("%d, ", rowctr[i]);
+    // printf("%d, ", rowctr[i]);
   }
   printf("\n");
   fclose(file);
@@ -65,23 +65,35 @@ my_csr_matrix *mm2csr(char *name) {
 
     return;
   }
-  int main(void) {
 
-    struct my_csr_matrix *bob = mm2csr("./test_subjects/rob.mtx");
+  void print_csr(my_csr_matrix *M) {
     int i = 0;
 
-    for (i = 0; i < bob->nz; i++)
-      printf("%Lf, ", bob->val[i]);
-    printf("\n");
+    printf("values,");
+    for (i = 0; i < M->nz; i++)
+      printf("%Lf, ", M->val[i]);
+    printf("\n\n");
 
-    for (i = 0; i < bob->nz; i++)
-      printf("%d, ", bob->col[i]);
-    printf("\n");
+    printf("index,");
+    for (i = 0; i < M->nz; i++)
+      printf("%d, ", M->col[i]);
+    printf("\n\n");
 
-    for (i = 0; i < bob->n; i++)
-      printf("%d, ", bob->rowptr[i]);
-    printf("\n");
+    printf("rowptr,");
+    for (i = 0; i < M->n; i++)
+      printf("%d, ", M->rowptr[i]);
+    printf("\n\n");
+  }
+  int main(void) {
+
+    struct my_csr_matrix *bob = mm2csr("./test_subjects/bob.mtx");
+    print_csr(bob);
+
+    struct my_csr_matrix *rob = mm2csr("./test_subjects/rob.mtx");
+    print_csr(rob);
 
     free_matrix(bob);
+    free_matrix(rob);
+
     return 0;
   }
