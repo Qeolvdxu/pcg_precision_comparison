@@ -1,16 +1,3 @@
-%%MatrixMarket matrix coordinate real symmetric
-%-------------------------------------------------------------------------------
-% UF Sparse Matrix Collection, Tim Davis
-% http://www.cise.ufl.edu/research/sparse/matrices/HB/662_bus
-% name: HB/662_bus
-% [S ADMITTANCE MATRIX  662 BUS POWER SYSTEM, D.J.TYLAVSKY, JULY 1985.]
-% id: 3
-% date: 1985
-% author: D. Tylavsky
-% ed: I. Duff, R. Grimes, J. Lewis
-% fields: title A name id date author ed kind
-% kind: power network problem
-%-------------------------------------------------------------------------------
 662 662 1568
 1 1 1422.897
 222 1 -2.86533
