@@ -1,3 +1,16 @@
+%%MatrixMarket matrix coordinate real symmetric
+%-------------------------------------------------------------------------------
+% UF Sparse Matrix Collection, Tim Davis
+% http://www.cise.ufl.edu/research/sparse/matrices/HB/bcsstk08
+% name: HB/bcsstk08
+% [SYMMETRIC STIFFNESS MATRIX, FRAME BUILDING (TV STUDIO)]
+% id: 30
+% date: 1982
+% author: J. Lewis
+% ed: I. Duff, R. Grimes, J. Lewis
+% fields: title A name id date author ed kind
+% kind: structural problem
+%-------------------------------------------------------------------------------
 1074 1074 7017
 1 1 1484352
 7 1 -110592

@@ -1,3 +1,16 @@
+%%MatrixMarket matrix coordinate real symmetric
+%-------------------------------------------------------------------------------
+% UF Sparse Matrix Collection, Tim Davis
+% http://www.cise.ufl.edu/research/sparse/matrices/HB/bcsstk14
+% name: HB/bcsstk14
+% [S  STIFFNESS MATRIX - ROOF OF OMNI COLISEUM, ATLANTA]
+% id: 36
+% date: 1985
+% author: M. Will
+% ed: I. Duff, R. Grimes, J. Lewis
+% fields: title A name id date author ed kind
+% kind: structural problem
+%-------------------------------------------------------------------------------
 1806 1806 32630
 1 1 1931606.408315
 3 1 -102165.6540779

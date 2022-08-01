@@ -1,3 +1,16 @@
+%%MatrixMarket matrix coordinate real symmetric
+%-------------------------------------------------------------------------------
+% UF Sparse Matrix Collection, Tim Davis
+% http://www.cise.ufl.edu/research/sparse/matrices/HB/bcsstk05
+% name: HB/bcsstk05
+% [SYMMETRIC STIFFNESS MATRIX, TRANSMISSION TOWER, LUMPED MASSES]
+% id: 27
+% date: 1982
+% author: J. Lewis
+% ed: I. Duff, R. Grimes, J. Lewis
+% fields: title A name id date author ed kind
+% kind: structural problem
+%-------------------------------------------------------------------------------
 153 153 1288
 1 1 314313.927913
 4 1 -86857.8705282

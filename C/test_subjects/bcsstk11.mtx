@@ -1,3 +1,16 @@
+%%MatrixMarket matrix coordinate real symmetric
+%-------------------------------------------------------------------------------
+% UF Sparse Matrix Collection, Tim Davis
+% http://www.cise.ufl.edu/research/sparse/matrices/HB/bcsstk11
+% name: HB/bcsstk11
+% [SYMMETRIC STIFFNESS MATRIX, ORE CAR (LUMPED MASSES)]
+% id: 33
+% date: 1982
+% author: J. Lewis
+% ed: I. Duff, R. Grimes, J. Lewis
+% fields: title A name id date author ed kind
+% kind: structural problem
+%-------------------------------------------------------------------------------
 1473 1473 17857
 1 1 1011851.60912
 2 1 4110093.43272
