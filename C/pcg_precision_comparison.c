@@ -2,13 +2,16 @@
 #include <math.h>
 #include <stdlib.h>
 
+#define PRECI_DT double
+#define PRECI_S "%lf "
+
 typedef struct my_csr_matrix {
   int n;
   int m;
   int nz;
-  double *val;
-  int* col;
-  int* rowptr;
+  PRECI_DT *val;
+  int *col;
+  int *rowptr;
 } my_csr_matrix;
 
 /* static double norm(int n, double *v) {
@@ -27,7 +30,7 @@ my_csr_matrix *csrread(char *name) {
   int i;
 
   fscanf(file, "%d %d %d", &M->m, &M->n, &M->nz);
-  M->val = malloc(sizeof(double) * M->nz);
+  M->val = malloc(sizeof(PRECI_DT) * M->nz);
   M->col = malloc(sizeof(int) * M->nz);
   M->rowptr = malloc(sizeof(int) * M->n);
 
@@ -36,7 +39,7 @@ my_csr_matrix *csrread(char *name) {
   for (i = 0; i < M->nz; i++)
     fscanf(file, "%d ", &M->col[i]);
   for (i = 0; i < M->nz; i++)
-    fscanf(file, "%lf ", &M->val[i]);
+    fscanf(file, PRECI_S, &M->val[i]);
 
   fclose(file);
   return M;
