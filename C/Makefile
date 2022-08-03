@@ -4,7 +4,7 @@ CFLAGS = -g -Wall -Wextra -pedantic
 LDFLAGS = -lm
 
 TARGET = pcg_precision_comparison
-SOURCES = $(TARGET).c
+SOURCES = $(TARGET).c my_crs_matrix.c
 
 all: $(TARGET)
 
