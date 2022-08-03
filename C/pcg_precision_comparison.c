@@ -17,6 +17,13 @@ int main(void) {
 
   // apply CG
   ans = my_crs_cg(test, b, 1e-6, 8000);
+  printf("\nans = ");
+  for (i = 0; i < test->n; i++)
+    printf("%lf, ", ans[i]);
+  printf("\n");
+
+  
+  // free
   my_crs_free(test);
   free(b);
   free(ans);
