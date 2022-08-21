@@ -1,6 +1,6 @@
 CC = clang
 
-CFLAGS = -v -g -Wall -Wextra -pedantic
+CFLAGS = -v -g -Wall -Wextra -pedantic -gdwarf-4
 LDFLAGS = -lm
 
 TARGET = pcg_precision_comparison

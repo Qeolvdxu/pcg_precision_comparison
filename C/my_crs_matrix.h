@@ -13,7 +13,7 @@ typedef struct {
   int *rowptr;
 } my_crs_matrix;
 
-double *my_crs_times_vec(my_crs_matrix *M, double *v);
+int my_crs_times_vec(my_crs_matrix *M, double *v, double *ans);
 double *my_crs_cg(my_crs_matrix *M, PRECI_DT *b, double tol, int maxit);
 my_crs_matrix *my_crs_read(char *name);
 void my_crs_free(my_crs_matrix *M);
