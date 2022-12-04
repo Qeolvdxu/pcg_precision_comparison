@@ -4,8 +4,8 @@
 #include <stdlib.h>
 
 // find the dot product of two vectors
-static double dotprod(int n, double *v, double *u) {
-  double x;
+static PRECI_DT dotprod(int n, PRECI_DT *v, PRECI_DT *u) {
+  PRECI_DT x;
   int i;
 
   for (i = 0, x = 0.0; i < n; i++)
@@ -15,9 +15,9 @@ static double dotprod(int n, double *v, double *u) {
 }
 
 // find the norm of a vector
-static double norm(int n, double *v) {
+static PRECI_DT norm(int n, PRECI_DT *v) {
 
-  double norm;
+  PRECI_DT norm;
   int i;
 
   for (i = 0, norm = 0.0; i < n; i++)
@@ -28,34 +28,26 @@ static double norm(int n, double *v) {
 }
 
 // multiply a my_crs_matrix with a vector
-int my_crs_times_vec(my_crs_matrix *M, double *v, double *ans) {
+int my_crs_times_vec(my_crs_matrix *M, PRECI_DT *v, PRECI_DT *ans) {
   int i, j;
-  for (i = 0; i < M->n; i++)
-    ans[i] = 0;
-
   for (i = 0; i < M->n; i++) {
-    for (j = M->rowptr[i]; j < M->rowptr[i + 1]; j++) {
-      ans[i] = ans[i] + M->val[j] * v[M->col[j]];
-    }
-    // printf("%lf ", ans[i]);
+    ans[i] = 0;
+    for (j = M->rowptr[i]; j < M->rowptr[i + 1]; j++) 
+      ans[i] += M->val[j] * v[M->col[j]];
   }
-  /* if (i == M->rowptr[row]) row++;
-             ans[row - 1] += M->val[i] * v[M->col[i]];
-	     }*/
-  return 0;
+return 0;
 }
 
-double *my_crs_cg(my_crs_matrix *M, PRECI_DT *b, double tol, int maxit) {
+PRECI_DT *my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT *x) {
   int i, j, v;
   // allocate vectors
-  double *x = malloc(sizeof(double) * M->n);
   for (i = 0; i < M->n; i++)
     x[i] = 0;
-  double alpha, beta;
-  double *p = malloc(sizeof(double) * M->n);
-  double *r       = malloc(sizeof(double) * M->n);
-  double *q  = malloc(sizeof(double) * M->n);
-  double *z = malloc(sizeof(double) * M->n);
+  PRECI_DT alpha, beta;
+  PRECI_DT *p = malloc(sizeof(PRECI_DT) * M->n);
+  PRECI_DT *r       = malloc(sizeof(PRECI_DT) * M->n);
+  PRECI_DT *q  = malloc(sizeof(PRECI_DT) * M->n);
+  PRECI_DT *z = malloc(sizeof(PRECI_DT) * M->n);
 
   // Set up to iterate
   my_crs_times_vec(M, x, r);
@@ -131,7 +123,6 @@ double *my_crs_cg(my_crs_matrix *M, PRECI_DT *b, double tol, int maxit) {
   free(q);
   free(z);
   free(r);
-  free(x);
        return 0;
 }
     // read matrix file into a my_csr_matrix variable
@@ -151,7 +142,7 @@ my_crs_matrix *my_crs_read(char *name) {
   for (i = 0; i < M->nz; i++)
     fscanf(file, "%d ", &M->col[i]);
   for (i = 0; i < M->nz; i++)
-    fscanf(file, PRECI_S, &M->val[i]);
+    fscanf(file, "%f ", &M->val[i]);
 
   fclose(file);
   return M;

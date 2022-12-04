@@ -1,7 +1,7 @@
 #ifndef MY_CSR_MATRIX_H_
 #define MY_CSR_MATRIX_H_
 
-#define PRECI_DT double
+#define PRECI_DT float 
 #define PRECI_S "%lf "
 // compressed sparse row matrix
 typedef struct {
@@ -13,8 +13,8 @@ typedef struct {
   int *rowptr;
 } my_crs_matrix;
 
-int my_crs_times_vec(my_crs_matrix *M, double *v, double *ans);
-double *my_crs_cg(my_crs_matrix *M, PRECI_DT *b, double tol, int maxit);
+int my_crs_times_vec(my_crs_matrix *M, PRECI_DT *v, PRECI_DT *ans);
+PRECI_DT *my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT *x);
 my_crs_matrix *my_crs_read(char *name);
 void my_crs_free(my_crs_matrix *M);
 void my_crs_print(my_crs_matrix *M);
