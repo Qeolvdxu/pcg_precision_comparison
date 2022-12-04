@@ -8,16 +8,12 @@ int main(void) {
   int i, tests;
   int test_count = 18;
   my_crs_matrix *test;
-  PRECI_DT* b;
-  PRECI_DT* x;
-
 
   char *files[18] = {
     "./test_subjects/494_bus.mtx.crs",
     "./test_subjects/662_bus.mtx.crs",
-    //"./test_subjects/685_bus.mtx.crs",
+    "./test_subjects/685_bus.mtx.crs",
     "./test_subjects/dwt_869.mtx.crs",
-
     "./test_subjects/bcsstk01.mtx.crs",
     "./test_subjects/bcsstk02.mtx.crs",
     "./test_subjects/bcsstk03.mtx.crs",
@@ -34,24 +30,44 @@ int main(void) {
     "./test_subjects/bcsstk14.mtx.crs"
   };
   for (tests=0; tests<test_count;tests++)
-      {
-	printf("\n%s",files[tests]);
+    {
+      printf("\n%s\n",files[tests]);
 
-	test = my_crs_read(files[tests]);//"./test_subjects/bcsstk10.mtx.crs");
-	b = malloc(sizeof(PRECI_DT) * test->n);
-	x = calloc(test->n, sizeof(PRECI_DT));
+      test = my_crs_read(files[tests]);//"./test_subjects/bcsstk10.mtx.crs");
+      PRECI_DT* b;
+      PRECI_DT* x;
+
+
+      b = malloc(sizeof(PRECI_DT) * test->n);
+      x = calloc(test->n, sizeof(PRECI_DT));
 
 
 
-	// b vector of 1s
-	for (i = 0; i < test->n; i++)
-	  b[i] = 1;
 
-  // apply CG
-  my_crs_cg(test, b, 1e-6, 2000, x);
-      }
+      // b vector of 1s
+      for (i = 0; i < test->n; i++)
+	b[i] = 1;
+
+
+      // apply CG
+
+      printf("calling cg\n");
+      my_crs_cg(test, b, 1e-6, 2000, x);
+
+
+
+      //	free(b);
+      //free(x);
+
+      printf(" dong \n");
+
+
+
+    }
+
+  printf(" donee \n");
+
   // free
-  my_crs_free(test);
-  free(b);
+  //my_crs_free(test);
   return 0;
 }

@@ -31,14 +31,20 @@ static PRECI_DT norm(int n, PRECI_DT *v) {
 int my_crs_times_vec(my_crs_matrix *M, PRECI_DT *v, PRECI_DT *ans) {
   int i, j;
   for (i = 0; i < M->n; i++) {
+    //    printf("test %d/%d\n",i,M->n);
     ans[i] = 0;
-    for (j = M->rowptr[i]; j < M->rowptr[i + 1]; j++) 
-      ans[i] += M->val[j] * v[M->col[j]];
+    for (j = M->rowptr[i]; j < M->rowptr[i + 1] && j < M->nz; j++)
+      {
+	//printf(" |%d| ",j);
+	ans[i] += M->val[j] * v[M->col[j]];
+      }
+
   }
-return 0;
+  return 0;
 }
 
-PRECI_DT *my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT *x) {
+void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT *x) {
+
   int i, j, v;
   // allocate vectors
   for (i = 0; i < M->n; i++)
@@ -49,12 +55,19 @@ PRECI_DT *my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PREC
   PRECI_DT *q  = malloc(sizeof(PRECI_DT) * M->n);
   PRECI_DT *z = malloc(sizeof(PRECI_DT) * M->n);
 
+
+
   // Set up to iterate
-  my_crs_times_vec(M, x, r);
+  printf("start cg\n");
+
+  my_crs_times_vec(M, x, r); // ! weird segfault
+
   for (i = 0; i < M->n; i++) {
     // printf("%lf, ", r[i]);
+
     r[i] = b[i] - r[i];
   }
+
   for (i = 0; i < M->n; i++)
     z[i] = r[i];
 
@@ -63,22 +76,23 @@ PRECI_DT *my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PREC
 
   // Start iteration
   i = 0;
+
   while (i <= maxit && norm(M->n, r) / norm(M->n, b) > tol) {
-    // printf("\n\ni:%d\nnorm_r: %lf norm_b: %lf\n", i, norm(M->n, r),
-    // norm(M->n, b));
+    //printf("\n\ni:%d\nnorm_r: %f norm_b: %lf\n", i, norm(M->n, r), norm(M->n, b));
     my_crs_times_vec(M, p, q);
     v = dotprod(M->n, r, z);
 
     // alpha =  / dot(p,q)
     alpha = v / dotprod(M->n, p, q);
+    // products eventually over flow mantisa and turn into inf, then nan after being used
 
     // x = x + alpha*p
-    for (j = 0; j < M->n; j++) {
-      x[j] += alpha * p[j];
-    }
+  for (j = 0; j < M->n; j++) {
+    x[j] += alpha * p[j];
+  }
 
-    // r = r - alpha*q
-    for (j = 0; j < M->n; j++)
+  // r = r - alpha*q
+  for (j = 0; j < M->n; j++)
       r[j] -= alpha * q[j];
 
     for (j = 0; j < M->n; j++)
@@ -123,9 +137,9 @@ PRECI_DT *my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PREC
   free(q);
   free(z);
   free(r);
-       return 0;
+  printf("ding ");
 }
-    // read matrix file into a my_csr_matrix variable
+// read matrix file into a my_csr_matrix variable
 my_crs_matrix *my_crs_read(char *name) {
   my_crs_matrix *M = malloc(sizeof(my_crs_matrix));
   FILE *file = fopen(name, "r");
@@ -148,7 +162,7 @@ my_crs_matrix *my_crs_read(char *name) {
   return M;
 }
 
-    // Free my_csr_matrix variable
+// Free my_csr_matrix variable
 void my_crs_free(my_crs_matrix *M) {
   free(M->val);
   free(M->col);
