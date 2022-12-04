@@ -17,14 +17,30 @@ static PRECI_DT dotprod(int n, PRECI_DT *v, PRECI_DT *u) {
 // find the norm of a vector
 static PRECI_DT norm(int n, PRECI_DT *v) {
 
-  PRECI_DT norm;
+  PRECI_DT ssq, scale, absvi;
   int i;
 
-  for (i = 0, norm = 0.0; i < n; i++)
-    norm += v[i] * v[i];
+  if (n==1) return fabs(v[0]);
 
-  norm = sqrt(norm);
-  return norm;
+  scale = 0.0;
+  ssq = 1.0;
+
+  for (i=0; i<n; i++)
+  {
+    if (v[i] != 0)
+    {
+      absvi = fabs(v[i]);
+      if (scale < absvi)
+	{
+	  ssq = 1.0 + ssq * (scale/absvi)*(scale/absvi);
+	  scale = absvi;
+	}
+      else
+	ssq = ssq + (absvi/scale)*(absvi/scale);
+    }
+  }
+
+  return scale * sqrt(ssq);
 }
 
 // multiply a my_crs_matrix with a vector
@@ -78,7 +94,10 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
   i = 0;
 
   while (i <= maxit && norm(M->n, r) / norm(M->n, b) > tol) {
-    //printf("\n\ni:%d\nnorm_r: %f norm_b: %lf\n", i, norm(M->n, r), norm(M->n, b));
+    printf("\n\ni:%d\nnorm_r: %f norm_b: %lf\n", i, norm(M->n, r), norm(M->n, b));
+
+    printf("\nnorm_r / norm_b: %f\n", norm(M->n, r) / norm(M->n, b));
+
     my_crs_times_vec(M, p, q);
     v = dotprod(M->n, r, z);
 
@@ -87,11 +106,11 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
     // products eventually over flow mantisa and turn into inf, then nan after being used
 
     // x = x + alpha*p
-  for (j = 0; j < M->n; j++) {
-    x[j] += alpha * p[j];
-  }
+    for (j = 0; j < M->n; j++) {
+      x[j] += alpha * p[j];
+    }
 
-  // r = r - alpha*q
+    // r = r - alpha*q
   for (j = 0; j < M->n; j++)
       r[j] -= alpha * q[j];
 

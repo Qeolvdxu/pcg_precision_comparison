@@ -6,7 +6,7 @@
 
 int main(void) {
   int i, tests;
-  int test_count = 18;
+  int test_count = 1;
   my_crs_matrix *test;
 
   char *files[18] = {
@@ -52,22 +52,23 @@ int main(void) {
       // apply CG
 
       printf("calling cg\n");
-      my_crs_cg(test, b, 1e-6, 2000, x);
+      my_crs_cg(test, b, 1E-6, 2000, x);
 
 
 
-      //	free(b);
-      //free(x);
+      free(b);
+      free(x);
 
       printf(" dong \n");
 
 
+      for (i = 0; i < test->n; i++)
+	printf("%f\t",x[i]);
 
     }
 
   printf(" donee \n");
 
-  // free
-  //my_crs_free(test);
+  my_crs_free(test);
   return 0;
 }
