@@ -4,11 +4,16 @@
 
 #include "my_crs_matrix.h"
 
-int main(void) {
+int main(int argc, char* argv[]) {
   int i, tests;
-  int test_count = 1;
+  int test_count = 18;
   my_crs_matrix *test;
 
+  if (argc != 3)
+    {
+      printf("ERROR: command line arguments invalid/missing\n");
+      return 1;
+    }
   char *files[18] = {
     "./test_subjects/494_bus.mtx.crs",
     "./test_subjects/662_bus.mtx.crs",
@@ -29,6 +34,10 @@ int main(void) {
     "./test_subjects/bcsstk13.mtx.crs",
     "./test_subjects/bcsstk14.mtx.crs"
   };
+  PRECI_DT tol = (float)atof(argv[2]);
+
+  FILE *ofile = fopen("cg_results.csv","w");
+
   for (tests=0; tests<test_count;tests++)
     {
       printf("\n%s\n",files[tests]);
@@ -37,12 +46,8 @@ int main(void) {
       PRECI_DT* b;
       PRECI_DT* x;
 
-
       b = malloc(sizeof(PRECI_DT) * test->n);
       x = calloc(test->n, sizeof(PRECI_DT));
-
-
-
 
       // b vector of 1s
       for (i = 0; i < test->n; i++)
@@ -52,18 +57,16 @@ int main(void) {
       // apply CG
 
       printf("calling cg\n");
-      my_crs_cg(test, b, 1E-6, 2000, x);
-
-
+      my_crs_cg(test, b, tol, atoi(argv[1])-1, x);
 
       free(b);
       free(x);
 
-      printf(" dong \n");
-
-
+      fprintf(ofile,"%s,",files[tests]);
       for (i = 0; i < test->n; i++)
-	printf("%f\t",x[i]);
+	fprintf(ofile,"%f,",x[i]);
+      fprintf(ofile,"\n");
+
 
     }
 

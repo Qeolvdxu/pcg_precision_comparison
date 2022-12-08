@@ -60,7 +60,6 @@ int my_crs_times_vec(my_crs_matrix *M, PRECI_DT *v, PRECI_DT *ans) {
 }
 
 void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT *x) {
-
   int i, j, v;
   // allocate vectors
   for (i = 0; i < M->n; i++)
@@ -71,7 +70,10 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
   PRECI_DT *q  = malloc(sizeof(PRECI_DT) * M->n);
   PRECI_DT *z = malloc(sizeof(PRECI_DT) * M->n);
 
-
+  for (i=0; i<M->n; i++) r[i] = b[i];
+  
+  PRECI_DT init_norm = norm(M->n,r);
+  PRECI_DT norm_ratio = 1;
 
   // Set up to iterate
   printf("start cg\n");
@@ -93,10 +95,15 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
   // Start iteration
   i = 0;
 
-  while (i <= maxit && norm(M->n, r) / norm(M->n, b) > tol) {
-    printf("\n\ni:%d\nnorm_r: %f norm_b: %lf\n", i, norm(M->n, r), norm(M->n, b));
+  while (i <= maxit && norm_ratio > tol) {
+    i++;
+
+
+    printf("\n\ni:%d\nnorm_r: %f tol_b: %lf\n", i, norm(M->n, r), norm(M->n, b)*tol);
 
     printf("\nnorm_r / norm_b: %f\n", norm(M->n, r) / norm(M->n, b));
+
+
 
     my_crs_times_vec(M, p, q);
     v = dotprod(M->n, r, z);
@@ -111,13 +118,22 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
     }
 
     // r = r - alpha*q
-  for (j = 0; j < M->n; j++)
+    for (j = 0; j < M->n; j++)
       r[j] -= alpha * q[j];
+
+    //my_crs_times_vec(M,x,r);
+    //for (j = 0; j < M->n; j++)
+    // r[j] -= b[j];
+
+
+  
 
     for (j = 0; j < M->n; j++)
       z[j] = r[j];
 
     beta = dotprod(M->n, r, z) / v;
+
+
 
     // p = z + beta * p;
     for (j = 0; j < M->n; j++) {
@@ -125,31 +141,34 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
       }
     /* printf("%lf %lf %lf\n", p[j], z[j], beta * p[j]);
 	 }
+    */
+    /* // VECTOR PRINTING FOR DEBUG
+       printf("\n p vector: ");
+       for (j = 0; j < M->n; j++)
+       printf("%lf, ", p[j]);
+       printf("%lf, ", p[j]);
 
-      printf("\n p vector: ");
-      for (j = 0; j < M->n; j++)
-        printf("%lf, ", p[j]);
-      printf("%lf, ", p[j]);
-
-      printf("\n r vector: ");
-      for (j = 0; j < M->n; j++)
-        printf("%lf, ", r[j]);
-      printf("%lf, ", r[j]);
-
-      printf("\n q vector: ");
-      for (j = 0; j < M->n; j++)
-        printf("%lf, ", q[j]);
+       printf("\n r vector: ");
+       for (j = 0; j < M->n; j++)
+       printf("%lf, ", r[j]);
+       printf("%lf, ", r[j]);
+    printf("\n q vector: ");
+    for (j = 0; j < M->n; j++)
       printf("%lf, ", q[j]);
+    printf("%lf, ", q[j]);
 
       printf("\n z vector: ");
       for (j = 0; j < M->n; j++)
         printf("%lf, ", z[j]);
-      printf("%lf, ", z[j]);
+      printf("%lf, ", z[j]);*/
 
-      printf("\n alpha: %lf ", alpha);
-      printf("\n beta: %lf ", beta);*/
+    
+    
+    printf("\n alpha: %lf ", alpha);
+    printf("\n beta: %lf ", beta);
+      norm_ratio = norm(M->n,r)/init_norm;
+      //if( norm(M->n, r) <= norm(M->n, b) * tol) break;
 
-      i++;
   }
   printf("\n *total of %d iterations* \n", i);
   free(p);
