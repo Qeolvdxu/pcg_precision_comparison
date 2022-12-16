@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
   PRECI_DT tol = (float)atof(argv[2]);
 
   FILE *ofile = fopen("C_cg-results.csv","w");
-
+  int iter;
   for (tests=0; tests<test_count;tests++)
     {
       printf("\n%s\n",files[tests]);
@@ -57,12 +57,13 @@ int main(int argc, char* argv[]) {
       // apply CG
 
       printf("calling cg\n");
-      my_crs_cg(test, b, tol, atoi(argv[1])-1, x);
+      iter = my_crs_cg(test, b, tol, atoi(argv[1])-1, x);
 
       free(b);
       free(x);
 
       fprintf(ofile,"%s,",files[tests]);
+      fprintf(ofile,"%d,",iter);
       for (i = 0; i < test->n; i++)
 	fprintf(ofile,"%f,",x[i]);
       fprintf(ofile,"\n");

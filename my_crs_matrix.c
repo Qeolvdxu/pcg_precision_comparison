@@ -62,7 +62,7 @@ int my_crs_times_vec(my_crs_matrix *M, PRECI_DT *v, PRECI_DT *ans) {
 
 }
 
-void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT *x) {
+int my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT *x) {
   int i, j, v;
   // allocate vectors
   for (i = 0; i < M->n; i++)
@@ -95,8 +95,6 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
     p[i] = z[i];
 
   // Start iteration
-  i = 0;
-
   while (i <= maxit && norm_ratio > tol) {
     i++;
 
@@ -177,6 +175,7 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
   free(q);
   free(z);
   free(r);
+  return i;
 }
 // read matrix file into a my_csr_matrix variable
 my_crs_matrix *my_crs_read(char *name) {
