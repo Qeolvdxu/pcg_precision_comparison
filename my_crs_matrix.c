@@ -12,6 +12,7 @@ static PRECI_DT dotprod(int n, PRECI_DT *v, PRECI_DT *u) {
     x += v[i] * u[i];
 
   return x;
+
 }
 
 // find the norm of a vector
@@ -26,21 +27,22 @@ static PRECI_DT norm(int n, PRECI_DT *v) {
   ssq = 1.0;
 
   for (i=0; i<n; i++)
-  {
-    if (v[i] != 0)
     {
-      absvi = fabs(v[i]);
-      if (scale < absvi)
+      if (v[i] != 0)
 	{
-	  ssq = 1.0 + ssq * (scale/absvi)*(scale/absvi);
-	  scale = absvi;
+	  absvi = fabs(v[i]);
+	  if (scale < absvi)
+	    {
+	      ssq = 1.0 + ssq * (scale/absvi)*(scale/absvi);
+	      scale = absvi;
+	    }
+	  else
+	    ssq = ssq + (absvi/scale)*(absvi/scale);
 	}
-      else
-	ssq = ssq + (absvi/scale)*(absvi/scale);
     }
-  }
 
   return scale * sqrt(ssq);
+
 }
 
 // multiply a my_crs_matrix with a vector
@@ -57,6 +59,7 @@ int my_crs_times_vec(my_crs_matrix *M, PRECI_DT *v, PRECI_DT *ans) {
 
   }
   return 0;
+
 }
 
 void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT *x) {
@@ -69,16 +72,15 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
   PRECI_DT *r       = malloc(sizeof(PRECI_DT) * M->n);
   PRECI_DT *q  = malloc(sizeof(PRECI_DT) * M->n);
   PRECI_DT *z = malloc(sizeof(PRECI_DT) * M->n);
-
   for (i=0; i<M->n; i++) r[i] = b[i];
   
   PRECI_DT init_norm = norm(M->n,r);
   PRECI_DT norm_ratio = 1;
 
   // Set up to iterate
-  printf("start cg\n");
+  //printf("start cg\n");
 
-  my_crs_times_vec(M, x, r); // ! weird segfault
+  my_crs_times_vec(M, x, r); // ! 
 
   for (i = 0; i < M->n; i++) {
     // printf("%lf, ", r[i]);
@@ -99,9 +101,9 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
     i++;
 
 
-    printf("\n\ni:%d\nnorm_r: %f tol_b: %lf\n", i, norm(M->n, r), norm(M->n, b)*tol);
+    //    printf("\n\ni:%d\nnorm_r: %f tol_b: %lf\n", i, norm(M->n, r), norm(M->n, b)*tol);
 
-    printf("\nnorm_r / norm_b: %f\n", norm(M->n, r) / norm(M->n, b));
+    //printf("\nnorm_r / norm_b: %f\n", norm(M->n, r) / norm(M->n, b));
 
 
 
@@ -138,9 +140,9 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
     // p = z + beta * p;
     for (j = 0; j < M->n; j++) {
       p[j] = z[j] + beta * p[j];
-      }
+    }
     /* printf("%lf %lf %lf\n", p[j], z[j], beta * p[j]);
-	 }
+       }
     */
     /* // VECTOR PRINTING FOR DEBUG
        printf("\n p vector: ");
@@ -152,30 +154,29 @@ void my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT 
        for (j = 0; j < M->n; j++)
        printf("%lf, ", r[j]);
        printf("%lf, ", r[j]);
-    printf("\n q vector: ");
-    for (j = 0; j < M->n; j++)
-      printf("%lf, ", q[j]);
-    printf("%lf, ", q[j]);
+       printf("\n q vector: ");
+       for (j = 0; j < M->n; j++)
+       printf("%lf, ", q[j]);
+       printf("%lf, ", q[j]);
 
-      printf("\n z vector: ");
-      for (j = 0; j < M->n; j++)
-        printf("%lf, ", z[j]);
-      printf("%lf, ", z[j]);*/
+       printf("\n z vector: ");
+       for (j = 0; j < M->n; j++)
+       printf("%lf, ", z[j]);
+       printf("%lf, ", z[j]);*/
 
     
     
-    printf("\n alpha: %lf ", alpha);
-    printf("\n beta: %lf ", beta);
-      norm_ratio = norm(M->n,r)/init_norm;
-      //if( norm(M->n, r) <= norm(M->n, b) * tol) break;
+    //printf("\n alpha: %lf ", alpha);
+    //printf("\n beta: %lf ", beta);
+    norm_ratio = norm(M->n,r)/init_norm;
+    //if( norm(M->n, r) <= norm(M->n, b) * tol) break;
 
   }
-  printf("\n *total of %d iterations* \n", i);
+  //printf("\n *total of %d iterations* \n", i);
   free(p);
   free(q);
   free(z);
   free(r);
-  printf("ding ");
 }
 // read matrix file into a my_csr_matrix variable
 my_crs_matrix *my_crs_read(char *name) {

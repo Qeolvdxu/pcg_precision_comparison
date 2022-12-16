@@ -1,6 +1,6 @@
 CC = nvcc
-TARGET = cgcsrcuda
-SOURCE = cgcsrcuda.cu
+TARGET = CUDA_cg
+SOURCE = CUDA_cg.cu
 LFLAGS = -lcusparse
 all:
-	$(CC) -o cgcsrcuda $(SOURCE) $(LFLAGS)
+	$(CC) -o CUDA_cg $(SOURCE) $(LFLAGS)

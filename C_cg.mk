@@ -1,6 +1,6 @@
-CC = clang
+CC = gcc
 
-CFLAGS = -g -v -Wall -Wextra -pedantic -gdwarf-4
+CFLAGS = -g -Wall -Wextra -pedantic -gdwarf-4
 LDFLAGS = -lm
 
 TARGET = C_cg 
