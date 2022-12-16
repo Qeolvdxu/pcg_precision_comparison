@@ -1,6 +1,6 @@
 # CG Precision Comparisons
 
-Octave/Matlab program to compare data types to see if the floating level will change the interaction counts when running a precondition conjugate gradient algorithm. 
+Compare data types to see if the floating level will change the iteration counts and answer vectors of a preconditioned conjugate gradient algorithm. 
 
 ## How to use
 * Pick all the matrix market matricies (.MTX files) to test and put them in the test_subjects directory
