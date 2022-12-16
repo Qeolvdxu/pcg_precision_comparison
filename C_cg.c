@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
   };
   PRECI_DT tol = (float)atof(argv[2]);
 
-  FILE *ofile = fopen("cg_results.csv","w");
+  FILE *ofile = fopen("C_cg-results.csv","w");
 
   for (tests=0; tests<test_count;tests++)
     {

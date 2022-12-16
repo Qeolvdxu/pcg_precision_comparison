@@ -1,9 +1,0 @@
-CC = nvcc
-TARGET = cgcsrcuda
-SOURCE = $(TARGET).cu
-LFLAGS = -lcusparse
-all:
-	$(CC) -o $(TARGET) $(SOURCE) $(LFLAGS)
-
-clean:
-	rm $(TARGET)
