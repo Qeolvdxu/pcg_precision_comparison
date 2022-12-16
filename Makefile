@@ -1,5 +1,4 @@
 all:
-	make clean
 	make C_cg
 	make CUDA_cg
 
