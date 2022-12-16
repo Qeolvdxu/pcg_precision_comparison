@@ -54,8 +54,8 @@ for cur_test=1:test_count
             cur_test,cur_matrix,A_size,A_size/nonzero_count,condest(A))
 
     alpha = max(sum(abs(A),2)./diag(A))-2;
-    precond = ichol(A, struct('type','ict','droptol',1e-3,'diagcomp',alpha));
-    %precond = eye(A_size);
+    %precond = ichol(A, struct('type','ict','droptol',1e-3,'diagcomp',alpha));
+    precond = eye(A_size);
     
     %Standard Ordering
     % calculate iteration count using 
