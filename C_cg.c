@@ -6,8 +6,9 @@
 
 int main(int argc, char* argv[]) {
   int i, tests;
-  int test_count = 18;
+  int test_count = 1;
   my_crs_matrix *test;
+  my_crs_matrix *precond;
 
   if (argc != 3)
     {
@@ -43,6 +44,7 @@ int main(int argc, char* argv[]) {
       printf("\n%s\n",files[tests]);
 
       test = my_crs_read(files[tests]);//"./test_subjects/bcsstk10.mtx.crs");
+      precond = eye(test->n);
       PRECI_DT* b;
       PRECI_DT* x;
 
@@ -53,11 +55,9 @@ int main(int argc, char* argv[]) {
       for (i = 0; i < test->n; i++)
 	b[i] = 1;
 
-
       // apply CG
-
       printf("calling cg\n");
-      iter = my_crs_cg(test, b, tol, atoi(argv[1])-1, x);
+      iter = my_crs_cg(test, b, tol, atoi(argv[1])-1, precond, x);
 
       free(b);
       free(x);

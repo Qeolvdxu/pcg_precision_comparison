@@ -6,9 +6,11 @@
 #include <cuda_runtime.h>
 #include <cusparse.h>
 
+#define PRECI_DT float 
+
 // find the dot product of two vectors
-__device__ static float dotprod(int n, float *v, float *u) {
-  float x;
+__device__ static PRECI_DT dotprod(int n, PRECI_DT *v, PRECI_DT *u) {
+  PRECI_DT x;
   int i;
 
   for (i = 0, x = 0.0; i < n; i++)
@@ -18,95 +20,125 @@ __device__ static float dotprod(int n, float *v, float *u) {
 }
 
 // find the norm of a vector
-__device__ static float norm(int n, float *v) {
-
-  float norm;
+__device__ static PRECI_DT norm(int n, PRECI_DT *v) {
+  PRECI_DT ssq, scale, absvi;
   int i;
 
-  for (i = 0, norm = 0.0; i < n; i++)
-    norm += v[i] * v[i];
+  if (n==1) return fabs(v[0]);
 
-  norm = sqrt(norm);
-  return norm;
+  scale = 0.0;
+  ssq = 1.0;
+
+  for (i=0; i<n; i++)
+    {
+      if (v[i] != 0)
+	{
+	  absvi = fabs(v[i]);
+	  if (scale < absvi)
+	    {
+	      ssq = 1.0 + ssq * (scale/absvi)*(scale/absvi);
+	      scale = absvi;
+	    }
+	  else
+	    ssq = ssq + (absvi/scale)*(absvi/scale);
+	}
+    }
+  return scale * sqrt(ssq);
 }
 
 // multiply a my_crs_matrix with a vector
-__device__ void csr_times_vec(int n, float *val, int *col, int *rowptr, float *v, float *ans) {
-
+__device__ void csr_times_vec(int n, PRECI_DT *val, int *col, int *rowptr, PRECI_DT *v, PRECI_DT *ans, int nz) {
   int i, j;
   for (i = 0; i < n; i++)
-    ans[i] = 0;
+    {
+      //  printf("%d, ",i);
+      ans[i] = 0;
+	     for (j = rowptr[i]; j < rowptr[i+1] && j < nz; j++) {
+	       /*       printf("%f : ",ans[i]);
 
-  for (i = 0; i < n; i++) {
-    for (j = rowptr[i]; j < rowptr[i]-1; j++) {
-	     ans[i] = ans[i] + val[j] * v[col[j]];
-	   }
-	 }
-  printf("%d ",ans[0]);
+			printf("%f :",val[j]);
+
+	       printf("%d : ",col[j]);
+
+	       printf("%f\n",v[col[j]]);*/
+
+
+
+	       ans[i] += val[j] * v[i];//col[j]];
+	       //printf("checkpoint");
+	     }
+    }
 
   return;
-  //return 0;
+	//return 0;
 }
 
 __global__ void cgkernel(int n, int m, int nz,
-			 float* val, int* col, int* rowptr,
-			 float* b, float* x,
-			 float* p, float* r, float* q,
-			 float* z, float alpha, float beta)
+			 PRECI_DT* val, int* col, int* rowptr,
+			 PRECI_DT* b, PRECI_DT* x,
+			 PRECI_DT* p, PRECI_DT* r, PRECI_DT* q,
+			 PRECI_DT* z, PRECI_DT alpha, PRECI_DT beta)
 {
+  printf("%d\n",col[0]);
+
   int i, j, v;
   for (i=0; i < n; i++)
+    {
+      x[i] = 0;
       b[i] = 1;
+    }
 
-
-
+  PRECI_DT init_norm = norm(n,r);
+  PRECI_DT norm_ratio = 1;
 
   printf("first before r = %f\n",r[0]);
-  csr_times_vec(n, val,col, rowptr, x, r);
+
+  csr_times_vec(n, val,col, rowptr, x, r, nz);
+
   printf("first after r = %f\n",r[0]);
 
 
+  for (i=0; i < n; i++)
+    r[i] = b[i] - r[i];
 
   for (i=0; i < n; i++)
-	   r[i] = b[i] - r[i];
-
-
-  for (i=0; i < n; i++)
-    z[i] = r[i];
+	z[i] = r[i];
 
   for (i=0; i < n; i++)
     p[i] = z[i];
 
   i=0;
 
-  printf("is (%f / %f) = %f > %f ?\n", norm(n,r), norm(n,b), norm(n,r) / norm(n,b) , 1e-6);
+  printf("is %f > %f ?\n", norm_ratio , 1e-1);
 
-  while(i <= 10000 && norm(n,r) / norm(n,b) > 1e-6)
-
+  while(i <= 2000 && norm_ratio > 1e-1)
     {
-      csr_times_vec(n, val,col, rowptr, p, q);
+      i++;
+      csr_times_vec(n, val,col, rowptr, p, q, nz);
       printf("%dst after r = %f\n",i,r[0]);
-
 
       v = dotprod(n,r,z);
 
       alpha = v/dotprod(n,p,q);
 
       for (j=0; j<n; j++)
-	 x[j] += alpha * p[j];
-       for (j=0; j<n; j++)
-	 r[j] -= alpha * q[j];
-       for (j=0; j<n; j++)
-	 z[j] = r[j];
+	x[j] += alpha * p[j];
+      for (j=0; j<n; j++)
+	r[j] -= alpha * q[j];
+      for (j=0; j<n; j++)
+	z[j] = r[j];
 
       beta = dotprod(n,r,z) / v;
 
       for(j=0;j<n;j++)
 	p[j] = z[j] + beta * p[j];
-      i++;
-      printf("n=%d\tb=",n);
-      for(j=0;j<n;j++)
-	printf("%f\t",b[i]);
+
+
+      norm_ratio = norm (n,r)/init_norm;
+	  
+      /*printf("n=%d\tb=",n);
+	for(j=0;j<n;j++)
+	printf("%f\t",b[i]);*/
 
       printf("is (%f / %f) = %f > %f ?\n", norm(n,r), norm(n,b), norm(n,r) / norm(n,b) , 1e-6);
 
@@ -125,9 +157,9 @@ int main(void)
 
 
   fscanf(file, "%d %d %d", &m, &size, &nz);
-  float *h_val = (float*)malloc(sizeof(float)*size);
+  PRECI_DT *h_val = (PRECI_DT*)malloc(sizeof(PRECI_DT)*nz);
   int *h_col = (int*)malloc(sizeof(int)*nz);
-  int *h_rowptr = (int*)malloc(sizeof(int)*nz);
+  int *h_rowptr = (int*)malloc(sizeof(int)*size);
   
   for (i = 0; i < size; i++)
     fscanf(file, "%d ", &h_rowptr[i]);
@@ -144,57 +176,57 @@ int main(void)
 
   // allocate host variables for cg
 
-  float *h_b = (float*)malloc(sizeof(float)*size);
-  float *h_x = (float*)calloc(size, sizeof(float));
-  float *h_p = (float*)malloc(sizeof(float)*size);
-  float *h_r = (float*)malloc(sizeof(float)*size);
-  float *h_q = (float*)malloc(sizeof(float)*size);
-  float *h_z = (float*)malloc(sizeof(float)*size);
-  float alpha = 0;
-  float beta = 0;
+  PRECI_DT *h_b = (PRECI_DT*)malloc(sizeof(PRECI_DT)*size);
+  PRECI_DT *h_x = (PRECI_DT*)calloc(size, sizeof(PRECI_DT));
+  PRECI_DT *h_p = (PRECI_DT*)malloc(sizeof(PRECI_DT)*size);
+  PRECI_DT *h_r = (PRECI_DT*)malloc(sizeof(PRECI_DT)*size);
+  PRECI_DT *h_q = (PRECI_DT*)malloc(sizeof(PRECI_DT)*size);
+  PRECI_DT *h_z = (PRECI_DT*)malloc(sizeof(PRECI_DT)*size);
+  PRECI_DT alpha = 0;
+  PRECI_DT beta = 0;
 
   // set initial data values
   
 
   // allocate device variables for cg
-  float *d_val;
+  PRECI_DT *d_val;
   int *d_col;
   int *d_rowptr;
 
-  float *d_b;
-  float *d_x;
-  float *d_p;
-  float *d_r;
-  float *d_q;
-  float *d_z;
-  //float d_alpha;
-  //float d_beta;
+  PRECI_DT *d_b;
+  PRECI_DT *d_x;
+  PRECI_DT *d_p;
+  PRECI_DT *d_r;
+  PRECI_DT *d_q;
+  PRECI_DT *d_z;
+  //PRECI_DT d_alpha;
+  //PRECI_DT d_beta;
 
-  cudaMalloc((void **) &d_val, size * sizeof(float));
+  cudaMalloc((void **) &d_val, size * sizeof(PRECI_DT));
   cudaMalloc((void **) &d_col, size * sizeof(int));
 cudaMalloc((void **) &d_rowptr, size * sizeof(int));
 
-    cudaMalloc((void **) &d_b, size * sizeof(float));
-    cudaMalloc((void **) &d_x, size * sizeof(float));
-    cudaMalloc((void **) &d_p, size * sizeof(float));
-    cudaMalloc((void **) &d_r, size * sizeof(float));
-    cudaMalloc((void **) &d_q, size * sizeof(float));
-    cudaMalloc((void **) &d_z, size * sizeof(float));
-    //cudaMalloc((void **) &d_alpha, sizeof(float));
-    //cudaMalloc((void **) &d_beta, sizeof(float));
+ cudaMalloc((void **) &d_b, size * sizeof(PRECI_DT));
+ cudaMalloc((void **) &d_x, size * sizeof(PRECI_DT));
+ cudaMalloc((void **) &d_p, size * sizeof(PRECI_DT));
+ cudaMalloc((void **) &d_r, size * sizeof(PRECI_DT));
+ cudaMalloc((void **) &d_q, size * sizeof(PRECI_DT));
+ cudaMalloc((void **) &d_z, size * sizeof(PRECI_DT));
+ //cudaMalloc((void **) &d_alpha, sizeof(PRECI_DT));
+    //cudaMalloc((void **) &d_beta, sizeof(PRECI_DT));
 
     // copy host data to device data
-    cudaMemcpy(d_val, h_val, size * sizeof(float), cudaMemcpyHostToDevice); 
-    cudaMemcpy(d_col, h_col, size * sizeof(int), cudaMemcpyHostToDevice); 
+ cudaMemcpy(d_val, h_val, size * sizeof(PRECI_DT), cudaMemcpyHostToDevice); 
+ cudaMemcpy(d_col, h_col, size * sizeof(int), cudaMemcpyHostToDevice); 
     cudaMemcpy(d_rowptr, h_rowptr, size * sizeof(int), cudaMemcpyHostToDevice); 
 
-    cudaMemcpy(d_x, h_x, size * sizeof(float), cudaMemcpyHostToDevice); 
-    cudaMemcpy(d_p, h_p, size * sizeof(float), cudaMemcpyHostToDevice); 
-    cudaMemcpy(d_r, h_r, size * sizeof(float), cudaMemcpyHostToDevice); 
-    cudaMemcpy(d_q, h_q, size * sizeof(float), cudaMemcpyHostToDevice); 
-    cudaMemcpy(d_z, h_z, size * sizeof(float), cudaMemcpyHostToDevice);
-    //cudaMemcpy(d_alpha, h_alpha, sizeof(float), cudaMemcpyHostToDevice);
-    //cudaMemcpy(d_beta, h_beta, sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_x, h_x, size * sizeof(PRECI_DT), cudaMemcpyHostToDevice); 
+    cudaMemcpy(d_p, h_p, size * sizeof(PRECI_DT), cudaMemcpyHostToDevice); 
+    cudaMemcpy(d_r, h_r, size * sizeof(PRECI_DT), cudaMemcpyHostToDevice); 
+    cudaMemcpy(d_q, h_q, size * sizeof(PRECI_DT), cudaMemcpyHostToDevice); 
+    cudaMemcpy(d_z, h_z, size * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
+    //cudaMemcpy(d_alpha, h_alpha, sizeof(PRECI_DT), cudaMemcpyHostToDevice);
+    //cudaMemcpy(d_beta, h_beta, sizeof(PRECI_DT), cudaMemcpyHostToDevice);
 
 
 
@@ -207,11 +239,12 @@ cudaMalloc((void **) &d_rowptr, size * sizeof(int));
 		      d_b, d_x,
 		      d_p, d_r, d_q,
 		      d_z, alpha, beta);
+
     cudaDeviceSynchronize();
     t = clock() - t;
     double time_taken = ((double)t)/CLOCKS_PER_SEC;
     printf("cg took %f seconds\n", time_taken);
-    cudaMemcpy(h_x, d_x, sizeof(float)*size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_x, d_x, sizeof(PRECI_DT)*size, cudaMemcpyDeviceToHost);
 
     // for (i = 0; i < size; i++)
     //printf("%f, ", h_x[i]);

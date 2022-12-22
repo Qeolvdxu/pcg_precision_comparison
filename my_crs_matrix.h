@@ -14,8 +14,10 @@ typedef struct {
 } my_crs_matrix;
 
 int my_crs_times_vec(my_crs_matrix *M, PRECI_DT *v, PRECI_DT *ans);
-int my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, PRECI_DT *x);
+int my_crs_cg(my_crs_matrix *M, PRECI_DT *b, PRECI_DT tol, int maxit, my_crs_matrix *precond, PRECI_DT *x);
 my_crs_matrix *my_crs_read(char *name);
+my_crs_matrix *eye(int n);
+my_crs_matrix *sparse_transpose(my_crs_matrix *input);
 void my_crs_free(my_crs_matrix *M);
 void my_crs_print(my_crs_matrix *M);
 
