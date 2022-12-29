@@ -4,7 +4,7 @@
 
 #include "my_crs_matrix.h"
 
-void conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT *x, int max_iter, PRECI_DT tolerance)
+int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT *x, int max_iter, PRECI_DT tolerance)
 {
   int n = A->n;
   PRECI_DT* r = (PRECI_DT*) malloc(n * sizeof(PRECI_DT));
@@ -12,66 +12,82 @@ void conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_D
   PRECI_DT* q = (PRECI_DT*) malloc(n * sizeof(PRECI_DT));
   PRECI_DT* z = (PRECI_DT*) malloc(n * sizeof(PRECI_DT));
 
-  matvec(A, x, r);
+  PRECI_DT alpha = 0.0;
+  PRECI_DT beta = 0.0;
 
-  for (int i = 0; i < n; i++)
-  {
-    r[i] = b[i] - r[i];
-    p[i] = r[i];
-  }
+  int iter = 0;
+  int j = 0;
 
-  PRECI_DT r_norm_squared = dot(r,r,n);
-  PRECI_DT b_norm_squared = dot(b,b,n);
+  PRECI_DT init_norm = norm(n,r);
+  PRECI_DT norm_ratio = 1;
 
-  PRECI_DT r_new_norm_squared = dot(r,r,n);
-  PRECI_DT beta = r_new_norm_squared / r_norm_squared;
+  PRECI_DT v = 0;
 
-  PRECI_DT Ap_dot_p = matvec_dot(A, p, p, n);
-  PRECI_DT p_dot_z = dot(p, z, n);
-  PRECI_DT alpha = r_norm_squared / p_dot_z;
+  // zero fill x
+  for (int i = 0; i < n; i++) x[i] = 0;
 
-  PRECI_DT r_norm = sqrt(r_norm_squared);
-  for (int iter = 0; iter < max_iter; iter++)
-    {
-      // apply precondition
-      precondition(M,p,z);
+  for (int i = 0; i < n; i++) p[i] = 1;
+  for (int i = 0; i < n; i++) z[i] = 1;
 
-      // find alpha
-      Ap_dot_p = matvec_dot(A, p, p, n);
-      p_dot_z = dot(p, z, n);
-      alpha = r_norm_squared / p_dot_z;
+  // P Z AND BETA
+
+  // r = b - A*x
+  my_crs_times_vec(A, x, r);
+  printf("r[3] = %lf\n",r[3]);
+  for (int i = 0; i < n; i++) r[i] = b[i] - r[i];
+  printf("r[3] = %lf\n",r[3]);
 
 
-      // Update residual and solution
-      for (int i = 0; i < n; i++)
-	{
-	  x[i] += alpha * p[i];
-	  r[i] -= alpha * Ap_dot_p;
-	}
-
-      printf("iteration %d\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n\n\n",iter, x[0], alpha, beta,r[0],p[0],q[0],z[0]);
+  printf("iteration PREQUEL\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > tolerance(%lf)\n\n\n",x[0], alpha, beta,r[0],p[0],q[0],z[0],norm(n,r)/norm(n,b),tolerance);
 
 
-      // Check if converged with given tolerance
-      r_norm = sqrt(r_norm_squared);
-      if (r_norm < tolerance * sqrt(b_norm_squared))
-	break;
-
-      // find beta
-      r_new_norm_squared = dot(r,r,n);
-      beta = r_new_norm_squared / r_norm_squared;
+	 printf("** %lf | %d | %d ** \n",A->val[1], A->col[1], A->rowptr[1]);
+	 // main CG loop
+	 while (iter <= max_iter && norm(n,r) / norm(n,b) > tolerance) {
+	   // next iteration
+	   iter++;
 
 
-      // Update search direction
-      for (int i = 0; i < n; i++)
-	p[i] = r[i] + beta * p[i];
 
-      r_norm_squared = r_new_norm_squared;
-    }
+	   // q = A*p
+	   my_crs_times_vec(A, p, q);
+
+	   // v = early dot(r,z) 
+	   v = dot(r,z,n);
+
+	   //printf("p*q[1]=%lf\n",dot(p,q,n));
+	   // alpha = v / dot(p,q)
+	   alpha = v / dot(p, q, n);
+
+
+	   // x = x + alpha * p
+	   for (j = 0; j < n; j++)
+	     x[j] += alpha * p[j];
+
+	   // r = r - alpha * q
+	   for (j = 0; j < n; j++)
+	     r[j] -= alpha * q[j];
+
+	   // Precondition
+	   precondition(M,r,z);
+	   //for (j = 0; j < n; j++) z[j] = 1;
+
+
+	   // beta = dot(r,z) / v
+	   beta = dot(r, z, n) / v;
+
+	   // p = z + beta * p
+	   for (j = 0; j < n; j++) 
+	     p[j] = z[j] + (beta * p[j]);
+
+	   printf("end of iteration %d\n x0 = %lf \t alpha= %lf \t beta= %lf \n v = %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > tolerance(%lf)\n\n\n",iter, x[1], alpha, beta,v,r[0],p[0],q[0],z[0],norm(n,r)/norm(n,b),tolerance);
+
+	 }
   free(r);
   free(p);
   free(q);
   free(z);
+  return iter;
 }
 
 int main(int argc, char* argv[]) {
@@ -126,20 +142,20 @@ int main(int argc, char* argv[]) {
 
 	// b vector of 1s
 	for (i = 0; i < test->n; i++)
-			       b[i] = 1;
+	b[i] = 1;
 
-			     // apply CG
-			     printf("calling cg\n");
-			     conjugant_gradient(test_RCM, precond, b, x, maxit, tol);
+	// apply CG
+	printf("calling cg\n");
+	iter = conjugant_gradient(test, precond, b, x, maxit, tol);
 
 
 
-			     free(b);
-			     free(x);
+	free(b);
+	free(x);
 
-			     fprintf(ofile,"%s,",files[tests]);
-			     fprintf(ofile,"%d,",iter);
-			     for (i = 0; i < test->n; i++)
+	fprintf(ofile,"%s,",files[tests]);
+	fprintf(ofile,"%d,",iter);
+	for (i = 0; i < test->n; i++)
 			       fprintf(ofile,"%f,",x[i]);
 	fprintf(ofile,"\n");
 

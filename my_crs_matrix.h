@@ -20,6 +20,9 @@ PRECI_DT matvec_dot(my_crs_matrix *A, PRECI_DT* x, PRECI_DT* y, int n);
 my_crs_matrix *my_crs_read(char *name);
 void precondition(my_crs_matrix* M, PRECI_DT* x, PRECI_DT* y);
 my_crs_matrix *eye(int n);
+
+PRECI_DT norm(int n, PRECI_DT *v);
+
 void rcm_roder(my_crs_matrix *A);
 my_crs_matrix *rcm_reorder(my_crs_matrix* A);
 my_crs_matrix *sparse_transpose(my_crs_matrix *input);

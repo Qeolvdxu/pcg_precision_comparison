@@ -187,17 +187,18 @@ int my_crs_times_vec(my_crs_matrix *M, PRECI_DT *v, PRECI_DT *ans) {
     for (j = M->rowptr[i]; j < M->rowptr[i + 1] && j < M->nz; j++)
       {
 	/*// DEBUG PRINTS
-	  printf("%f : ",ans[i]);
+	  printf("ans_i=%f : ",ans[i]);
 
-	  printf("%f :",M->val[j]);
+	  printf("val_j=%f :",M->val[j]);
 
-	  printf("%d : ",M->col[j]);
+	  printf("col_j=%d : ",M->col[j]);
 
-	  printf("%f\n",v[M->col[j]]);
+	  printf("v_col_j=%f\n",v[M->col[j]]);
 
 	  //printf(" |%d| ",j);*/
 	ans[i] += M->val[j] * v[M->col[j]];
-      }
+	}
+    //if (i == 1) printf("%lf = %lf * %lf\n",ans[i],M->val[j], v[M->col[j]]);
 
   }
   return 0;
