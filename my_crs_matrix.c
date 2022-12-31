@@ -100,35 +100,68 @@ my_crs_matrix* rcm_reorder(my_crs_matrix *A)
   return B;
 }
 
-void precondition(my_crs_matrix* M, PRECI_DT* x, PRECI_DT* y)
+// incomplete Choleskys
+void ichol(my_crs_matrix* M, double* L)
 {
   int n = M->n;
-  PRECI_DT sum = 0.0;
+  int i, j, k;
+  double s;
+  for (i = 0; i < n; i++)
+      {
+	for (j = M->rowptr[i]; j < M->rowptr[i+1]; j++)
+	  {
+	    if (M->col[j] < i)
+	      continue;
+	    s = 0;
+	    for (k = M->rowptr[i]; k < j; k++)
+	      {
+		if (M->col[k] < i)
+		  continue;
+		s += L[k] * L[M->rowptr[M->col[k]]] + i - M->col[k];
+	      }
+	    L[j] = (i == M->col[j]) ?
+	      sqrt(M->val[j] - s) :
+	      (1.0 / L[M->rowptr[M->col[j]] + i - M->col[j]] * (M->val[j] - s));
+	  }
+      }
+}
+
+void precondition(my_crs_matrix* M, PRECI_DT* r, PRECI_DT* z)
+// find z = M^(-1)r
+{
+  int n = M->n;
+  int i, j;
+
+  PRECI_DT* L = (PRECI_DT*)malloc(sizeof(PRECI_DT) * n);
+  ichol(M,L);
+  PRECI_DT* y = (PRECI_DT*)malloc(sizeof(PRECI_DT) * n);
 
 
-  for (int i = 0; i < n; i++)
+  for (i = 0; i < n; i++)
     {
-      y[i] = 0.0;
+      y[i] = r[i];
+      for (j = M->rowptr[i]; j < M->rowptr[i + 1]; j++)
+	{
+	  if (M->col[j] < i)
+	    continue;
+	  y[i] -= L[j] * y[M->col[j]];
+	}
+      y[i] /= L[M->rowptr[i]];
     }
 
-  //solve M * y = x using foward and back substitution
-  for (int i = 0; i < n; i++)
+  for (int i = n - 1; i >= 0; i--)
     {
-      sum = 0.0;
-      for (int j = M->rowptr[i]; j < i; j++)
-	sum += M->val[j] * y[M->col[j]];
-      y[i] = (x[i] - sum) / M->val[M->rowptr[i]];
+      z[i] = y[i];
+      for (int j = M->rowptr[i]; j < M->rowptr[i+1]; j++)
+	{
+	  if (M->col[j] <= i)
+	    continue;
+	  z[i] -= L[j] * z[M->col[j]];
+	}
+      z[i] /= L[M->rowptr[i]];
     }
-
-  for (int i = n-1; i >= 0; i--)
-    {
-      sum = 0.0;
-      for (int j = i+1; j < M->rowptr[i+1]; j++)
-	sum += M->val[j] * y[M->col[j]];
-      y[i] = (y[i] - sum) / M->val[M->rowptr[i]];
-    }
-
-
+  free(L);
+  free(y);
 }
 
 PRECI_DT matvec_dot(my_crs_matrix *A, PRECI_DT* x, PRECI_DT* y, int n)
@@ -197,28 +230,28 @@ int my_crs_times_vec(my_crs_matrix *M, PRECI_DT *v, PRECI_DT *ans) {
 
 	  //printf(" |%d| ",j);*/
 	ans[i] += M->val[j] * v[M->col[j]];
-	}
+      }
     //if (i == 1) printf("%lf = %lf * %lf\n",ans[i],M->val[j], v[M->col[j]]);
 
   }
   return 0;
 
 }
-  my_crs_matrix *sparse_transpose(my_crs_matrix *input) {
+my_crs_matrix *sparse_transpose(my_crs_matrix *input) {
 
-    my_crs_matrix *res = malloc(sizeof(my_crs_matrix));
-    int i;
+  my_crs_matrix *res = malloc(sizeof(my_crs_matrix));
+  int i;
 
-    res->m = input->m;
-    res->n = input->n;
-    res->nz = input->nz;
+  res->m = input->m;
+  res->n = input->n;
+  res->nz = input->nz;
 
-    res->val = malloc(sizeof(PRECI_DT) * res->nz);
+  res->val = malloc(sizeof(PRECI_DT) * res->nz);
 
-    res->col = malloc(sizeof(int) *res->nz);
-    res->rowptr = malloc(sizeof(int) * (res->n + 2));
+  res->col = malloc(sizeof(int) *res->nz);
+  res->rowptr = malloc(sizeof(int) * (res->n + 2));
 
-    for (i = 0; i < res->n+2; i++)
+  for (i = 0; i < res->n+2; i++)
     res->rowptr[i] = 0;
   for (i = 0; i < res->nz; i++)
     res->col[i] = 0;

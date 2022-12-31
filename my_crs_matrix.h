@@ -18,7 +18,7 @@ int my_crs_times_vec(my_crs_matrix *M, PRECI_DT *v, PRECI_DT *ans);
 void matvec(my_crs_matrix *A, PRECI_DT* x, PRECI_DT* y);
 PRECI_DT matvec_dot(my_crs_matrix *A, PRECI_DT* x, PRECI_DT* y, int n);
 my_crs_matrix *my_crs_read(char *name);
-void precondition(my_crs_matrix* M, PRECI_DT* x, PRECI_DT* y);
+void precondition(my_crs_matrix* M, PRECI_DT* r, PRECI_DT* z);
 my_crs_matrix *eye(int n);
 
 PRECI_DT norm(int n, PRECI_DT *v);
