@@ -1,9 +1,9 @@
 all:
-	make C_cg
+	make CCG_TEST
 	make CUDA_cg
 
-C_cg:
-	make -f C_cg.mk
+CCG_TEST:
+	make -f CCG_TEST.mk
 
 CUDA_cg:
 	make -f CUDA_cg.mk
