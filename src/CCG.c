@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "my_crs_matrix.h"
-#include "CCG.h"
+#include "../include/my_crs_matrix.h"
+#include "../include/CCG.h"
 
 int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT *x, int max_iter, PRECI_DT tolerance)
 
@@ -33,8 +33,8 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
   for (int i = 0; i < n; i++) r[i] = b[i] - r[i];
 
   // z = MT\(M\r)
-  //for (int i = 0; i < n; i++) z[i] = r[i];
-  matvec(M,r,z);
+  // precond(M,r,z);
+  for (int i = 0; i < n; i++) z[i] = r[i];
 
 
   for (int i = 0; i < n; i++) p[i] = z[i];
@@ -74,8 +74,8 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
       r[j] -= alpha * q[j];
 
     // Precondition
-    //for (j = 0; j < n; j++) z[j] = r[j];
-    precondition(M,r,z);
+    for (j = 0; j < n; j++) z[j] = r[j];
+    //precondition(M,r,z);
 
 
     // beta = dot(r,z) / v

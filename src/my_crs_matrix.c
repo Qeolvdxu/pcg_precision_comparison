@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "my_crs_matrix.h"
+#include "../include/my_crs_matrix.h"
 
 int cmp_degree(const void* a, const void* b)
 {

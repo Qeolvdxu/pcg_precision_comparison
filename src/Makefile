@@ -1,13 +1,13 @@
 all:
 	make CCG_TEST
-	make CUDA_cg
+	make CuCG_TEST
 
 CCG_TEST:
 	make -f CCG_TEST.mk
 
 CUDA_cg:
-	make -f CUDA_cg.mk
+	make -f CuCG_TEST.mk
 
 clean:
-	rm C_cg
-	rm CUDA_cg
+	rm CCG_TEST
+	rm CuCG_TEST

@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "my_crs_matrix.h"
-#include "CCG.h"
+#include "../include/my_crs_matrix.h"
+#include "../include/CCG.h"
 
 int main(int argc, char* argv[]) {
   int i, tests;
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
       printf("\n%s\n",files[tests]);
 
       maxit = atoi(argv[1])-1;
-      test = my_crs_read(files[tests]);//"./test_subjects/bcsstk10.mtx.crs");
+      test = my_crs_read(files[tests]);//"../test_subjects/bcsstk10.mtx.crs");
       test_RCM = rcm_reorder(test);
       precond = eye(test->n);
       PRECI_DT* b;
