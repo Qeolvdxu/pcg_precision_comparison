@@ -4,11 +4,14 @@
 #include <unistd.h>
 
 #include "my_crs_matrix.h"
+#include "CCG.h"
 
 int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT *x, int max_iter, PRECI_DT tolerance)
+
 {
   int n = A->n;
   PRECI_DT* r = (PRECI_DT*) malloc(n * sizeof(PRECI_DT));
+
   PRECI_DT* p = (PRECI_DT*) malloc(n * sizeof(PRECI_DT));
   PRECI_DT* q = (PRECI_DT*) malloc(n * sizeof(PRECI_DT));
   PRECI_DT* z = (PRECI_DT*) malloc(n * sizeof(PRECI_DT));
@@ -26,11 +29,12 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
   for (int i = 0; i < n; i++) x[i] = 0;
 
   // r = b - A*x
-  my_crs_times_vec(A, x, r);
+  matvec(A, x, r);
   for (int i = 0; i < n; i++) r[i] = b[i] - r[i];
 
   // z = MT\(M\r)
-  for (int i = 0; i < n; i++) z[i] = r[i]; //precondition(A,r,z);
+  //for (int i = 0; i < n; i++) z[i] = r[i];
+  matvec(M,r,z);
 
 
   for (int i = 0; i < n; i++) p[i] = z[i];
@@ -49,7 +53,7 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
     iter++;
 
     // q = A*p
-    my_crs_times_vec(A, p, q);
+    matvec(M, p, q);
 
     // v = early dot(r,z) 
     v = dot(r,z,n);
@@ -70,7 +74,8 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
       r[j] -= alpha * q[j];
 
     // Precondition
-    for (j = 0; j < n; j++) z[j] = r[j]; // precondition(A,r,z);
+    //for (j = 0; j < n; j++) z[j] = r[j];
+    precondition(M,r,z);
 
 
     // beta = dot(r,z) / v
@@ -82,7 +87,7 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
 
     printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \n v = %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > tolerance(%lf)\n\n\n",iter, x[0], alpha, beta,v,r[0],p[0],q[0],z[0],norm(n,r)/norm(n,b),tolerance);
 
-    sleep(3);
+    sleep(0.5);
   }
 	free(r);
   free(p);
@@ -91,80 +96,156 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
   return iter;
 }
 
-int main(int argc, char* argv[]) {
-  int i, tests;
-  int test_count = 1;
-  my_crs_matrix *test;
-  my_crs_matrix *test_RCM;
-  my_crs_matrix *precond;
+// incomplete Choleskys
+void ichol(my_crs_matrix* M, double* L)
 
-  if (argc != 3)
+{
+  int n = M->n;
+  int i, j, k;
+  double s;
+  for (i = 0; i < n; i++)
     {
-      printf("ERROR: command line arguments invalid/missing\n");
-      return 1;
+      for (j = M->rowptr[i]; j < M->rowptr[i+1]; j++)
+	{
+	  if (M->col[j] < i)
+	    continue;
+	  s = 0;
+	  for (k = M->rowptr[i]; k < j; k++)
+	    {
+	      if (M->col[k] < i)
+		continue;
+	      s += L[k] * L[M->rowptr[M->col[k]]] + i - M->col[k];
+	    }
+	  L[j] = (i == M->col[j]) ?
+	    sqrt(M->val[j] - s) :
+	    (1.0 / L[M->rowptr[M->col[j]] + i - M->col[j]] * (M->val[j] - s));
+	}
     }
-  char *files[18] = {
-    "./test_subjects/494_bus.mtx.crs",
-    "./test_subjects/662_bus.mtx.crs",
-    "./test_subjects/685_bus.mtx.crs",
-    "./test_subjects/dwt_869.mtx.crs",
-    "./test_subjects/bcsstk01.mtx.crs",
-"./test_subjects/bcsstk02.mtx.crs",
-      "./test_subjects/bcsstk03.mtx.crs",
-      "./test_subjects/bcsstk04.mtx.crs",
-      "./test_subjects/bcsstk05.mtx.crs",
-      "./test_subjects/bcsstk06.mtx.crs",
-      "./test_subjects/bcsstk07.mtx.crs",
-      "./test_subjects/bcsstk08.mtx.crs",
-      "./test_subjects/bcsstk09.mtx.crs",
-      "./test_subjects/bcsstk10.mtx.crs",
-      "./test_subjects/bcsstk11.mtx.crs",
-      "./test_subjects/bcsstk12.mtx.crs",
-      "./test_subjects/bcsstk13.mtx.crs",
-      "./test_subjects/bcsstk14.mtx.crs"
-    };
-    PRECI_DT tol = (float)atof(argv[2]);
+}
 
-    FILE *ofile = fopen("C_cg-results.csv","w");
-    int iter, maxit;
-    for (tests=0; tests<test_count;tests++)
-      {
-	printf("\n%s\n",files[tests]);
+void precondition(my_crs_matrix* M, PRECI_DT* r, PRECI_DT* z)
 
-	maxit = atoi(argv[1])-1;
-	test = my_crs_read(files[tests]);//"./test_subjects/bcsstk10.mtx.crs");
-	test_RCM = rcm_reorder(test);
-	precond = eye(test->n);
-	PRECI_DT* b;
-	PRECI_DT* x;
+// find z = M^(-1)r
+{
+  int n = M->n;
+  int i, j;
 
-	b = malloc(sizeof(PRECI_DT) * test->n);
-	x = calloc(test->n, sizeof(PRECI_DT));
+  PRECI_DT* L = (PRECI_DT*)malloc(sizeof(PRECI_DT) * n);
 
-	// b vector of 1s
-	for (i = 0; i < test->n; i++)
-	b[i] = 1;
+  ichol(M,L);
 
-	// apply CG
-	printf("calling cg\n");
-	iter = conjugant_gradient(test, precond, b, x, maxit, tol);
+  PRECI_DT* y = (PRECI_DT*) malloc(n * sizeof(PRECI_DT));
+  printf("test 1\n");
+
+  for (i = 0; i < n; i++)
+    {
+      y[i] = r[i];
+      for (j = M->rowptr[i]; j < M->rowptr[i + 1]; j++)
+	{
+	  if (M->col[j] < i)
+	    continue;
+	  y[i] -= L[j] * y[M->col[j]];
+	}
+      y[i] /= L[M->rowptr[i]];
+    }
+  printf("test 2\n");
 
 
+  for (int i = n - 1; i >= 0; i--)
+    {
+      z[i] = y[i];
+      for (int j = M->rowptr[i]; j < M->rowptr[i+1]; j++)
+	{
+	  if (M->col[j] <= i)
+	    continue;
+	  z[i] -= L[j] * z[M->col[j]];
+	}
+      z[i] /= L[M->rowptr[i]];
+    }
+  free(L);
+  free(y);
+}
 
-	free(b);
-	free(x);
+  PRECI_DT matvec_dot(my_crs_matrix *A, PRECI_DT* x, PRECI_DT* y, int n)
 
-	fprintf(ofile,"%s,",files[tests]);
-	fprintf(ofile,"%d,",iter);
-	for (i = 0; i < test->n; i++)
-			       fprintf(ofile,"%f,",x[i]);
-	fprintf(ofile,"\n");
+  {
+
+    PRECI_DT result = 0.0;
+  for (int i = 0; i < n; i++)
+    {
+      for (int j = A->rowptr[i]; j < A->rowptr[i+1]; j++)
+	{
+	  result += x[i] * A->val[j] * y[A->col[j]];
+	  // printf("result += %lf * %lf * %lf\n", x[i] , A->val[j] , y[A->col[j]]);
+	}
+      /*     if (result != result && i % 20 == 0)
+	     printf("NaN moment :(\n");*/
 
 
-      }
 
-    printf(" donee \n");
+    }
+  return result;
+}
 
-    my_crs_free(test);
-    return 0;
-  }
+
+// find the dot product of two vectors
+
+PRECI_DT dot(PRECI_DT *v, PRECI_DT *u, int n) {
+
+  PRECI_DT x;
+  int i;
+
+  for (i = 0, x = 0.0; i < n; i++)
+    x += v[i] * u[i];
+
+  return x;
+
+}
+
+
+void matvec(my_crs_matrix *A, PRECI_DT* x, PRECI_DT* y)
+
+{
+  int n = A->n;
+
+  for (int i = 0; i < n; i++)
+    y[i] = 0.0;
+
+  for (int i = 0; i < n; i ++)
+    {
+      for (int j = A->rowptr[i]; j < A->rowptr[i+1]; j++)
+	{
+	  y[i] += A->val[j] * x[A->col[j]];
+	}
+    }
+}
+
+// find the norm of a vector
+PRECI_DT norm(int n, PRECI_DT *v) {
+
+
+  PRECI_DT ssq, scale, absvi;
+  int i;
+
+  if (n==1) return fabs(v[0]);
+
+  scale = 0.0;
+  ssq = 1.0;
+
+  for (i=0; i<n; i++)
+    {
+      if (v[i] != 0)
+	{
+	  absvi = fabs(v[i]);
+	  if (scale < absvi)
+	    {
+	      ssq = 1.0 + ssq * (scale/absvi)*(scale/absvi);
+	      scale = absvi;
+	    }
+	  else
+	    ssq = ssq + (absvi/scale)*(absvi/scale);
+	}
+    }
+  return scale * sqrt(ssq);
+}
+
