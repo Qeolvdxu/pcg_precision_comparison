@@ -1,4 +1,4 @@
-# CG Precision Comparisons
+# PCG Precision Comparisons
 
 Compare data types to see if the floating point precision will change the number of iterations and answer vectors of a preconditioned conjugate gradient algorithm across the CPU and GPU.
 
