@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
   };
   PRECI_DT tol = (float)atof(argv[2]);
 
-  FILE *ofile = fopen("C_cg-results.csv","w");
+  FILE *ofile = fopen("results_CCG_TEST.csv","w");
   int iter, maxit;
   for (tests=0; tests<test_count;tests++)
     {
