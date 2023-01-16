@@ -23,73 +23,84 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
   int j = 0;
 
   PRECI_DT v = 0;
-
-
+  PRECI_DT Rho = 0;
+    
   // x = zeros
-  for (int i = 0; i < n; i++) x[i] = 0;
+  for (int i = 0; i < n; i++)
+    x[i] = 0;
 
   // r = b - A*x
   matvec(A, x, r);
-  for (int i = 0; i < n; i++) r[i] = b[i] - r[i];
+  for (int i = 0; i < n; i++)
+    r[i] = b[i] - r[i];
 
   // z = MT\(M\r)
-  // precond(M,r,z);
-  for (int i = 0; i < n; i++) z[i] = r[i];
+  precondition(M, r, z);
+  for (int i = 0; i < n; i++)
+    z[i] = r[i];
 
-
-  for (int i = 0; i < n; i++) p[i] = z[i];
-  for (int i = 0; i < n; i++) q[i] = 1;
+  for (int i = 0; i < n; i++)
+    p[i] = z[i];
+  for (int i = 0; i < n; i++)
+    q[i] = 1;
 
   // x = zeros
-  for (int i = 0; i < n; i++) x[i] = 0;
+  for (int i = 0; i < n; i++)
+    x[i] = 0;
 
-  printf("iteration PREQUEL\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > tolerance(%lf)\n\n\n",x[0], alpha, beta,r[0],p[0],q[0],z[0],norm(n,r)/norm(n,b),tolerance);
+  printf("iteration PREQUEL\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf "
+         "\n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > "
+         "tolerance(%lf)\n\n\n",
+         x[0], alpha, beta, r[0], p[0], q[0], z[0], norm(n, r) / norm(n, b),
+         tolerance);
 
-
-  printf("** %lf | %d | %d ** \n",A->val[1], A->col[1], A->rowptr[1]);
+  printf("** %lf | %d | %d ** \n", A->val[1], A->col[1], A->rowptr[1]);
   // main CG loop
-  while (iter <= max_iter && norm(n,r) / norm(n,b) > tolerance) {
+  while (iter <= max_iter && norm(n, r) / norm(n, b) > tolerance) {
     // next iteration
     iter++;
 
+    // Precondition
+    precondition(M, r, z);
+    for (j = 0; j < n; j++)
+      z[j] = r[j];
+
+    for(j=0,Rho=0.0; j<n; j++) Rho += r[j] * z[j];
+
     // q = A*p
-    matvec(M, p, q);
+    matvec(A, p, q);
 
-    // v = early dot(r,z) 
-    v = dot(r,z,n);
+    // v = early dot(r,z)
+    v = dot(r, z, n);
 
-    printf("p*q[1]=%lf\n",dot(p,q,n));
+    printf("p*q[1]=%lf\n", dot(p, q, n));
     // alpha = v / dot(p,q)
     alpha = v / dot(p, q, n);
 
     // x = x + alpha * p
-    printf("x[0] = %lf + %lf * %lf = ", x[0],alpha,p[0]);
+    printf("x[0] = %lf + %lf * %lf = ", x[0], alpha, p[0]);
     for (j = 0; j < n; j++)
       x[j] = x[j] + (alpha * p[j]);
     printf("%lf\n", x[0]);
-
 
     // r = r - alpha * q
     for (j = 0; j < n; j++)
       r[j] -= alpha * q[j];
 
-    // Precondition
-    for (j = 0; j < n; j++) z[j] = r[j];
-    //precondition(M,r,z);
-
-
     // beta = dot(r,z) / v
     beta = dot(r, z, n) / v;
 
     // p = z + beta * p
-    for (j = 0; j < n; j++) 
+    for (j = 0; j < n; j++)
       p[j] = z[j] + (beta * p[j]);
 
-    printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \n v = %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > tolerance(%lf)\n\n\n",iter, x[0], alpha, beta,v,r[0],p[0],q[0],z[0],norm(n,r)/norm(n,b),tolerance);
-
-    sleep(0.5);
-  }
-	free(r);
+    printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \n v "
+           "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
+           "ratio(%lf) > tolerance(%lf)\n\n\n",
+           iter, x[0], alpha, beta, v, r[0], p[0], q[0], z[0],
+           norm(n, r) / norm(n, b), tolerance);
+   }
+        free(r);
   free(p);
   free(q);
   free(z);
