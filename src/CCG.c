@@ -24,7 +24,14 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
 
   PRECI_DT v = 0;
   PRECI_DT Rho = 0;
-    
+  PRECI_DT Rtmp = 0;
+
+  PRECI_DT res_norm = 0;
+  PRECI_DT init_norm = 0;
+  PRECI_DT ratio = 0;
+
+
+
   // x = zeros
   for (int i = 0; i < n; i++)
     x[i] = 0;
@@ -35,7 +42,7 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
     r[i] = b[i] - r[i];
 
   // z = MT\(M\r)
-  precondition(M, r, z);
+  // precondition(M, r, z);
   for (int i = 0; i < n; i++)
     z[i] = r[i];
 
@@ -48,35 +55,53 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
   for (int i = 0; i < n; i++)
     x[i] = 0;
 
+  res_norm = init_norm = norm(n,r);
+  if (init_norm == 0.0) init_norm = 1.0;
+  ratio = 1.0;
+
   printf("iteration PREQUEL\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf "
          "\n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > "
          "tolerance(%lf)\n\n\n",
-         x[0], alpha, beta, r[0], p[0], q[0], z[0], norm(n, r) / norm(n, b),
-         tolerance);
+         x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);
 
   printf("** %lf | %d | %d ** \n", A->val[1], A->col[1], A->rowptr[1]);
   // main CG loop
-  while (iter <= max_iter && norm(n, r) / norm(n, b) > tolerance) {
+  while (iter <= max_iter && ratio > tolerance) {
     // next iteration
     iter++;
 
     // Precondition
-    precondition(M, r, z);
+    // precondition(M, r, z);
     for (j = 0; j < n; j++)
       z[j] = r[j];
 
-    for(j=0,Rho=0.0; j<n; j++) Rho += r[j] * z[j];
+    for (j = 0, Rho = 0.0; j < n; j++)
+      Rho += r[j] * z[j];
+
+    // beta = dot(r,z) / v
+    beta = dot(r, z, n) / v;
+
+    // p = z + beta * p
+    if (iter == 1) {
+      for (j = 0; j < n; j++)
+        p[j] = z[j];
+    } else {
+      for (j = 0; j < n; j++)
+        p[j] = z[j] + (beta * p[j]);
+    }
 
     // q = A*p
     matvec(A, p, q);
+
+    for (j = 0, Rtmp = 0.0; j < n; j++)
+      Rtmp += p[j] * q[j];
 
     // v = early dot(r,z)
     v = dot(r, z, n);
 
     printf("p*q[1]=%lf\n", dot(p, q, n));
     // alpha = v / dot(p,q)
-    alpha = v / dot(p, q, n);
-
+    alpha = Rho / Rtmp;
     // x = x + alpha * p
     printf("x[0] = %lf + %lf * %lf = ", x[0], alpha, p[0]);
     for (j = 0; j < n; j++)
@@ -87,19 +112,22 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT
     for (j = 0; j < n; j++)
       r[j] -= alpha * q[j];
 
-    // beta = dot(r,z) / v
-    beta = dot(r, z, n) / v;
+    Rho = 0.0;
+    res_norm = norm(n, r);
+    ratio = res_norm / init_norm;
 
-    // p = z + beta * p
-    for (j = 0; j < n; j++)
-      p[j] = z[j] + (beta * p[j]);
-
-    printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \n v "
+    if (iter > 0) {
+      matvec(A, x, r);
+      for (j = 0; j < n; j++)
+        r[j] = b[j] - r[j];
+    }
+    printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf "
+           "\n v "
            "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
            "ratio(%lf) > tolerance(%lf)\n\n\n",
-           iter, x[0], alpha, beta, v, r[0], p[0], q[0], z[0],
-           norm(n, r) / norm(n, b), tolerance);
-   }
+           iter, x[0], alpha, beta, v, r[0], p[0], q[0], z[0], ratio,
+           tolerance);
+  }
         free(r);
   free(p);
   free(q);
