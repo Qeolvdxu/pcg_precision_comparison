@@ -11,11 +11,11 @@
 
 __global__ void cgkernel()
 {
+
   return;
 }
 
 __host__ my_crs_2_cusparse(my_crs_matrix* A, cusparseHandle_t cusparseHandle);
-
 {
   int nnz = A->nz;
 	int n = A->n;
@@ -39,5 +39,11 @@ __host__ my_crs_2_cusparse(my_crs_matrix* A, cusparseHandle_t cusparseHandle);
 	cusparseHybMat_t csrMat;
 	cusparseCreateHybMat(&csrMat);
 	cusparseDcsr2hyb(cusparseHandle, n, n, descr, data, ptr, indices, csrMat, 0, CUSPARSE_HYB_PARTITION_AUTO);
+}
+
+extern "C" void call_CuCG(void)
+{
+
+  return;
 }
 

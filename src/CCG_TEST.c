@@ -1,75 +1,96 @@
+#include <dirent.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "../include/my_crs_matrix.h"
 #include "../include/CCG.h"
 
-int main(int argc, char* argv[]) {
+
+char **find_files(const char *dir_path, int *num_files) {
+  DIR *dir = opendir(dir_path);
+  struct dirent *entry;
+  char **files = NULL;
+  int count = 0;
+
+  if (dir == NULL) {
+    perror("opendir");
+    return NULL;
+  }
+
+  while ((entry = readdir(dir)) != NULL) {
+    if (entry->d_type == DT_REG) {
+      files = (char **)realloc(files, sizeof(char *) * (count + 1));
+      files[count] =
+          (char *)malloc(strlen(dir_path) + strlen(entry->d_name) + 2);
+      sprintf(files[count], "%s/%s", dir_path, entry->d_name);
+      count++;
+    }
+  }
+
+  closedir(dir);
+  *num_files = count;
+  return files;
+}
+
+int main(int argc, char *argv[]) {
   int i, tests;
-  int test_count = 9;
-  my_crs_matrix *test;
-  my_crs_matrix *test_RCM;
-  my_crs_matrix *precond;
 
   if (argc != 3)
     {
       printf("ERROR: command line arguments invalid/missing\n");
       return 1;
-    }
-    char *files[9] = {
-      "../test_subjects/bcsstk10.mtx.crs",
-        "../test_subjects/685_bus.mtx.crs",
-        "../test_subjects/dwt_869.mtx.crs",
-        "../test_subjects/bcsstk09.mtx.crs",
-        "../test_subjects/bcsstk11.mtx.crs",
-        "../test_subjects/bcsstk12.mtx.crs",
-        "../test_subjects/bcsstk13.mtx.crs",
-        "../test_subjects/bcsstk08.mtx.crs",
-        "../test_subjects/bcsstk07.mtx.crs",
-    };
-    PRECI_DT tol = (float)atof(argv[2]);
+  }
+  int test_count;
+  char **files = find_files("../test_subjects/rcm", &test_count);
+  PRECI_DT tol = (float)atof(argv[2]);
+  FILE *ofile = fopen("results_CCG_TEST.csv", "w");
+  int iter, maxit;
 
-    FILE *ofile = fopen("results_CCG_TEST.csv", "w");
-    int iter, maxit;
-    for (tests = 0; tests < test_count; tests++) {
-      printf("\n%s\n",files[tests]);
+  my_crs_matrix *test;
+  my_crs_matrix *precond;
 
-      maxit = atoi(argv[1])-1;
-      test = my_crs_read(files[tests]); //"../test_subjects/bcsstk10.mtx.crs");
-      test_RCM = rcm_reorder(test);
-      precond = eye(test->n);
-      PRECI_DT *b;
-      PRECI_DT *x;
+  for (tests = 0; tests < test_count; tests++) {
 
-      b = malloc(sizeof(PRECI_DT) * test->n);
-      x = calloc(test->n, sizeof(PRECI_DT));
+    printf("\n%s\n", files[tests]);
 
-      // b vector of 1s
-      for (i = 0; i < test->n; i++)
-        b[i] = 1;
+    maxit = atoi(argv[1]) - 1;
+    test = my_crs_read(files[tests]); //"../test_subjects/bcsstk10.mtx.crs");
+    // test_RCM = rcm_reorder(test);
+    precond = eye(test->n);
+    PRECI_DT *b;
+    PRECI_DT *x;
 
-      // apply CG
-      printf("calling cg\n");
-      iter = conjugant_gradient(test, precond, b, x, maxit, tol);
+    my_crs_print(test);
 
+    b = malloc(sizeof(PRECI_DT) * test->n);
+    x = calloc(test->n, sizeof(PRECI_DT));
 
+    // b vector of 1s
+    for (i = 0; i < test->n; i++)
+      b[i] = 1;
 
-      free(b);
-      free(x);
+    // apply CG
+    printf("calling cg\n");
+    iter = conjugant_gradient(test, precond, b, x, maxit, tol);
 
-      fprintf(ofile,"%s,",files[tests]);
-      fprintf(ofile, "%d,", iter);
-      for (i = 0; i < test->n; i++)
-        fprintf(ofile, "%.2e,", x[i]);
-      fprintf(ofile,"\n");
+    free(b);
+    free(x);
 
-
-    }
-
-  printf(" donee \n");
-
-  my_crs_free(test);
-  return 0;
+    fprintf(ofile, "%s,", files[tests]);
+    fprintf(ofile, "%d,", iter);
+    for (i = 0; i < test->n; i++)
+      fprintf(ofile, "%.2e,", x[i]);
+    fprintf(ofile, "\n");
 }
+
+free(files);
+ my_crs_free(test);
+my_crs_free(precond);
+
+printf(" donee \n");
+
+return 0;
+      }

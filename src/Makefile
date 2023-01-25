@@ -1,6 +1,6 @@
 all:
-	make CCG_TEST
-	make CuCG_TEST
+	make CCG_TEST_M
+	make CuCG_TEST_M
 
 CCG_TEST_M:
 	make -f CCG_TEST.mk

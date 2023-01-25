@@ -4,74 +4,6 @@
 
 #include "../include/my_crs_matrix.h"
 
-int cmp_degree(const void* a, const void* b)
-{
-  return ( *(int*)a - *(int*)b );
-}
-
-my_crs_matrix* rcm_reorder(my_crs_matrix *A)
-{
-  int n = A->n;
-  int *perm = malloc(sizeof(int) * n);
-  
-  for (int i = 0; i < n; i++)
-    perm[i] = i;
-
-  int* degree = malloc(n* sizeof(int));
-  for (int i = 0; i < n; i++)
-    degree[i] = A->rowptr[i+1] - A->rowptr[i];
-
-  int* sorted = malloc(n * sizeof(int));
-  for (int i = 0; i < n; i++)
-    sorted[i] = i;
-
-  qsort(sorted, n, sizeof(int), cmp_degree);
-
-  for (int i = 0; i < A->n; i++)
-    {
-      int root = sorted[i];
-      if (perm[root] != root)
-	continue;
-      perm[root] = perm[perm[root]];
-      for (int j = A->rowptr[root]; j < A->rowptr[root+1]; j++)
-	{
-	  int node = A->col[j];
-	  perm[node] = perm[perm[node]];
-	}
-    }
-
-  my_crs_matrix* B = eye(n);
-
-  // Reorder the rows and columns of the matrix
-  int* row_count = calloc(A->n, sizeof(int));
-  for (int i = 0; i < A->n; i++) {
-    int row = perm[i];
-    row_count[row]++;
-  }
-  for (int i = 0; i < A->n; i++) {
-    B->rowptr[i + 1] = B->rowptr[i] + row_count[i];
-  }
-  for (int i = 0; i < A->n; i++) {
-    int row = perm[i];
-    for (int j = A->rowptr[i]; j < A->rowptr[i + 1]; j++) {
-      int col = A->col[j];
-      int index = B->rowptr[row] + row_count[row] - 1;
-      B->col[index] = col;
-      B->val[index] = A->val[j];
-      row_count[row]--;
-    }
-  }
-
-  // Free allocated memory
-  /*free(perm);
-    free(degree);
-  free(sorted);
-  free(row_count);*/
-
-  return B;
-}
-
-
 my_crs_matrix *sparse_transpose(my_crs_matrix *input) {
 
   my_crs_matrix *res = malloc(sizeof(my_crs_matrix));
@@ -122,25 +54,30 @@ my_crs_matrix *sparse_transpose(my_crs_matrix *input) {
 // read matrix file into a my_csr_matrix variable
 my_crs_matrix *my_crs_read(char *name) {
   my_crs_matrix *M = malloc(sizeof(my_crs_matrix));
-  FILE *file = fopen(name, "r");
-  int i;
+  FILE *file;
+  if ((file = fopen(name, "r"))) {
+    int i;
 
-  fscanf(file, "%d %d %d", &M->m, &M->n, &M->nz);
-  M->val = malloc(sizeof(PRECI_DT) * M->nz);
+    fscanf(file, "%d %d %d", &M->m, &M->n, &M->nz);
+    M->val = malloc(sizeof(PRECI_DT) * M->nz);
 
-  M->col = malloc(sizeof(int) * M->nz);
-  M->rowptr = malloc(sizeof(int) * M->n);
+    M->col = malloc(sizeof(int) * M->nz);
+    M->rowptr = malloc(sizeof(int) * M->n);
 
-  for (i = 0; i < M->n; i++)
-    fscanf(file, "%d ", &M->rowptr[i]);
-  for (i = 0; i < M->nz; i++)
-    fscanf(file, "%d ", &M->col[i]);
-  for (i = 0; i < M->nz; i++)
-    fscanf(file, PRECI_S, &M->val[i]);
+    for (i = 0; i <= M->n; i++)
+      fscanf(file, "%d ", &M->rowptr[i]);
+    for (i = 0; i < M->nz; i++)
+      fscanf(file, "%d ", &M->col[i]);
+    for (i = 0; i < M->nz; i++)
+      fscanf(file, PRECI_S, &M->val[i]);
 
-  fclose(file);
+    fclose(file);
+  } else {
+    printf("ERROR: could not open file %s\n", name);
+    M->n = -1;
+  }
   return M;
-}
+  }
 
 // makes identity matrix in csr
 my_crs_matrix *eye(int n) {
@@ -156,7 +93,7 @@ my_crs_matrix *eye(int n) {
   M->col = malloc(sizeof(int) * M->nz);
   M->rowptr = malloc(sizeof(int) * M->n);
 
-  for (i = 0; i < M->n; i++)
+  for (i = 0; i < M->n - 1; i++)
     M->rowptr[i] = i;
   for (i = 0; i < M->nz; i++)
     M->col[i] = i;
@@ -181,20 +118,23 @@ void my_crs_free(my_crs_matrix *M) {
 // Print my_csr_matrix Matrix
 void my_crs_print(my_crs_matrix *M) {
   int i = 0;
-  printf("rowptr,");
-  for (i = 0; i < M->n; i++)
-    printf("%d, ", M->rowptr[i]);
-  printf("\n\n");
+  int n = M->n;
+  int m = M->m;
+  int nz = M->nz;
+  printf("%d %d %d\n", n, m, nz);
+  for (i = 0; i < n; i++)
+    printf("%d ", M->rowptr[i]);
+  printf("\n");
 
   printf("index,");
-  for (i = 0; i < M->nz; i++)
-    printf("%d, ", M->col[i]);
-  printf("\n\n");
+  for (i = 0; i < nz; i++)
+    printf("%d ", M->col[i]);
+  printf("\n");
 
   printf("values,");
-  for (i = 0; i < M->nz; i++) {
+  for (i = 0; i < nz; i++) {
     printf(PRECI_S, M->val[i]);
-    printf(", ");
+    printf(" ");
   }
-  printf("\n\n");
+  printf("\n");
 }
