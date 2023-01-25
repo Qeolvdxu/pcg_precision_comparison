@@ -1,6 +1,6 @@
 all:
-	make CCG_TEST_M
-	make CuCG_TEST_M
+	nvcc -c -o CuCG.o CuCG.cu
+	clang -o cgpc -lcuda -lcudart main.c CuCG.o
 
 CCG_TEST_M:
 	make -f CCG_TEST.mk
