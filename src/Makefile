@@ -1,6 +1,6 @@
 all:
-	nvcc -c -o CuCG.o CuCG.cu
-	clang -o cgpc -lcuda -lcudart main.c CuCG.o
+	nvcc -c -o CuCG.o CuCG.cu -lcusparse -lcudart -lcuda
+	gcc -o cgpc -lcuda -lcudart -lcusparse -lm main.c CuCG.o
 
 CCG_TEST_M:
 	make -f CCG_TEST.mk

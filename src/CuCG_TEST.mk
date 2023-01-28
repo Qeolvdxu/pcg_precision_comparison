@@ -1,7 +1,7 @@
 CC = nvcc
 
-CFLAGS = -Wall
-LDFLAGS = -lcusparse
+CFLAGS = 
+LDFLAGS = -lcusparse -lcudart -lcuda
 
 TARGET = CuCU_TEST
 SOURCE = CuCG_TEST.cu CuCG.cu my_crs_matrix.c
