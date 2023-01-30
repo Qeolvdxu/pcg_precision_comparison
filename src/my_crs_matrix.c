@@ -62,7 +62,7 @@ my_crs_matrix *my_crs_read(char *name) {
     M->val = malloc(sizeof(PRECI_DT) * M->nz);
 
     M->col = malloc(sizeof(int) * M->nz);
-    M->rowptr = malloc(sizeof(int) * M->n);
+    M->rowptr = malloc(sizeof(int) * M->n+1);
 
     for (i = 0; i <= M->n; i++)
       fscanf(file, "%d ", &M->rowptr[i]);
