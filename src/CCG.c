@@ -116,14 +116,14 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b,
       r[j] -= alpha * q[j];
 
     Rho = 0.0;
-	   res_norm = norm(n, r);
-	   ratio = res_norm / init_norm;
+    res_norm = norm(n, r);
+    ratio = res_norm / init_norm;
 
-	   if (iter > 0) {
-	     matvec(A, x, r);
-	     for (j = 0; j < n; j++)
-	       r[j] = b[j] - r[j];
-	   }
+    if (iter > 0) {
+	    matvec(A, x, r);
+	    for (j = 0; j < n; j++)
+	    	r[j] = b[j] - r[j];
+    }
     /*printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \t res_norm = %lf"
            "\n v "
            "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
