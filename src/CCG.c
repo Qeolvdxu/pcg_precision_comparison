@@ -7,7 +7,7 @@
 
 #include "../include/CCG.h"
 
-int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b,
+int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b,
                        PRECI_DT *x, int max_iter, PRECI_DT tolerance)
 
 {
@@ -62,11 +62,11 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b,
     init_norm = 1.0;
   ratio = 1.0;
 
-  printf("** %lf | %d | %d ** \n", A->val[1], A->col[1], A->rowptr[1]);
+  /*printf("** %lf | %d | %d ** \n", A->val[1], A->col[1], A->rowptr[1]);
   printf("iteration PREQUEL\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf "
          "\n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > "
          "tolerance(%lf)\n\n\n",
-         x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);
+         x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);*/
 
   // main CG loop
   while (iter <= max_iter && ratio > tolerance) {
@@ -116,21 +116,22 @@ int conjugant_gradient(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b,
       r[j] -= alpha * q[j];
 
     Rho = 0.0;
-    res_norm = norm(n, r);
-    ratio = res_norm / init_norm;
+	   res_norm = norm(n, r);
+	   ratio = res_norm / init_norm;
 
-    if (iter > 0) {
-      matvec(A, x, r);
-      for (j = 0; j < n; j++)
-        r[j] = b[j] - r[j];
-    }
-    /*printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf "
+	   if (iter > 0) {
+	     matvec(A, x, r);
+	     for (j = 0; j < n; j++)
+	       r[j] = b[j] - r[j];
+	   }
+    /*printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \t res_norm = %lf"
            "\n v "
            "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
            "ratio(%lf) > tolerance(%lf)\n\n\n",
-           iter, x[0], alpha, beta, v, r[0], p[0], q[0], z[0], ratio,
-           tolerance);
-    printf("\e[1;1H\e[2J");*/
+           iter, x[0], alpha, beta, res_norm, v, r[0], p[0], q[0], z[0], ratio,
+           tolerance);*/
+
+    //printf("\e[1;1H\e[2J");
     
   }
   free(r);

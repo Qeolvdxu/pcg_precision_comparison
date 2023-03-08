@@ -1,5 +1,5 @@
-#include <dirent.h>
 #include <math.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 
     // apply CG
     printf("calling cg\n");
-    iter = conjugant_gradient(test, precond, b, x, maxit, tol);
+    iter = CCG(test, precond, b, x, maxit, tol);
 
     free(b);
     free(x);
