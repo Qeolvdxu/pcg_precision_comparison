@@ -30,5 +30,5 @@ clean:
 CCG_TEST_M:
 	make -f CCG_TEST.mk
 
-CUDA_cg_M:
+CuCG_TEST_M:
 	make -f CuCG_TEST.mk
