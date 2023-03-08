@@ -87,9 +87,9 @@ int main(void) {
   	for(j=0;j<A->n;j++) b[j] = 1;
   
   	// run cpu
-  	iter = CCG(A, M, b, x, maxit, tol);
+  	CCG(A, M, b, x, maxit, tol);
 	fprintf(ofile, "CPU,");
-	fprintf(ofile, "%d,",iter);
+	fprintf(ofile, "%s,",files[i]);
 	for(j = 0; j < A->n; j++)
 	    fprintf(ofile,"%.2e,",x[j]);
 	fprintf(ofile,"\n");
@@ -98,7 +98,6 @@ int main(void) {
   	call_CuCG(files[i],b,x,maxit,tol);
 	fprintf(ofile, "GPU,");
 	fprintf(ofile, "%s,",files[i]);
-	fprintf(ofile, "%d,",iter);
 	for(j = 0; j < A->n; j++)
 	    fprintf(ofile,"%.2e,",x[j]);
 	fprintf(ofile,"\n");
