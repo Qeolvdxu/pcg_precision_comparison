@@ -1,6 +1,6 @@
 CC = nvcc
 
-CFLAGS = 
+CFLAGS = -Xcompiler -Wall,-Wpedantic -x c -g -G 
 LDFLAGS = -lcusparse -lcudart -lcuda
 
 TARGET = CuCU_TEST
