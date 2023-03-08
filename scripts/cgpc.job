@@ -2,7 +2,7 @@
 #SBATCH -J cgpc
 #SBATCH -t 48:00:00
 #SBATCH -N 1
-#SBTACH -n 1
+#SBTACH -n 2
 
 module load cuda
 cd ../src && make
