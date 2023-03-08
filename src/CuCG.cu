@@ -351,11 +351,11 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
     printf("\n");*/
 
     fclose(file);
-
+    size_t pitch;
     // Allocate memory for the CSR matrix
-    cudaMalloc((void**)&M->rowptr, (n+1) * sizeof(int));
-    cudaMalloc((void**)&M->col, nz * sizeof(int));
-    cudaMalloc((void**)&M->val, nz * sizeof(PRECI_DT));
+    cudaMallocPitch((void**)&M->rowptr,&pitch, (n+1) * sizeof(int),1);
+    cudaMallocPitch((void**)&M->col,&pitch, nz * sizeof(int),1);
+    cudaMallocPitch((void**)&M->val,&pitch, nz * sizeof(PRECI_DT),1);
 
 
     // Copy data from host to device
