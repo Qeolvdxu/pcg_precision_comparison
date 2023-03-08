@@ -1,11 +1,20 @@
-CC = nvcc
+CC = gcc
+NVCC = nvcc
 
-CFLAGS = -Xcompiler -Wall,-Wpedantic -x c -g -G 
-LDFLAGS = -lcusparse -lcudart -lcuda
+CFLAGS = -g -Wall -Wextra -pedantic -v -gdwarf-4
+NVCCFLAGS = -O3 -Xcompiler -Wall,-Wpedantic -x c -g -G -v
 
-TARGET = CuCU_TEST
-SOURCE = CuCG_TEST.cu CuCG.cu my_crs_matrix.c
+LIB_FLAGS = -lm -lcudart -lcusparse -lcuda -lcublas
 
+BUILDDIR = ./build/
 
-all:
-	$(CC) $(CFLAGS) -o CuCG $(SOURCE) $(LDFLAGS)
+TARGET = CuCG_TEST 
+
+all: $(TARGET)
+
+$(TARGET): cudacode.o 
+	$(CC) -o $(BUILDDIR)$(TARGET) $(CFLAGS) CuCG_TEST.c $(BUILDDIR)CuCG.o $(LIB_FLAGS)
+
+cudacode.o:
+	mkdir -p $(BUILDDIR)
+	$(NVCC) $(NVCCFLAGS) -o $(BUILDDIR)CuCG.o -c CuCG.cu
