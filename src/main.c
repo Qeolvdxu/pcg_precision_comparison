@@ -5,7 +5,7 @@
 #include "../include/CuCG.h"
 
 int main(void) {
-  printf("Welcome to the Conjugate Gradient Precision Comparison Testing Suite!\n");
+  printf("Welcome to the Conjugate Gradient Precision Comparison Test!\n");
 
   char name[100];
   printf("Enter the .mtx file : ");
@@ -14,7 +14,7 @@ int main(void) {
   my_crs_matrix *A;
   my_crs_matrix *precond;
 
-  //call_CuCG();
+  call_CuCG();
   
   
   printf("Bye!\n");
