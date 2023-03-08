@@ -261,8 +261,8 @@ beta = Rho / (v + Tiny);
 	}
 
 	cudaDeviceSynchronize();
-	int error = cudaGetLastError();
-	printf("\n%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
+	//int error = cudaGetLastError();
+	//printf("\n%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
 	/*cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
