@@ -7,5 +7,5 @@ gcc/clang, nvcc, cuda capable gpu
 
 ## How to use
 * Pick all the matrix market matricies (.MTX files) to test and put them in the test_subjects directory
-* run 
-* The output will print and write in real time
+* build the program with makefile
+* The output will write to a csv in real time
