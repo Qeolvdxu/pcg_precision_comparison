@@ -13,10 +13,10 @@ TARGET = cgpc
 all: $(TARGET)
 
 $(TARGET): cudacode.o 
-	mkdir $(BUILDDIR)
 	$(CC) -o $(BUILDDIR)$(TARGET) $(CFLAGS) main.c my_crs_matrix.c CCG.c $(BUILDDIR)CuCG.o $(LIB_FLAGS)
 
 cudacode.o:
+	mkdir -p $(BUILDDIR)
 	$(NVCC) $(NVCCFLAGS) -o $(BUILDDIR)CuCG.o -c CuCG.cu
 
 clean:
