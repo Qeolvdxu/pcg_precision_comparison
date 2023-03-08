@@ -263,7 +263,7 @@ beta = Rho / (v + Tiny);
 	cudaDeviceSynchronize();
 	int error = cudaGetLastError();
 	printf("\n%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
-	cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+	/*cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
@@ -273,7 +273,7 @@ beta = Rho / (v + Tiny);
 	       "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
 	       "ratio(%lf) > tolerance(%lf)\n\n\n",
 	       iter, onex[0], alpha, beta, res_norm, v, oner[0], onep[0], oneq[0], onez[0], ratio,
-	       tolerance);
+	       tolerance);*/
 
 	//printf("\e[1;1H\e[2J");
       }
