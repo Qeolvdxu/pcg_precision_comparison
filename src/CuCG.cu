@@ -108,7 +108,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   cudaMalloc(&buff, bufferSizeMV);
 
 
-  cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+  /*cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
@@ -118,7 +118,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 	 "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
 	 "ratio(%lf) > tolerance(%lf)\n\n\n",
 	 iter, onex[0], alpha, beta, v, oner[0], onep[0], oneq[0], onez[0], ratio,
-	 tolerance);
+	 tolerance);*/
 
 
   //matvec(A,x,r);
@@ -157,7 +157,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   init_norm = res_norm;
   ratio = 1.0;
 
-  cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+  /*cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
@@ -168,11 +168,11 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 	 "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
 	 "ratio(%lf) > tolerance(%lf)\n\n\n",
 	 iter, onex[0], alpha, beta, v, oner[0], onep[0], oneq[0], onez[0], ratio,
-	 tolerance);
+	 tolerance);*/
 
   while (iter <= max_iter && ratio > tolerance)
     {
-      printf("Iteration : %d",iter);
+      //printf("Iteration : %d",iter);
       iter++;
 
       // z = r
@@ -263,7 +263,7 @@ beta = Rho / (v + Tiny);
 	cudaDeviceSynchronize();
 	//  int error = cudaGetLastError();
 	//printf("\n%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
-	cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+	/*cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
@@ -273,14 +273,13 @@ beta = Rho / (v + Tiny);
 	       "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
 	       "ratio(%lf) > tolerance(%lf)\n\n\n",
 	       iter, onex[0], alpha, beta, res_norm, v, oner[0], onep[0], oneq[0], onez[0], ratio,
-	       tolerance);
+	       tolerance);*/
 
 	//printf("\e[1;1H\e[2J");
       }
 
     return;
 }
-
 
 
 __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
@@ -316,8 +315,7 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
     for (i = 0; i < nz; i++)
       fscanf(file, PRECI_S, &val[i]);
 
-    printf("rowptr : ");
-
+/*    printf("rowptr : ");
 
     for( i = 0; i <= n; i++)
       printf("%d, ",rowptr[i]);
@@ -334,7 +332,7 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
 
     for( i = 0; i < nz; i++)
       printf("%lf, ",val[i]);
-    printf("\n");
+    printf("\n");*/
 
     fclose(file);
 
@@ -363,30 +361,29 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
 }
 
 
-void call_CuCG(void)
+void call_CuCG(char* name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit, PRECI_DT tol)
 {
-  printf("Creating cusparse handle!\n");
+  //printf("Creating cusparse handle!\n");
   cublasHandle_t cublasHandle;
   cublasCreate(&cublasHandle);
   cusparseHandle_t cusparseHandle;
   cusparseStatus_t status = cusparseCreate(&cusparseHandle);
   if (status != CUSPARSE_STATUS_SUCCESS)
-		 {
-		   printf("Error creating cusparse Handle!\n"); 
-		 }
+  {
+    printf("Error creating cusparse Handle!\n"); 
+  }
   else
     {
-      printf("reading matrix file...\n");
-      my_cuda_csr_matrix *A_matrix = cusparse_crs_read((char*)"../test_subjects/rcm/bcsstk14.mtx.rcm.csr");
-
+      //printf("reading matrix file...\n");
+      my_cuda_csr_matrix *A_matrix = cusparse_crs_read((char*)name);
 
       int64_t n=A_matrix->n;
 
-      printf("creating %d vectors... ",A_matrix->n);
+      //printf("creating vectors... %d",A_matrix->n);
 
       // Make x vector
       my_cuda_vector *x_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
-      PRECI_DT* h_x = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
+      //PRECI_DT* h_x = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
       for(int i=0;i<n;i++) h_x[i] = 0;
       cudaMalloc((void**)&x_vec->val, n * sizeof(PRECI_DT));
       cudaMemcpy(x_vec->val, h_x, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
@@ -394,49 +391,49 @@ void call_CuCG(void)
 
       // Make b vector
       my_cuda_vector *b_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
-      PRECI_DT* h_b = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
-      for(int i=0;i<n;i++) h_b[i] = 1;
+      //PRECI_DT* h_b = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
+      //for(int i=0;i<n;i++) h_b[i] = 1;
       cudaMalloc((void**)&b_vec->val, n * sizeof(PRECI_DT));
       cudaMemcpy(b_vec->val, h_b, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
       cusparseCreateDnVec(&b_vec->desc, n, b_vec->val,PRECI_CUDA);
 
-      printf("Created Vectors!\n");  
+      /*printf("Created Vectors!\n");  
 
       for (int i = 0; i < 10; i++)
 	printf(PRECI_S,h_x[i]);
-      printf("\n");
+      printf("\n");*/
 
-      for (int i = 0; i < 10; i++)
+      /*for (int i = 0; i < 10; i++)
 	printf(PRECI_S,h_b[i]);
-      printf("\n");
+      printf("\n");*/
 
-      printf("Calling CG func...");
-      cusparse_conjugate_gradient(A_matrix, A_matrix, b_vec,x_vec,8000,0.01, &cusparseHandle, &cublasHandle);
-      printf("Done!\n");
+      //printf("Calling CG func...");
+      cusparse_conjugate_gradient(A_matrix, A_matrix, b_vec,x_vec,maxit,tol, &cusparseHandle, &cublasHandle);
+      //printf("Done!\n");
 
       cudaMemcpy(h_x, x_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
       cudaMemcpy(h_b, b_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 
-      for (int i = 0; i < 10; i++)
+      /*for (int i = 0; i < 10; i++)
 	 printf(PRECI_S,h_x[i]);
        printf("\n");
 
        for (int i = 0; i < 10; i++)
 	 printf(PRECI_S,h_b[i]);
-      printf("\n");
+      printf("\n");*/
 
       cusparseDestroy(cusparseHandle);
       cublasDestroy(cublasHandle);
     }
-  printf("Done!\n");
+  //printf("Done!\n");
 
   
     
   return;
 }
 
-int main (void)
+/*int main (void)
   {
   call_CuCG();
   return 0;
-  }
+  }*/
