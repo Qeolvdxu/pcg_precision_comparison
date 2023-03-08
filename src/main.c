@@ -38,7 +38,7 @@ int main(void) {
 // Set inital values
   int i = 0;
   int j = 0;
-  char name[100];
+  char* name;
   double tol = 0;
   int maxit = 0;
   int matrix_count = 0;
@@ -52,23 +52,26 @@ int main(void) {
 // Collect information from user
   printf("Welcome to the Conjugate Gradient Precision Comparison Test!\n");
 
-  //Read Directory of Matrices
-  printf("Enter the directory of matrices: ");
-  scanf("%s",name);
+ //Read Directory of Matrices
+   name = "../../test_subjects/norm";
+  //printf("Enter the directory of matrices: ");
+  //scanf("%s",name);
   files = find_files(name,&matrix_count);
 
-  // Set answer precision tolerance 
-  printf("Enter the tolerance : ");
-  scanf("%lf",&tol);
+ // Set answer precision tolerance 
+  tol = 1e-7;
+  //printf("Enter the tolerance : ");
+  //scanf("%lf",&tol);
 
-  // Stop algorithm from continuing after this many iterations
-  printf("Enter the maximum iterations : ");
-  scanf("%d",&maxit);
+ // Stop algorithm from continuing after this many iterations
+  maxit = 10000;
+  //printf("Enter the maximum iterations : ");
+  //scanf("%d",&maxit);
 
   FILE *ofile = fopen("results_CCG_TEST.csv","w");
 
-  // Iterativly run conjugate gradient for each matrix
-  // Runs through C implementation on a thread and another for CUDA calling
+ // Iterativly run conjugate gradient for each matrix
+ // Runs through C implementation on a thread and another for CUDA calling
   for (i = 0; i < matrix_count; i++)
   {
   	printf("%s...",files[i]);
