@@ -278,6 +278,21 @@ beta = Rho / (v + Tiny);
 	//printf("\e[1;1H\e[2J");
       }
 
+    cudaFree(p_vec->val);
+    cusparseDestroyDnVec(p_vec->desc);
+    free(p_vec);
+
+    cudaFree(z_vec->val);
+    cusparseDestroyDnVec(z_vec->desc);
+    free(z_vec);
+
+    cudaFree(q_vec->val);
+    cusparseDestroyDnVec(q_vec->desc);
+    free(q_vec);
+
+    cudaFree(r_vec->val);
+    cusparseDestroyDnVec(r_vec->desc);
+    free(r_vec);
     return;
 }
 
@@ -422,8 +437,23 @@ void call_CuCG(char* name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit, PRECI_DT tol
 	 printf(PRECI_S,h_b[i]);
       printf("\n");*/
 
+      cusparseDestroySpMat(A_matrix->desc);
+      cudaFree(A_matrix->val);
+      cudaFree(A_matrix->rowptr);
+      cudaFree(A_matrix->col);
+      free(A_matrix);
+
+      cudaFree(x_vec->val);
+      cusparseDestroyDnVec(x_vec->desc);
+      free(x_vec);
+
+      cudaFree(b_vec->val);
+      cusparseDestroyDnVec(b_vec->desc);
+      free(b_vec);
+
       cusparseDestroy(cusparseHandle);
       cublasDestroy(cublasHandle);
+
     }
   //printf("Done!\n");
 

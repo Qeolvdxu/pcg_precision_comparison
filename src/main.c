@@ -50,7 +50,7 @@ int main(void) {
   int iter = 0;
 
 // Collect information from user
-  printf("Welcome to the Conjugate Gradient Precision Comparison Test!\n");
+  printf("Conjugate Gradient GPU and CPU Precision Comparison Test\n");
 
  //Read Directory of Matrices
    name = "../../test_subjects/norm";
@@ -115,7 +115,7 @@ int main(void) {
   free(files);
   my_crs_free(A);
   my_crs_free(M); 
-  printf("Bye!\n");
+  printf("Tests Complete!\n");
 
   return 0;
 }
