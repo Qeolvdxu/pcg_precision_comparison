@@ -54,6 +54,11 @@ int main(void) {
  // Stop algorithm from continuing after this many iterations
   maxit = 10000;
 
+  FILE *file;
+  int n;
+  int m;
+  int nz;
+
  // Iterativly run conjugate gradient for each matrix
  // Runs through C implementation on a thread and another for CUDA calling
   for (i = 0; i < matrix_count; i++)
@@ -61,16 +66,21 @@ int main(void) {
   	printf("%s...",files[i]);
   	fflush(stdout);
 
+	
+  //if ((file = fopen(files[i], "r")))
+   // fscanf(file, "%d %d %d", m, n, nz);
+   n = 10;
+
   	// Set b to 1s and x to 0s
-  	x = calloc(A->n, sizeof(PRECI_DT));
-  	b = malloc(sizeof(PRECI_DT)*A->n);
-  	for(j=0;j<A->n;j++) b[j] = 1;
+  	x = calloc(n, sizeof(PRECI_DT));
+  	b = malloc(sizeof(PRECI_DT)*n);
+  	for(j=0;j<n;j++) b[j] = 1;
   
 	// run gpu
   	call_CuCG(files[i],b,x,maxit,tol);
 	printf("GPU,");
 	printf("%s,",files[i]);
-	for(j = 0; j < A->n; j++)
+	for(j = 0; j < n; j++)
 	    printf("%.2e,",x[j]);
 	printf("\n");
 

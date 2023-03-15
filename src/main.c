@@ -12,7 +12,6 @@
 
 typedef struct{
   int matrix_count;
-  FILE *ofile;
   char **files;
   int maxit;
   PRECI_DT tol;
@@ -45,6 +44,7 @@ char **find_files(const char *dir_path, int *num_files) {
 
 int batch_CCG(Data_CG *data)
 {
+  FILE *ofile = fopen("results_CCG_TEST.csv","w");
   int i, j;
   PRECI_DT *x;
   PRECI_DT *b;
@@ -67,17 +67,19 @@ int batch_CCG(Data_CG *data)
   
   	// run cpu
   	CCG(A, M, b, x, data->maxit, data->tol);
-	fprintf(&data->ofile, "CPU,");
-	fprintf(&data->ofile, "%s,",data->files[i]);
+	fprintf(ofile, "CPU,");
+	fprintf(ofile, "%s,",data->files[i]);
 	for(j = 0; j < n; j++)
-	    fprintf(&data->ofile,"%.2e,",x[j]);
-	fprintf(&data->ofile,"\n");
+	    fprintf(ofile,"%.2e,",x[j]);
+	fprintf(ofile,"\n");
   }
+	fclose(ofile);
   return 0;
 }
 
 int batch_CuCG(Data_CG *data)
 {
+  FILE *ofile = fopen("results_CudaCG_TEST.csv","w");
   printf("%d",data->matrix_count); 
   int i, j;
   PRECI_DT *x;
@@ -85,12 +87,14 @@ int batch_CuCG(Data_CG *data)
   int m, n, z;
   FILE *file;
 
+  printf("hi\n");
   for (i = 0; i < data->matrix_count; i++)
   {
+  printf("bye\n");
 	//get matrix size
   	file = fopen(data->files[i], "r");
-  	fscanf(file, "%d %d %d", m, n, z);
-  	fclose(file);
+  	fscanf(&file, "%d %d %d", m, n, z);
+	fclose(file);
 
 	// allocate arrays
   	x = calloc(n, sizeof(PRECI_DT));
@@ -99,12 +103,13 @@ int batch_CuCG(Data_CG *data)
 
 	// run gpu
   	call_CuCG(data->files[i],b,x,data->maxit,data->tol);
-	fprintf(&data->ofile, "GPU,");
-	fprintf(&data->ofile, "%s,",data->files[i]);
+	fprintf(ofile, "GPU,");
+	fprintf(ofile, "%s,",data->files[i]);
 	for(j = 0; j < n; j++)
-	    fprintf(&data->ofile,"%.2e,",x[j]);
-	fprintf(&data->ofile,"\n");
+	    fprintf(ofile,"%.2e,",x[j]);
+	fprintf(ofile,"\n");
   }
+	fclose(ofile);
   return 0;
 }
 
@@ -118,8 +123,6 @@ int main(void) {
   int maxit = 0;
   int matrix_count = 0;
   char **files;
-  my_crs_matrix *A;
-  my_crs_matrix *M;
   int iter = 0;
   pthread_t th1, th2;
   Data_CG *data;
@@ -144,10 +147,8 @@ int main(void) {
   //printf("Enter the maximum iterations : ");
   //scanf("%d",&maxit);
 
-  FILE *ofile = fopen("results_CCG_TEST.csv","w");
-
-  data->matrix_count = &matrix_count;
-  data->ofile = ofile;
+  data = malloc(sizeof(Data_CG));
+  data->matrix_count = matrix_count;
   data->files = files;
   data->maxit = maxit;
   data->tol = tol;
@@ -157,16 +158,19 @@ int main(void) {
  // Iterativly run conjugate gradient for each matrix
  // Runs through C implementation on a thread and another for CUDA calling
  printf("launching CCG thread...");
- batch_CCG(data);
+ pthread_create(&th1, NULL, batch_CCG, data);
+ //batch_CCG(data);
  printf("Done.\n");
- printf("launching CuCG thread...");
- batch_CuCG(data);
+ printf("launching CuCG thread...\n");
+ //pthread_create(&th1, NULL, batch_CuCG, data);
+ //batch_CuCG(data);
  printf("Done.\n");
+
+ pthread_join(th1, NULL);
+// pthread_join(th2, NULL);
 
   // Clean
   free(files);
-  my_crs_free(A);
-  my_crs_free(M); 
   printf("Tests Complete!\n");
 
   return 0;

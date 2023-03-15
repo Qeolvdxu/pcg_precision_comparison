@@ -4,7 +4,7 @@ NVCC = nvcc
 CFLAGS = -g -Wall -Wextra -pedantic -v -gdwarf-4
 NVCCFLAGS = -O3 -Xcompiler -Wall,-Wpedantic -x c -g -G -v
 
-LIB_FLAGS = -lm -lcudart -lcusparse -lcuda -lcublas
+LIB_FLAGS = -lm -lcudart -lcusparse -lcuda -lcublas -lpthread
 
 BUILDDIR = ./build/
 
