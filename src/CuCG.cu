@@ -156,7 +156,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   init_norm = res_norm;
   ratio = 1.0;
 
-  /*cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+  cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
@@ -165,9 +165,9 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   printf("PREQUEL \n x1 = %lf \t alpha= %lf \t beta= %lf "
 	 "\n v "
 	 "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
-	 "ratio(%lf) > tolerance(%lf)\n\n\n",
+	 "ratio(%lf) > tolerance(%e)\n\n\n",
 	 iter, onex[0], alpha, beta, v, oner[0], onep[0], oneq[0], onez[0], ratio,
-	 tolerance);*/
+	 tolerance);
 
   while (iter <= max_iter && ratio > tolerance)
     {
@@ -191,7 +191,8 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 	{
 beta = Rho / (v + Tiny);
 	    // p = z + (beta * p)
-	    sb = cublasDaxpy(*handle_blas, n, &beta, z_vec->val, 1, p_vec->val, 1);
+		// CHECK THIS!
+	    sb = cublasDaxpy(*handle_blas, n, &alpha, p_vec->val, 1, z_vec->val, 1);
 	    cudaDeviceSynchronize();
 	  }
 
@@ -261,9 +262,9 @@ beta = Rho / (v + Tiny);
 	}
 
 	cudaDeviceSynchronize();
-	//int error = cudaGetLastError();
-	//printf("\n%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
-	/*cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+	int error = cudaGetLastError();
+	printf("\n%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
+	cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
@@ -273,7 +274,7 @@ beta = Rho / (v + Tiny);
 	       "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
 	       "ratio(%lf) > tolerance(%lf)\n\n\n",
 	       iter, onex[0], alpha, beta, res_norm, v, oner[0], onep[0], oneq[0], onez[0], ratio,
-	       tolerance);*/
+	       tolerance);
 
 	//printf("\e[1;1H\e[2J");
       }
