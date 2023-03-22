@@ -53,8 +53,6 @@ int batch_CCG(Data_CG *data)
 
   for (i = 0; i < data->matrix_count; i++)
   {
-  	printf("%d",data->matrix_count); 
-	printf("%d\n",i);
   	// Create Matrix struct and Precond
   	my_crs_matrix *A = my_crs_read(data->files[i]);
   	my_crs_matrix *M = eye(A->n);
@@ -72,6 +70,7 @@ int batch_CCG(Data_CG *data)
 	for(j = 0; j < n; j++)
 	    fprintf(ofile,"%.2e,",x[j]);
 	fprintf(ofile,"\n");
+	printf("C CG Test %d complete!\n",i);
   }
 	fclose(ofile);
   return 0;
@@ -80,21 +79,19 @@ int batch_CCG(Data_CG *data)
 int batch_CuCG(Data_CG *data)
 {
   FILE *ofile = fopen("results_CudaCG_TEST.csv","w");
-  printf("%d",data->matrix_count); 
+  printf("%d matrices\n",data->matrix_count); 
   int i, j;
   PRECI_DT *x;
   PRECI_DT *b;
   int m, n, z;
   FILE *file;
 
-  printf("hi\n");
   for (i = 0; i < data->matrix_count; i++)
   {
-  printf("bye\n");
 	//get matrix size
-  	file = fopen(data->files[i], "r");
-  	fscanf(&file, "%d %d %d", m, n, z);
-	fclose(file);
+//  	file = fopen(data->files[i], "r");
+  	my_crs_matrix *A = my_crs_read(data->files[i]);
+	n = A->n;
 
 	// allocate arrays
   	x = calloc(n, sizeof(PRECI_DT));
@@ -108,8 +105,9 @@ int batch_CuCG(Data_CG *data)
 	for(j = 0; j < n; j++)
 	    fprintf(ofile,"%.2e,",x[j]);
 	fprintf(ofile,"\n");
+	printf("Cuda CG Test %d complete!\n",i);
   }
-	fclose(ofile);
+	//fclose(ofile);
   return 0;
 }
 
@@ -162,12 +160,12 @@ int main(void) {
  //batch_CCG(data);
  printf("Done.\n");
  printf("launching CuCG thread...\n");
- //pthread_create(&th1, NULL, batch_CuCG, data);
- //batch_CuCG(data);
+// pthread_create(&th1, NULL, batch_CuCG, data);
+ batch_CuCG(data);
  printf("Done.\n");
 
  pthread_join(th1, NULL);
-// pthread_join(th2, NULL);
+ //pthread_join(th2, NULL);
 
   // Clean
   free(files);
