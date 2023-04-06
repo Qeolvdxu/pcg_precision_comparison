@@ -4,7 +4,7 @@ NVCC = nvcc
 CFLAGS = -g -Wall -Wextra -pedantic -v -gdwarf-4
 NVCCFLAGS = -O3 -Xcompiler -Wall,-Wpedantic -x c -g -G -v
 
-LIB_FLAGS = -lm -lcudart -lcusparse -lcuda -lcublas
+LIB_FLAGS = -lm -lcudart -lcusparse -lcuda -lcublas -lpthread
 
 BUILDDIR = ./build/
 
@@ -16,6 +16,7 @@ $(TARGET): cudacode.o
 	$(CC) -o $(BUILDDIR)$(TARGET) $(CFLAGS) main.c my_crs_matrix.c CCG.c $(BUILDDIR)CuCG.o $(LIB_FLAGS)
 
 cudacode.o:
+	mkdir -p $(BUILDDIR)
 	$(NVCC) $(NVCCFLAGS) -o $(BUILDDIR)CuCG.o -c CuCG.cu
 
 clean:
@@ -29,5 +30,5 @@ clean:
 CCG_TEST_M:
 	make -f CCG_TEST.mk
 
-CUDA_cg_M:
+CuCG_TEST_M:
 	make -f CuCG_TEST.mk

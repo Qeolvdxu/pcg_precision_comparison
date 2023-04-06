@@ -7,4 +7,4 @@ TARGET = CCG_TEST
 SOURCES = $(TARGET).c CCG.c my_crs_matrix.c
 
 all: CCG.c
-	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o ./build/$(TARGET) $(SOURCES) $(LDFLAGS)

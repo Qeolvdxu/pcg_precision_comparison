@@ -33,27 +33,26 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 					  my_cuda_vector *b,
 					  my_cuda_vector *x,
 					  int max_iter,
-			 PRECI_DT tolerance,
+					 PRECI_DT tolerance,
 					  cusparseHandle_t* handle,
 					  cublasHandle_t* handle_blas)
 
 {
   int n = A->n;
+  size_t pitch;
   // Make r vector
   my_cuda_vector *r_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
   PRECI_DT* h_r = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
   for(int i=0;i<n;i++) h_r[i] = 1;
-
-  cudaMalloc((void**)&r_vec->val, n * sizeof(PRECI_DT));
+  cudaMallocPitch((void**)&r_vec->val,&pitch, n * sizeof(PRECI_DT), 1);
   cudaMemcpy(r_vec->val, h_r, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
-
   cusparseCreateDnVec(&r_vec->desc, n, r_vec->val,PRECI_CUDA);
 
   // Make p vector
   my_cuda_vector *p_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
   PRECI_DT* h_p = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
   for(int i=0;i<n;i++) h_p[i] = 1;
-  cudaMalloc((void**)&p_vec->val, n * sizeof(PRECI_DT));
+  cudaMallocPitch((void**)&p_vec->val,&pitch, n * sizeof(PRECI_DT),1);
   cudaMemcpy(p_vec->val, h_p, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cusparseCreateDnVec(&p_vec->desc, n, p_vec->val,PRECI_CUDA);
 
@@ -61,7 +60,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   my_cuda_vector *q_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
   PRECI_DT* h_q = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
   for(int i=0;i<n;i++) h_q[i] = 1;
-  cudaMalloc((void**)&q_vec->val, n * sizeof(PRECI_DT));
+  cudaMallocPitch((void**)&q_vec->val,&pitch, n * sizeof(PRECI_DT),1);
   cudaMemcpy(q_vec->val, h_q, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cusparseCreateDnVec(&q_vec->desc, n, q_vec->val,PRECI_CUDA);
 
@@ -69,7 +68,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   my_cuda_vector *z_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
   PRECI_DT* h_z = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
   for(int i=0;i<n;i++) h_z[i] = 1;
-  cudaMalloc((void**)&z_vec->val, n * sizeof(PRECI_DT));
+  cudaMallocPitch((void**)&z_vec->val,&pitch, n * sizeof(PRECI_DT),1);
   cudaMemcpy(z_vec->val, h_z, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cusparseCreateDnVec(&z_vec->desc, n, z_vec->val,PRECI_CUDA);
 
@@ -157,7 +156,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   init_norm = res_norm;
   ratio = 1.0;
 
-  /*cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+  cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
   cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
@@ -166,9 +165,9 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   printf("PREQUEL \n x1 = %lf \t alpha= %lf \t beta= %lf "
 	 "\n v "
 	 "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
-	 "ratio(%lf) > tolerance(%lf)\n\n\n",
+	 "ratio(%lf) > tolerance(%e)\n\n\n",
 	 iter, onex[0], alpha, beta, v, oner[0], onep[0], oneq[0], onez[0], ratio,
-	 tolerance);*/
+	 tolerance);
 
   while (iter <= max_iter && ratio > tolerance)
     {
@@ -192,7 +191,8 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 	{
 beta = Rho / (v + Tiny);
 	    // p = z + (beta * p)
-	    sb = cublasDaxpy(*handle_blas, n, &beta, z_vec->val, 1, p_vec->val, 1);
+		// CHECK THIS!
+	    sb = cublasDaxpy(*handle_blas, n, &alpha, p_vec->val, 1, z_vec->val, 1);
 	    cudaDeviceSynchronize();
 	  }
 
@@ -240,6 +240,7 @@ beta = Rho / (v + Tiny);
 	ratio = res_norm/init_norm;
 
 	if (iter > 0) {
+		// A*x=r
 	  cusparseSpMV_bufferSize(*handle,CUSPARSE_OPERATION_NON_TRANSPOSE, &n_one, A->desc, x->desc, &one, r_vec->desc, PRECI_CUDA, CUSPARSE_MV_ALG_DEFAULT, &bufferSizeMV);
 	  cudaMalloc(&buff, bufferSizeMV);
 	  cusparseSpMV(*handle,
@@ -254,16 +255,16 @@ beta = Rho / (v + Tiny);
 		       buff//buffer
 		       );
 	  cudaDeviceSynchronize();
-
+	//r = b - r
 	  cublasDaxpy(*handle_blas, n, &ne_one, b->val, 1, r_vec->val, 1);
 	  cudaDeviceSynchronize();
 
 	}
 
 	cudaDeviceSynchronize();
-	//  int error = cudaGetLastError();
-	//printf("\n%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
-	/*cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+	int error = cudaGetLastError();
+	printf("\n%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
+	cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
@@ -273,11 +274,27 @@ beta = Rho / (v + Tiny);
 	       "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
 	       "ratio(%lf) > tolerance(%lf)\n\n\n",
 	       iter, onex[0], alpha, beta, res_norm, v, oner[0], onep[0], oneq[0], onez[0], ratio,
-	       tolerance);*/
+	       tolerance);
 
 	//printf("\e[1;1H\e[2J");
       }
 
+  // free everything
+    cudaFree(p_vec->val);
+    cusparseDestroyDnVec(p_vec->desc);
+    free(p_vec);
+
+    cudaFree(z_vec->val);
+    cusparseDestroyDnVec(z_vec->desc);
+    free(z_vec);
+
+    cudaFree(q_vec->val);
+    cusparseDestroyDnVec(q_vec->desc);
+    free(q_vec);
+
+    cudaFree(r_vec->val);
+    cusparseDestroyDnVec(r_vec->desc);
+    free(r_vec);
     return;
 }
 
@@ -335,11 +352,11 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
     printf("\n");*/
 
     fclose(file);
-
+    size_t pitch;
     // Allocate memory for the CSR matrix
-    cudaMalloc((void**)&M->rowptr, (n+1) * sizeof(int));
-    cudaMalloc((void**)&M->col, nz * sizeof(int));
-    cudaMalloc((void**)&M->val, nz * sizeof(PRECI_DT));
+    cudaMallocPitch((void**)&M->rowptr,&pitch, (n+1) * sizeof(int),1);
+    cudaMallocPitch((void**)&M->col,&pitch, nz * sizeof(int),1);
+    cudaMallocPitch((void**)&M->val,&pitch, nz * sizeof(PRECI_DT),1);
 
 
     // Copy data from host to device
@@ -374,6 +391,7 @@ void call_CuCG(char* name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit, PRECI_DT tol
   }
   else
     {
+      size_t pitch;
       //printf("reading matrix file...\n");
       my_cuda_csr_matrix *A_matrix = cusparse_crs_read((char*)name);
 
@@ -385,7 +403,7 @@ void call_CuCG(char* name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit, PRECI_DT tol
       my_cuda_vector *x_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
       //PRECI_DT* h_x = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
       for(int i=0;i<n;i++) h_x[i] = 0;
-      cudaMalloc((void**)&x_vec->val, n * sizeof(PRECI_DT));
+      cudaMallocPitch((void**)&x_vec->val,&pitch, n * sizeof(PRECI_DT),1);
       cudaMemcpy(x_vec->val, h_x, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
       cusparseCreateDnVec(&x_vec->desc, n, x_vec->val,PRECI_CUDA);
 
@@ -393,7 +411,7 @@ void call_CuCG(char* name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit, PRECI_DT tol
       my_cuda_vector *b_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
       //PRECI_DT* h_b = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
       //for(int i=0;i<n;i++) h_b[i] = 1;
-      cudaMalloc((void**)&b_vec->val, n * sizeof(PRECI_DT));
+      cudaMallocPitch((void**)&b_vec->val, &pitch, n * sizeof(PRECI_DT),1);
       cudaMemcpy(b_vec->val, h_b, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
       cusparseCreateDnVec(&b_vec->desc, n, b_vec->val,PRECI_CUDA);
 
@@ -422,8 +440,23 @@ void call_CuCG(char* name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit, PRECI_DT tol
 	 printf(PRECI_S,h_b[i]);
       printf("\n");*/
 
+      cusparseDestroySpMat(A_matrix->desc);
+      cudaFree(A_matrix->val);
+      cudaFree(A_matrix->rowptr);
+      cudaFree(A_matrix->col);
+      free(A_matrix);
+
+      cudaFree(x_vec->val);
+      cusparseDestroyDnVec(x_vec->desc);
+      free(x_vec);
+
+      cudaFree(b_vec->val);
+      cusparseDestroyDnVec(b_vec->desc);
+      free(b_vec);
+
       cusparseDestroy(cusparseHandle);
       cublasDestroy(cublasHandle);
+
     }
   //printf("Done!\n");
 
