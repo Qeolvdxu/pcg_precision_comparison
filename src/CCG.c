@@ -71,6 +71,7 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b,
   // main CG loop
   while (iter <= max_iter && ratio > tolerance) {
     // next iteration
+    printf("ITERATION %d\n",iter);	
     iter++;
 
     // Precondition

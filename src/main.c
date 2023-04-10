@@ -54,6 +54,7 @@ int batch_CCG(Data_CG *data)
   for (i = 0; i < data->matrix_count; i++)
   {
   	// Create Matrix struct and Precond
+	printf("%s\n",data->files[i]);
   	my_crs_matrix *A = my_crs_read(data->files[i]);
   	my_crs_matrix *M = eye(A->n);
 	n = A->n;
@@ -91,6 +92,7 @@ int batch_CuCG(Data_CG *data)
 	//get matrix size
 //  	file = fopen(data->files[i], "r");
   	my_crs_matrix *A = my_crs_read(data->files[i]);
+	printf("%s\n",data->files[i]);
 	n = A->n;
 
 	// allocate arrays
@@ -156,7 +158,7 @@ int main(void) {
  // Iterativly run conjugate gradient for each matrix
  // Runs through C implementation on a thread and another for CUDA calling
  printf("launching CCG thread...");
- pthread_create(&th1, NULL, batch_CCG, data);
+ //pthread_create(&th1, NULL, batch_CCG, data);
  //batch_CCG(data);
  printf("Done.\n");
  printf("launching CuCG thread...\n");
@@ -164,7 +166,7 @@ int main(void) {
  batch_CuCG(data);
  printf("Done.\n");
 
- pthread_join(th1, NULL);
+ //pthread_join(th1, NULL);
  //pthread_join(th2, NULL);
 
   // Clean
