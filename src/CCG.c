@@ -62,27 +62,27 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b,
     init_norm = 1.0;
   ratio = 1.0;
 
-  printf("** %lf | %d | %d ** \n", A->val[1], A->col[1], A->rowptr[1]);
+/*  printf("** %lf | %d | %d ** \n", A->val[1], A->col[1], A->rowptr[1]);
   printf("iteration PREQUEL\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf "
          "\n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > "
          "tolerance(%lf)\n\n\n",
          x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);
-
+*/
   // main CG loop
   while (iter <= max_iter && ratio > tolerance) {
     // next iteration
-    printf("ITERATION %d\n",iter);	
+ //   printf("ITERATION %d\n",iter);	
     iter++;
 
     // Precondition
     // precondition(M, r, z);
     for (j = 0; j < n; j++)
       z[j] = r[j];
-    printf("z[1] = %lf\n",z[1]);
+   // printf("z[1] = %lf\n",z[1]);
 
     for (j = 0, Rho = 0.0; j < n; j++)
       Rho += r[j] * z[j];
-    printf("Rho = lf%\n",Rho);
+   // printf("Rho = lf%\n",Rho);
 
     // beta = dot(r,z) / v
 
@@ -96,50 +96,50 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b,
       for (j = 0; j < n; j++)
         p[j] = z[j] + (beta * p[j]);
     }
-    printf("beta = %lf\n",beta);
-    printf("p[1] = %lf\n",p[1]);
+    //printf("beta = %lf\n",beta);
+   // printf("p[1] = %lf\n",p[1]);
 
 
     // q = A*p
     matvec(A, p, q);
-    printf("q[1] = %lf\n",q[1]);
+   // printf("q[1] = %lf\n",q[1]);
 
     for (j = 0, Rtmp = 0.0; j < n; j++)
       Rtmp += p[j] * q[j];
-    printf("Rtmp = %lf\n",Rtmp);
+   // printf("Rtmp = %lf\n",Rtmp);
 
     // v = early dot(r,z)
     v = dot(r, z, n);
-    printf("v = %lf\n",v);
+   // printf("v = %lf\n",v);
 
     //printf("p*q[1]=%lf\n", dot(p, q, n));
     // alpha = v / dot(p,q)
     alpha = Rho / (Rtmp + Tiny);
-    printf("alpha = %lf\n",alpha);
+   // printf("alpha = %lf\n",alpha);
     // x = x + alpha * p
     //printf("x[0] = %lf + %lf * %lf = ", x[0], alpha, p[0]);
     for (j = 0; j < n; j++)
       x[j] = x[j] + (alpha * p[j]);
-    printf("x[1] = %lf\n", x[1]);
+   // printf("x[1] = %lf\n", x[1]);
 
     // r = r - alpha * q
     for (j = 0; j < n; j++)
       r[j] -= alpha * q[j];
-    printf("r[1] = %lf\n", r[1]);
+   // printf("r[1] = %lf\n", r[1]);
 
     Rho = 0.0;
     res_norm = norm(n, r);
-    printf("res norm = %lf\n", res_norm);
+   // printf("res norm = %lf\n", res_norm);
 
     ratio = res_norm / init_norm;
-    printf("ratio = %lf\n", ratio);
+   // printf("ratio = %lf\n", ratio);
 
     if (iter > 0) {
 	    matvec(A, x, r);
-            printf("r[1] = %lf\n", r[1]);
+     //       printf("r[1] = %lf\n", r[1]);
 	    for (j = 0; j < n; j++)
 	    	r[j] = b[j] - r[j];
-    	    printf("r[1] = %lf\n", r[1]);
+    //	    printf("r[1] = %lf\n", r[1]);
     }
     /*printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \t res_norm = %lf"
            "\n v "

@@ -71,7 +71,7 @@ my_crs_matrix *my_crs_read(char *name) {
     for (i = 0; i < M->nz; i++)
       fscanf(file, PRECI_S, &M->val[i]);
 
-    printf("CCG rowptr: ");
+  /*  printf("CCG rowptr: ");
     for (i = 0; i <= M->n; i++)
       printf("%d ", M->rowptr[i]);
     printf("\n\n");
@@ -83,7 +83,7 @@ my_crs_matrix *my_crs_read(char *name) {
     for (i = 0; i < M->nz; i++)
       printf(PRECI_S, M->val[i]);
     printf("\n\n");
-	
+*/	
 
     fclose(file);
   } else {
