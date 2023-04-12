@@ -58,27 +58,27 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
     cudaMemcpy(val, M->val, A->nz * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 
   cudaDeviceSynchronize();
-    printf("rowptr : ");
+    printf("CUDA rowptr : ");
     for( int i = 0; i <= A->n; i++)
-      printf("%d, ",rowptr[i]);
+      printf("%d ",rowptr[i]);
     printf("\n");
 
-    printf("col : ");
+    printf("CUDA col : ");
     for( int i = 0; i < A->nz; i++)
-      printf("%d, ",col[i]);
+      printf("%d ",col[i]);
     printf("\n");
 
-    printf("val : ");
+    printf("CUDA val : ");
     for( int i = 0; i < A->nz; i++)
-      printf("%lf, ",val[i]);
+      printf("%lf ",val[i]);
     printf("\n");
   size_t pitch;
   // Make r vector
   my_cuda_vector *r_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
   PRECI_DT* h_r = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
   for(int i=0;i<n;i++) h_r[i] = 1;
-  r_vec->val = cudaMalloc(n * sizeof(PRECI_DT));
-  //cudaMallocPitch((void**)&r_vec->val,&pitch, n * sizeof(PRECI_DT), 1);
+  //r_vec->val = cudaMalloc(n * sizeof(PRECI_DT));
+  cudaMallocPitch((void**)&r_vec->val,&pitch, n * sizeof(PRECI_DT), 1);
   cudaMemcpy(r_vec->val, h_r, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cusparseCreateDnVec(&r_vec->desc, n, r_vec->val,PRECI_CUDA);
 
@@ -86,8 +86,8 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   my_cuda_vector *p_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
   PRECI_DT* h_p = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
   for(int i=0;i<n;i++) h_p[i] = 1;
-  p_vec->val = cudaMalloc(n * sizeof(PRECI_DT));
-  //cudaMallocPitch((void**)&p_vec->val,&pitch, n * sizeof(PRECI_DT),1);
+  //p_vec->val = cudaMalloc(n * sizeof(PRECI_DT));
+  cudaMallocPitch((void**)&p_vec->val,&pitch, n * sizeof(PRECI_DT),1);
   cudaMemcpy(p_vec->val, h_p, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cusparseCreateDnVec(&p_vec->desc, n, p_vec->val,PRECI_CUDA);
 
@@ -95,8 +95,8 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   my_cuda_vector *q_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
   PRECI_DT* h_q = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
   for(int i=0;i<n;i++) h_q[i] = 1;
-  q_vec->val = cudaMalloc(n * sizeof(PRECI_DT));
-  //cudaMallocPitch((void**)&q_vec->val,&pitch, n * sizeof(PRECI_DT),1);
+  //q_vec->val = cudaMalloc(n * sizeof(PRECI_DT));
+  cudaMallocPitch((void**)&q_vec->val,&pitch, n * sizeof(PRECI_DT),1);
   cudaMemcpy(q_vec->val, h_q, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cusparseCreateDnVec(&q_vec->desc, n, q_vec->val,PRECI_CUDA);
 
@@ -104,14 +104,14 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   my_cuda_vector *z_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
   PRECI_DT* h_z = (PRECI_DT*)malloc(sizeof(PRECI_DT)*n);
   for(int i=0;i<n;i++) h_z[i] = 1;
-  z_vec->val = cudaMalloc(n * sizeof(PRECI_DT));
-  //cudaMallocPitch((void**)&z_vec->val,&pitch, n * sizeof(PRECI_DT),1);
+  //z_vec->val = cudaMalloc(n * sizeof(PRECI_DT));
+  cudaMallocPitch((void**)&z_vec->val,&pitch, n * sizeof(PRECI_DT),1);
   cudaMemcpy(z_vec->val, h_z, n * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cusparseCreateDnVec(&z_vec->desc, n, z_vec->val,PRECI_CUDA);
 
   cublasStatus_t sb;
   
-  PRECI_DT alpha = 0.0;
+  PRECI_DT alpha = 1.0;
   PRECI_DT beta = 0.0;
   const double ne_one = -1.0;
   const double n_one = 1.0;
@@ -209,24 +209,30 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
       // z = r
       cublasDcopy(*handle_blas,n,r_vec->val, 1, z_vec->val, 1);
       cudaDeviceSynchronize();
+      cudaMemcpy(onez, z_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      printf("z[1] = %lf\n",onez[1]);
 
       // Rho = r z dot prod
       cublasDdot(*handle_blas, n, r_vec->val, 1, z_vec->val, 1, &Rho);
       cudaDeviceSynchronize();
-      printf("Rho = %lf",Rtmp);
+      printf("Rho = %lf\n",Rtmp);
 
       // p = z + (beta * p)
       if (iter == 1)
 	{
-	  sb = cublasDcopy(*handle_blas,n,z_vec->val, 1, p_vec->val, 1);
+	  cublasDcopy(*handle_blas,n,z_vec->val, 1, p_vec->val, 1);
 	  cudaDeviceSynchronize();
 	}
       else
 	{
-beta = Rho / (v + Tiny);
-	    sb = cublasDaxpy(*handle_blas, n, &alpha, p_vec->val, 1, z_vec->val, 1);
+	    beta = Rho / (v + Tiny);
+	    cublasDaxpy(*handle_blas, n, &alpha, p_vec->val, 1, z_vec->val, 1);
 	    cudaDeviceSynchronize();
 	  }
+	printf("beta = %lf\n",beta);
+	cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+	printf("p[1] = %lf\n",onep[1]);
+	
 
 	cusparseSpMV_bufferSize(*handle,CUSPARSE_OPERATION_NON_TRANSPOSE, &n_one, A->desc, p_vec->desc, &one, q_vec->desc, PRECI_CUDA, CUSPARSE_MV_ALG_DEFAULT, &bufferSizeMV);
 	cudaMalloc(&buff, bufferSizeMV);
@@ -244,18 +250,18 @@ beta = Rho / (v + Tiny);
 		     );
 	cudaDeviceSynchronize();
 	cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	printf("q = %lf\n",oneq);
+	printf("q[1] = %lf\n",oneq);
   
 	// Rtmp = p q dot prod
 	cublasDdot(*handle_blas, n, p_vec->val, 1, q_vec->val, 1, &Rtmp);
 	cudaDeviceSynchronize();
-	printf("Rtmp = %lf",Rtmp);
+	printf("Rtmp = %lf\n",Rtmp);
 
 	// v = r z dot prod
 	cublasDdot(*handle_blas, n, r_vec->val, 1, z_vec->val, 1, &v);
 	cudaDeviceSynchronize();
 	cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	printf("alpha = %lf\n",alpha);
+	printf("v = %lf\n",v);
 
 	//alpha
 	alpha = Rho / (Rtmp + Tiny);
@@ -277,8 +283,10 @@ beta = Rho / (v + Tiny);
 	Rho = 0.0;
 	cublasDnrm2(*handle_blas, n, r_vec->val, 1, &res_norm);
 	cudaDeviceSynchronize();
+	printf("res_norm = %lf\n", res_norm);
 
 	ratio = res_norm/init_norm;
+	printf("ratio = %lf\n", ratio);
 
 	if (iter > 0) {
 		// A*x=r
@@ -296,8 +304,10 @@ beta = Rho / (v + Tiny);
 		       buff//buffer
 		       );
 	  cudaDeviceSynchronize();
+	cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+	printf("r[1] = %lf\n", oner[1]);
 	//r = b - r
-	  cublasDaxpy(*handle_blas, n, &ne_one, b->val, 1, r_vec->val, 1);
+	  cublasDaxpy(*handle_blas, n, &n_one, b->val, 1, r_vec->val, 1);
 	  cudaDeviceSynchronize();
 	cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	printf("r[1] = %lf\n", oner[1]);
@@ -306,7 +316,7 @@ beta = Rho / (v + Tiny);
 
 	cudaDeviceSynchronize();
 	int error = cudaGetLastError();
-	printf("\n%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
+	printf("%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
 /*
 	cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
 	cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
@@ -376,34 +386,34 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
     for (i = 0; i < nz; i++)
       fscanf(file, PRECI_S, &val[i]);
 
-    printf("rowptr : ");
+    printf("READ rowptr : ");
 
     for( i = 0; i <= n; i++)
-      printf("%d, ",rowptr[i]);
+      printf("%d ",rowptr[i]);
     printf("\n");
 
 
-    printf("col : ");
+    printf("READ col : ");
 
     for( i = 0; i < nz; i++)
-      printf("%d, ",col[i]);
+      printf("%d ",col[i]);
     printf("\n");
 
-    printf("val : ");
+    printf("READ val : ");
 
     for( i = 0; i < nz; i++)
-      printf("%lf, ",val[i]);
+      printf("%lf ",val[i]);
     printf("\n");
 
     fclose(file);
     size_t pitch;
     // Allocate memory for the CSR matrix
-    M->rowptr = cudaMalloc(sizeof(int)*(n+1));
-    M->col = cudaMalloc(sizeof(int)*(nz));
-    M->val = cudaMalloc(sizeof(int)*(PRECI_DT));
-    //cudaMallocPitch((void**)&M->rowptr,&pitch, (n+1) * sizeof(int),1);
-    //cudaMallocPitch((void**)&M->col,&pitch, nz * sizeof(int),1);
-    //cudaMallocPitch((void**)&M->val,&pitch, nz * sizeof(PRECI_DT),1);
+    //M->rowptr = cudaMalloc(sizeof(int)*(n+1));
+    //M->col = cudaMalloc(sizeof(int)*(nz));
+    //M->val = cudaMalloc(sizeof(int)*(PRECI_DT));
+    cudaMallocPitch((void**)&M->rowptr,&pitch, (n+1) * sizeof(int),1);
+    cudaMallocPitch((void**)&M->col,&pitch, nz * sizeof(int),1);
+    cudaMallocPitch((void**)&M->val,&pitch, nz * sizeof(PRECI_DT),1);
 
 
     // Copy data from host to device

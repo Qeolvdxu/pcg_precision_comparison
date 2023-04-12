@@ -159,7 +159,7 @@ int main(void) {
  // Runs through C implementation on a thread and another for CUDA calling
  printf("launching CCG thread...");
  //pthread_create(&th1, NULL, batch_CCG, data);
- //batch_CCG(data);
+ batch_CCG(data);
  printf("Done.\n");
  printf("launching CuCG thread...\n");
 // pthread_create(&th1, NULL, batch_CuCG, data);

@@ -71,6 +71,20 @@ my_crs_matrix *my_crs_read(char *name) {
     for (i = 0; i < M->nz; i++)
       fscanf(file, PRECI_S, &M->val[i]);
 
+    printf("CCG rowptr: ");
+    for (i = 0; i <= M->n; i++)
+      printf("%d ", M->rowptr[i]);
+    printf("\n\n");
+    printf("CCG col: ");
+    for (i = 0; i < M->nz; i++)
+      printf("%d ", M->col[i]);
+    printf("\n\n");
+    printf("CCG val: ");
+    for (i = 0; i < M->nz; i++)
+      printf(PRECI_S, M->val[i]);
+    printf("\n\n");
+	
+
     fclose(file);
   } else {
     printf("ERROR: could not open file %s\n", name);
