@@ -14,11 +14,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: make
-      working-directory: ./build
+      working-directory: ./src
       run: make
     - name: make check
-      working-directory: ./build
+      working-directory: ./src
       run: make check
     - name: make distcheck
-      working-directory: ./build
+      working-directory: ./src
       run: make distcheck
