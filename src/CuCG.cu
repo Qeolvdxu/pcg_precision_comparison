@@ -164,27 +164,23 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 	       CUSPARSE_MV_ALG_DEFAULT,//algorithm
 	       buff//buffer
 	       );
-  cudaDeviceSynchronize();
-
-
-
-
+  //cudaDeviceSynchronize();
 
   // r = b - r
   cublasDaxpy(*handle_blas, n, &ne_one, r_vec->val, 1, b->val, 1);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cublasDcopy(*handle_blas,n,b->val, 1, r_vec->val, 1);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
 
   // z = r
   cublasDcopy(*handle_blas,n,r_vec->val, 1, z_vec->val, 1);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
 
   // p = z
   cublasDcopy(*handle_blas,n,z_vec->val, 1, p_vec->val, 1);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   cublasDnrm2(*handle_blas, n, r_vec->val, 1, &res_norm);
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   init_norm = res_norm;
   ratio = 1.0;
 
@@ -203,137 +199,175 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 
   while (iter <= max_iter && ratio > tolerance)
     {
-    //  printf("ITERATION %d\n",iter);
+  #ifdef ENABLE_TESTS
+      printf("\nITERATION %d\n",iter);
+  #endif
       iter++;
 
       // z = r
       cublasDcopy(*handle_blas,n,r_vec->val, 1, z_vec->val, 1);
-      cudaDeviceSynchronize();
+      //cudaDeviceSynchronize();
+  #ifdef ENABLE_TESTS
       cudaMemcpy(onez, z_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-      //printf("z[1] = %lf\n",onez[1]);
+      printf("z[1] = %lf\n",onez[1]);
+  #endif
 
       // Rho = r z dot prod
       cublasDdot(*handle_blas, n, r_vec->val, 1, z_vec->val, 1, &Rho);
-      cudaDeviceSynchronize();
-      //printf("Rho = %lf\n",Rtmp);
+      //cudaDeviceSynchronize();
+  #ifdef ENABLE_TESTS
+      printf("Rho = %lf\n",Rho);
+  #endif
 
       // p = z + (beta * p)
+      // p = (beta * z) + p
       if (iter == 1)
-	{
-	  cublasDcopy(*handle_blas,n,z_vec->val, 1, p_vec->val, 1);
-	  cudaDeviceSynchronize();
-	}
+	    {
+	      cublasDcopy(*handle_blas,n,z_vec->val, 1, p_vec->val, 1);
+//	      cudaDeviceSynchronize();
+	    }
       else
-	{
-	    beta = Rho / (v + Tiny);
-	    cublasDaxpy(*handle_blas, n, &beta, z_vec->val, 1, p_vec->val, 1);
-	    cudaDeviceSynchronize();
-	  }
-	//printf("beta = %lf\n",beta);
-	cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	//printf("p[1] = %lf\n",onep[1]);
+	    {
+	      beta = Rho / (v + Tiny);
+	      cublasDscal(*handle_blas, n, &beta, p_vec->val, 1);
+	      cublasDaxpy(*handle_blas, n, &n_one, z_vec->val, 1, p_vec->val, 1);
+ 	//      cudaDeviceSynchronize();
+	    }
+  #ifdef ENABLE_TESTS
+	    printf("beta = %lf\n",beta);
+	    cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+	    printf("p[1] = %lf\n",onep[1]);
+  #endif
 	
 
-	cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	//printf("q[1] = %lf\n",oneq[1]);
-	cusparseSpMV_bufferSize(*handle,CUSPARSE_OPERATION_NON_TRANSPOSE, &n_one, A->desc, p_vec->desc, &one, q_vec->desc, PRECI_CUDA, CUSPARSE_MV_ALG_DEFAULT, &bufferSizeMV);
-	cudaMalloc(&buff, bufferSizeMV);
+	    cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+	    //printf("q[1] = %lf\n",oneq[1]);
+      cusparseSpMV_bufferSize(*handle,CUSPARSE_OPERATION_NON_TRANSPOSE, &n_one, A->desc, p_vec->desc, &one, q_vec->desc, PRECI_CUDA, CUSPARSE_MV_ALG_DEFAULT, &bufferSizeMV);
+      cudaMalloc(&buff, bufferSizeMV);
 
-	cusparseSpMV(*handle,
-		     CUSPARSE_OPERATION_NON_TRANSPOSE,//operation
-		     &n_one,//alpha
-		     A->desc,//matrix
-		     p_vec->desc,//vector
-		     &one,//beta
-		     q_vec->desc,//answer
-		     PRECI_CUDA,//data type
-		     CUSPARSE_MV_ALG_DEFAULT,//algorithm
-		     buff//buffer
-		     );
-	cudaDeviceSynchronize();
-	cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	//printf("q[1] = %lf\n",oneq[1]);
-  
-	// Rtmp = p q dot prod
-	cublasDdot(*handle_blas, n, p_vec->val, 1, q_vec->val, 1, &Rtmp);
-	cudaDeviceSynchronize();
-	//printf("Rtmp = %lf\n",Rtmp);
+      cusparseSpMV(*handle,
+        CUSPARSE_OPERATION_NON_TRANSPOSE,//operation
+        &n_one,//alpha
+        A->desc,//matrix
+        p_vec->desc,//vector
+        &one,//beta
+        q_vec->desc,//answer
+        PRECI_CUDA,//data type
+        CUSPARSE_MV_ALG_DEFAULT,//algorithm
+        buff//buffer
+      );
+//      cudaDeviceSynchronize();
 
-	// v = r z dot prod
-	cublasDdot(*handle_blas, n, r_vec->val, 1, z_vec->val, 1, &v);
-	cudaDeviceSynchronize();
-	cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	//printf("v = %lf\n",v);
+#ifdef ENABLE_TESTS
+      cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      printf("q[1] = %lf\n",oneq[1]);
+#endif
+      
+      // Rtmp = p q dot prod
+      cublasDdot(*handle_blas, n, p_vec->val, 1, q_vec->val, 1, &Rtmp);
+//      cudaDeviceSynchronize();
+#ifdef ENABLE_TESTS
+      printf("Rtmp = %lf\n",Rtmp);
+#endif
 
-	//alpha
-	alpha = Rho / (Rtmp + Tiny);
-	//printf("alpha = %lf\n",alpha);
-  
-	// x = x + alpha * p
-	cublasDaxpy(*handle_blas, n, &alpha, p_vec->val, 1, x->val, 1);
-	cudaDeviceSynchronize();
-	cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	//printf("x[1] = %lf\n",onex[1]);
+      // v = r z dot prod
+      cublasDdot(*handle_blas, n, r_vec->val, 1, z_vec->val, 1, &v);
+//      cudaDeviceSynchronize();
+#ifdef ENABLE_TESTS
+      cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      printf("v = %lf\n",v);
+#endif
 
-	// r = r - alpha * q
-	minus_alpha = -alpha;
-	cublasDaxpy(*handle_blas, n, &alpha,q_vec->val,1,r_vec->val,1);
-	cudaDeviceSynchronize();
-	cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	//printf("r[1] = %lf\n", oner[1]);
+      //alpha
+      alpha = Rho / (Rtmp + Tiny);
+#ifdef ENABLE_TESTS
+      printf("alpha = %lf\n",alpha);
+#endif
+      
+      // x = x + alpha * p
+      cublasDaxpy(*handle_blas, n, &alpha, p_vec->val, 1, x->val, 1);
+//      cudaDeviceSynchronize();
 
-	Rho = 0.0;
-	cublasDnrm2(*handle_blas, n, r_vec->val, 1, &res_norm);
-	cudaDeviceSynchronize();
-	//printf("res_norm = %lf\n", res_norm);
+#ifdef ENABLE_TESTS
+      cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      printf("x[1] = %lf\n",onex[1]);
+#endif
 
-	ratio = res_norm/init_norm;
-	//printf("ratio = %lf\n", ratio);
+      // r = r - alpha * q
+      minus_alpha = -alpha;
+      cublasDaxpy(*handle_blas, n, &minus_alpha,q_vec->val,1,r_vec->val,1);
+//      cudaDeviceSynchronize();
+#ifdef ENABLE_TESTS
+      cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      printf("r[1] = %lf\n", oner[1]);
+#endif
 
-	if (iter > 0) {
-		// A*x=r
-	  cusparseSpMV_bufferSize(*handle,CUSPARSE_OPERATION_NON_TRANSPOSE, &n_one, A->desc, x->desc, &one, r_vec->desc, PRECI_CUDA, CUSPARSE_MV_ALG_DEFAULT, &bufferSizeMV);
-	  cudaMalloc(&buff, bufferSizeMV);
-	  cusparseSpMV(*handle,
-		       CUSPARSE_OPERATION_NON_TRANSPOSE,//operation
-		       &n_one,//alpha
-		       A->desc,//matrix
-		       x->desc,//vector
-		       &one,//beta
-		       r_vec->desc,//answer
-		       PRECI_CUDA,//data type
-		       CUSPARSE_MV_ALG_DEFAULT,//algorithm
-		       buff//buffer
-		       );
-	  cudaDeviceSynchronize();
-	cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	//printf("r[1] = %lf\n", oner[1]);
-	//r = b - r
-	  cublasDaxpy(*handle_blas, n, &n_one, b->val, 1, r_vec->val, 1);
-	  cudaDeviceSynchronize();
-	cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	//printf("r[1] = %lf\n", oner[1]);
+      Rho = 0.0;
+      cublasDnrm2(*handle_blas, n, r_vec->val, 1, &res_norm);
+//      cudaDeviceSynchronize();
+#ifdef ENABLE_TESTS
+      printf("res_norm = %lf\n", res_norm);
+#endif
 
-	}
+      ratio = res_norm/init_norm;
+#ifdef ENABLE_TESTS
+      printf("ratio = %lf\n", ratio);
+#endif
 
-	cudaDeviceSynchronize();
-	int error = cudaGetLastError();
-	//printf("%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
-/*
-	cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	cudaMemcpy(onez, z_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
-	printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \t res_norm = %lf"
-	       "\n v "
-	       "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
-	       "ratio(%lf) > tolerance(%lf)\n\n\n",
-	       iter, onex[0], alpha, beta, res_norm, v, oner[0], onep[0], oneq[0], onez[0], ratio,
-	       tolerance);*/
-
-	//printf("\e[1;1H\e[2J");
+      if (iter > 0) {
+        // A*x=r
+        cusparseSpMV_bufferSize(*handle,CUSPARSE_OPERATION_NON_TRANSPOSE, &n_one, A->desc, x->desc, &one, r_vec->desc, PRECI_CUDA, CUSPARSE_MV_ALG_DEFAULT, &bufferSizeMV);
+        cudaMalloc(&buff, bufferSizeMV);
+        cusparseSpMV(*handle,
+              CUSPARSE_OPERATION_NON_TRANSPOSE,//operation
+              &n_one,//alpha
+              A->desc,//matrix
+              x->desc,//vector
+              &one,//beta
+              r_vec->desc,//answer
+              PRECI_CUDA,//data type
+              CUSPARSE_MV_ALG_DEFAULT,//algorithm
+              buff//buffer
+              );
+//        cudaDeviceSynchronize();
+#ifdef ENABLE_TESTS
+      cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      printf("r[1] = %lf\n", oner[1]);
+#endif
+      //r = b - r
+        cublasDaxpy(*handle_blas, n, &ne_one, b->val, 1, r_vec->val, 1);
+  //      cudaDeviceSynchronize();
+        cublasDscal(*handle_blas, n, &ne_one, r_vec->val, 1);
+    //    cudaDeviceSynchronize();
+#ifdef ENABLE_TESTS
+      cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      printf("r[1] = %lf\n", oner[1]);
+#endif
       }
+
+//      cudaDeviceSynchronize();
+#ifdef ENABLE_TESTS
+      int error = cudaGetLastError();
+      printf("%s - %s\n", cudaGetErrorName(error), cudaGetErrorString(error));
+#endif
+    /*
+      cudaMemcpy(onex, x->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      cudaMemcpy(onep, p_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      cudaMemcpy(oneq, q_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      cudaMemcpy(oner, r_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      cudaMemcpy(onez, z_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
+      printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \t res_norm = %lf"
+            "\n v "
+            "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
+            "ratio(%lf) > tolerance(%lf)\n\n\n",
+            iter, onex[0], alpha, beta, res_norm, v, oner[0], onep[0], oneq[0], onez[0], ratio,
+            tolerance);*/
+
+      //printf("\e[1;1H\e[2J");
+      }
+#ifdef ENABLE_TESTS
+    printf("TOtal of %d CuCG ITerations\n",iter);
+#endif
 
   // free everything
     cudaFree(p_vec->val);

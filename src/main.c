@@ -65,7 +65,7 @@ int batch_CCG(Data_CG *data)
 	for (j = 0; j < A->n; j++) b[j] = 1;
   
   	// run cpu
-  	CCG(A, M, b, x, data->maxit, data->tol);
+  	CCG(A, M, b, x, data->maxit, data->tol, NULL, NULL);
 	fprintf(ofile, "CPU,");
 	fprintf(ofile, "%s,",data->files[i]);
 	for(j = 0; j < n; j++)
@@ -73,6 +73,7 @@ int batch_CCG(Data_CG *data)
 	fprintf(ofile,"\n");
 	printf("C CG Test %d complete!\n",i);
   }
+  printf("\t C COMPLETE!");
 	fclose(ofile);
   return 0;
 }
@@ -109,6 +110,7 @@ int batch_CuCG(Data_CG *data)
 	fprintf(ofile,"\n");
 	printf("Cuda CG Test %d complete!\n",i);
   }
+  printf("\t CUDA COMPLETE!");
 	//fclose(ofile);
   return 0;
 }
@@ -143,7 +145,7 @@ int main(void) {
   //scanf("%lf",&tol);
 
  // Stop algorithm from continuing after this many iterations
-  maxit = 10000;
+  maxit = 1000;//00000;
   //printf("Enter the maximum iterations : ");
   //scanf("%d",&maxit);
 
@@ -157,7 +159,7 @@ int main(void) {
 
  // Iterativly run conjugate gradient for each matrix
  // Runs through C implementation on a thread and another for CUDA calling
- printf("launching CCG thread...");
+ //printf("launching CCG thread...");
  pthread_create(&th1, NULL, batch_CCG, data);
  //batch_CCG(data);
  printf("Done.\n");
@@ -166,7 +168,7 @@ int main(void) {
  batch_CuCG(data);
  printf("Done.\n");
 
- //pthread_join(th1, NULL);
+ pthread_join(th1, NULL);
  //pthread_join(th2, NULL);
 
   // Clean
