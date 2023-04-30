@@ -1,3 +1,4 @@
+#define _DEFAULT_SOURCE
 #include <stdio.h>
 #include <dirent.h>
 #include <stdlib.h>
@@ -162,11 +163,10 @@ int main(void) {
  //printf("launching CCG thread...");
  pthread_create(&th1, NULL, batch_CCG, data);
  //batch_CCG(data);
- printf("Done.\n");
+
  printf("launching CuCG thread...\n");
 // pthread_create(&th1, NULL, batch_CuCG, data);
  batch_CuCG(data);
- printf("Done.\n");
 
  pthread_join(th1, NULL);
  //pthread_join(th2, NULL);
