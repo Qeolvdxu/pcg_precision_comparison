@@ -2,8 +2,7 @@
 #define CCG_MATRIX_H_
 
 // the big one
-int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT* b, PRECI_DT *x, int max_iter, PRECI_DT tolerance);
-
+int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x, int max_iter, PRECI_DT tolerance, int (*precond_fn)(void*,void* x,void* b), void* precond_args);
 // cg preconditioning related functions
 void ichol(my_crs_matrix* M, double* L);
 void precondition(my_crs_matrix* M, PRECI_DT* r, PRECI_DT* z);
