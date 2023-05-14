@@ -1,13 +1,13 @@
-#include <math.h>
 #include <dirent.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "../include/my_crs_matrix.h"
-#include "../include/CCG.h"
 
+#include "../include/CCG.h"
 
 char **find_files(const char *dir_path, int *num_files) {
   DIR *dir = opendir(dir_path);
@@ -38,13 +38,13 @@ char **find_files(const char *dir_path, int *num_files) {
 int main(int argc, char *argv[]) {
   int i, tests;
 
-  if (argc != 3)
-    {
-      printf("ERROR: command line arguments invalid/missing\n");
-      return 1;
+  if (argc != 3) {
+    printf("ERROR: command line arguments invalid/missing\n");
+    return 1;
   }
   int test_count;
-  char **files = find_files("../test_subjects/rcm", &test_count);
+  char **files = find_files("../../test_subjects/rcm", &test_count);
+  printf("files found\n");
   PRECI_DT tol = (float)atof(argv[2]);
   FILE *ofile = fopen("results_CCG_TEST.csv", "w");
   int iter, maxit;
@@ -71,26 +71,26 @@ int main(int argc, char *argv[]) {
     // b vector of 1s
     for (i = 0; i < test->n; i++)
       b[i] = 1;
-
     // apply CG
     printf("calling cg\n");
-    iter = CCG(test, precond, b, x, maxit, tol);
-
-    free(b);
-    free(x);
+    iter = CCG(test, precond, b, x, maxit, tol, NULL, NULL);
 
     fprintf(ofile, "%s,", files[tests]);
     fprintf(ofile, "%d,", iter);
+
     for (i = 0; i < test->n; i++)
       fprintf(ofile, "%.2e,", x[i]);
     fprintf(ofile, "\n");
+
+    free(b);
+    free(x);
+  }
+
+  free(files);
+  my_crs_free(test);
+  my_crs_free(precond);
+
+  printf(" donee \n");
+
+  return 0;
 }
-
-free(files);
- my_crs_free(test);
-my_crs_free(precond);
-
-printf(" donee \n");
-
-return 0;
-      }
