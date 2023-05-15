@@ -4,7 +4,7 @@ myFiles = dir(fullfile(strcat(myDir, '/mm'), '*.mtx'));
 for i = 1 : length(myFiles)
   baseFileName = myFiles(i).name;
   fullFileName = fullfile(strcat(myDir, '/mm'), baseFileName);
-  icholTOutFileName = fullfile(strcat(myDir, '/mm'), strcat(myFiles(i).name, '.icholT.csr'));
+  icholTOutFileName = fullfile(strcat(myDir, '/mm'), strcat(myFiles(i).name, '.icholT.mtx'));
   [ matrix, m, n, numnonzero ] = mmread(fullFileName);
   fprintf('icholing matrix %s...', baseFileName)
   precond = ichol(matrix, struct('type','ict','droptol',1e-3,'diagcomp',alpha));
