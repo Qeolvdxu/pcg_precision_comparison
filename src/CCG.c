@@ -7,8 +7,9 @@
 
 #include "../include/CCG.h"
 
-int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x, int max_iter, PRECI_DT tolerance, int (*precond_fn)(void*,void* x,void* b), void* precond_args)
-{
+int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
+        int max_iter, PRECI_DT tolerance,
+        int (*precond_fn)(void *, void *x, void *b), void *precond_args) {
   int n = A->n;
   PRECI_DT *r = (PRECI_DT *)malloc(n * sizeof(PRECI_DT));
 
@@ -60,37 +61,39 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x, int max_it
     init_norm = 1.0;
   ratio = 1.0;
 
-/*  printf("** %lf | %d | %d ** \n", A->val[1], A->col[1], A->rowptr[1]);
-  printf("iteration PREQUEL\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf "
-         "\n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > "
-         "tolerance(%lf)\n\n\n",
-         x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);
-*/
+  /*  printf("** %lf | %d | %d ** \n", A->val[1], A->col[1], A->rowptr[1]);
+    printf("iteration PREQUEL\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf
+    "
+           "\n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > "
+           "tolerance(%lf)\n\n\n",
+           x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);
+  */
   // main CG loop
   while (iter <= max_iter && ratio > tolerance) {
-    // next iteration
-    #ifdef ENABLE_TESTS
-      printf("\nITERATION %d\n",iter);
-    #endif
+// next iteration
+#ifdef ENABLE_TESTS
+    printf("\nITERATION %d\n", iter);
+#endif
     iter++;
 
     // Precondition
     // precondition(M, r, z);
-    if (precond_fn)
-      (*precond_fn)(precond_args,z,r); 
+    if (M)
+      M = A;
+    // z = MT\(M\r);
     else
       for (j = 0; j < n; j++)
         z[j] = r[j];
-    #ifdef ENABLE_TESTS
-    printf("z[1] = %lf\n",z[1]);
-    #endif
+#ifdef ENABLE_TESTS
+    printf("z[1] = %lf\n", z[1]);
+#endif
 
     // Rho = r * z
     for (j = 0, Rho = 0.0; j < n; j++)
       Rho += r[j] * z[j];
-    #ifdef ENABLE_TESTS
-    printf("Rho = %lf\n",Rho);
-    #endif
+#ifdef ENABLE_TESTS
+    printf("Rho = %lf\n", Rho);
+#endif
 
     // p = z + beta * p
     if (iter == 1) {
@@ -104,81 +107,80 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x, int max_it
       for (j = 0; j < n; j++)
         p[j] = z[j] + (beta * p[j]);
     }
-    #ifdef ENABLE_TESTS
-    printf("beta = %lf\n",beta);
-    printf("p[1] = %lf\n",p[1]);
-    #endif
-
+#ifdef ENABLE_TESTS
+    printf("beta = %lf\n", beta);
+    printf("p[1] = %lf\n", p[1]);
+#endif
 
     // q = A*p
     matvec(A, p, q);
-    #ifdef ENABLE_TESTS
-    printf("q[1] = %lf\n",q[1]);
-    #endif
+#ifdef ENABLE_TESTS
+    printf("q[1] = %lf\n", q[1]);
+#endif
 
     for (j = 0, Rtmp = 0.0; j < n; j++)
       Rtmp += p[j] * q[j];
-    #ifdef ENABLE_TESTS
-    printf("Rtmp = %lf\n",Rtmp);
-    #endif
+#ifdef ENABLE_TESTS
+    printf("Rtmp = %lf\n", Rtmp);
+#endif
 
     // v = early dot(r,z)
     v = dot(r, z, n);
-    #ifdef ENABLE_TESTS
-    printf("v = %lf\n",v);
-    #endif
+#ifdef ENABLE_TESTS
+    printf("v = %lf\n", v);
+#endif
 
     // alpha = v / dot(p,q)
     alpha = Rho / (Rtmp + Tiny);
-    #ifdef ENABLE_TESTS
-    printf("alpha = %lf\n",alpha);
-    #endif
+#ifdef ENABLE_TESTS
+    printf("alpha = %lf\n", alpha);
+#endif
 
     // x = x + alpha * p
     for (j = 0; j < n; j++)
       x[j] = x[j] + (alpha * p[j]);
-    #ifdef ENABLE_TESTS
+#ifdef ENABLE_TESTS
     printf("x[1] = %lf\n", x[1]);
-    #endif
+#endif
 
     // r = r - alpha * q
     for (j = 0; j < n; j++)
       r[j] -= alpha * q[j];
-    #ifdef ENABLE_TESTS
+#ifdef ENABLE_TESTS
     printf("r[1] = %lf\n", r[1]);
-    #endif
+#endif
 
     Rho = 0.0;
     res_norm = norm(n, r);
-    #ifdef ENABLE_TESTS
+#ifdef ENABLE_TESTS
     printf("res norm = %lf\n", res_norm);
-    #endif
+#endif
 
     ratio = res_norm / init_norm;
-    #ifdef ENABLE_TESTS
+#ifdef ENABLE_TESTS
     printf("ratio = %lf\n", ratio);
-    #endif
+#endif
 
     if (iter > 0) {
-	    matvec(A, x, r);
-    #ifdef ENABLE_TESTS
-            printf("r[1] = %lf\n", r[1]);
-    #endif
-	    for (j = 0; j < n; j++)
-	    	r[j] = b[j] - r[j];
-    #ifdef ENABLE_TESTS
-    	    printf("r[1] = %lf\n", r[1]);
-    #endif
+      matvec(A, x, r);
+#ifdef ENABLE_TESTS
+      printf("r[1] = %lf\n", r[1]);
+#endif
+      for (j = 0; j < n; j++)
+        r[j] = b[j] - r[j];
+#ifdef ENABLE_TESTS
+      printf("r[1] = %lf\n", r[1]);
+#endif
     }
-    /*printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \t res_norm = %lf"
+    /*printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \t
+       res_norm = %lf"
            "\n v "
            "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
            "ratio(%lf) > tolerance(%lf)\n\n\n",
            iter, x[0], alpha, beta, res_norm, v, r[0], p[0], q[0], z[0], ratio,
            tolerance);*/
 
-    //printf("\e[1;1H\e[2J");
-    
+    // printf("\e[1;1H\e[2J");
   }
   free(r);
   free(p);
@@ -249,8 +251,7 @@ void precondition(my_crs_matrix *M, PRECI_DT *r, PRECI_DT *z)
   free(y);
 }
 
-PRECI_DT matvec_dot(my_crs_matrix *A, PRECI_DT *x, PRECI_DT *y, int n)
-{
+PRECI_DT matvec_dot(my_crs_matrix *A, PRECI_DT *x, PRECI_DT *y, int n) {
 
   PRECI_DT result = 0.0;
   for (int i = 0; i < n; i++) {
@@ -277,8 +278,7 @@ PRECI_DT dot(PRECI_DT *v, PRECI_DT *u, int n) {
   return x;
 }
 
-void matvec(my_crs_matrix *A, PRECI_DT *x, PRECI_DT *y)
-{
+void matvec(my_crs_matrix *A, PRECI_DT *x, PRECI_DT *y) {
   PRECI_DT test;
   int n = A->n;
   for (int i = 0; i < n; i++) {

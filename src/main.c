@@ -5,9 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../include/my_crs_matrix.h"
+
 #include "../include/CCG.h"
 #include "../include/CuCG.h"
-#include "../include/my_crs_matrix.h"
 
 // call_CuCG(files[i],b,x,maxit,tol);
 
@@ -52,29 +53,27 @@ int batch_CCG(Data_CG *data) {
   int m, n, z;
   printf("BATCH\n");
 
-  for (j = 0; j < 3; j++) {
-    for (i = 0; i < data->matrix_count; i++) {
-      // Create Matrix struct and Precond
-      printf("%s\n", data->files[i]);
-      my_crs_matrix *A = my_crs_read(data->files[i]);
-      my_crs_matrix *M = eye(A->n);
-      n = A->n;
+  for (i = 0; i < data->matrix_count; i++) {
+    // Create Matrix struct and Precond
+    printf("%s\n", data->files[i]);
+    my_crs_matrix *A = my_crs_read(data->files[i]);
+    my_crs_matrix *M = eye(A->n);
+    n = A->n;
 
-      // allocate arrays
-      x = calloc(A->n, sizeof(PRECI_DT));
-      b = malloc(sizeof(PRECI_DT) * A->n);
-      for (j = 0; j < A->n; j++)
-        b[j] = 1;
+    // allocate arrays
+    x = calloc(A->n, sizeof(PRECI_DT));
+    b = malloc(sizeof(PRECI_DT) * A->n);
+    for (j = 0; j < A->n; j++)
+      b[j] = 1;
 
-      // run cpu
-      CCG(A, M, b, x, data->maxit, data->tol, NULL, NULL);
-      fprintf(ofile, "CPU,");
-      fprintf(ofile, "%s,", data->files[i]);
-      for (j = 0; j < n; j++)
-        fprintf(ofile, "%.2e,", x[j]);
-      fprintf(ofile, "\n");
-      printf("C CG Test %d complete!\n", i);
-    }
+    // run cpu
+    CCG(A, NULL, b, x, data->maxit, data->tol, NULL, NULL);
+    fprintf(ofile, "CPU,");
+    fprintf(ofile, "%s,", data->files[i]);
+    for (j = 0; j < n; j++)
+      fprintf(ofile, "%.2e,", x[j]);
+    fprintf(ofile, "\n");
+    printf("C CG Test %d complete!\n", i);
   }
   printf("\t C COMPLETE!");
   fclose(ofile);
@@ -90,29 +89,27 @@ int batch_CuCG(Data_CG *data) {
   int m, n, z;
   FILE *file;
 
-  for (j = 0; j < 3; j++) {
-    for (i = 0; i < data->matrix_count; i++) {
-      // get matrix size
-      //  	file = fopen(data->files[i], "r");
-      my_crs_matrix *A = my_crs_read(data->files[i]);
-      printf("%s\n", data->files[i]);
-      n = A->n;
+  for (i = 0; i < data->matrix_count; i++) {
+    // get matrix size
+    //  	file = fopen(data->files[i], "r");
+    my_crs_matrix *A = my_crs_read(data->files[i]);
+    printf("%s\n", data->files[i]);
+    n = A->n;
 
-      // allocate arrays
-      x = calloc(n, sizeof(PRECI_DT));
-      b = malloc(sizeof(PRECI_DT) * n);
-      for (j = 0; j < n; j++)
-        b[j] = 1;
+    // allocate arrays
+    x = calloc(n, sizeof(PRECI_DT));
+    b = malloc(sizeof(PRECI_DT) * n);
+    for (j = 0; j < n; j++)
+      b[j] = 1;
 
-      // run gpu
-      call_CuCG(data->files[i], b, x, data->maxit, data->tol);
-      fprintf(ofile, "GPU,");
-      fprintf(ofile, "%s,", data->files[i]);
-      for (j = 0; j < n; j++)
-        fprintf(ofile, "%.2e,", x[j]);
-      fprintf(ofile, "\n");
-      printf("Cuda CG Test %d complete!\n", i);
-    }
+    // run gpu
+    call_CuCG(data->files[i], NULL, b, x, data->maxit, data->tol);
+    fprintf(ofile, "GPU,");
+    fprintf(ofile, "%s,", data->files[i]);
+    for (j = 0; j < n; j++)
+      fprintf(ofile, "%.2e,", x[j]);
+    fprintf(ofile, "\n");
+    printf("Cuda CG Test %d complete!\n", i);
   }
   printf("\t CUDA COMPLETE!");
   // fclose(ofile);

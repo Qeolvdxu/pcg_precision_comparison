@@ -204,8 +204,12 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   #endif
       iter++;
 
-      // z = r
-      cublasDcopy(*handle_blas,n,r_vec->val, 1, z_vec->val, 1);
+      if (M)
+          //z = MT\(M\r);
+          M=A;
+      else
+          // z = r
+          cublasDcopy(*handle_blas,n,r_vec->val, 1, z_vec->val, 1);
       //cudaDeviceSynchronize();
   #ifdef ENABLE_TESTS
       cudaMemcpy(onez, z_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
@@ -471,7 +475,7 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
 }
 
 
-void call_CuCG(char* name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit, PRECI_DT tol)
+void call_CuCG(char* name, char* m_name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit, PRECI_DT tol)
 {
   //printf("Creating cusparse handle!\n");
   cublasHandle_t cublasHandle;
@@ -519,7 +523,7 @@ void call_CuCG(char* name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit, PRECI_DT tol
       printf("\n");*/
 
       //printf("Calling CG func...");
-      cusparse_conjugate_gradient(A_matrix, A_matrix, b_vec,x_vec,maxit,tol, &cusparseHandle, &cublasHandle);
+      cusparse_conjugate_gradient(A_matrix, NULL, b_vec,x_vec,maxit,tol, &cusparseHandle, &cublasHandle);
       //printf("Done!\n");
 
       cudaMemcpy(h_x, x_vec->val, n * sizeof(PRECI_DT), cudaMemcpyDeviceToHost);
