@@ -1,25 +1,36 @@
 myDir = '../test_subjects';
 myFiles = dir(fullfile(strcat(myDir, '/mm'), '*.mtx'));
 
+for i = 1 : length(myFiles)
+  baseFileName = myFiles(i).name;
+  fullFileName = fullfile(strcat(myDir, '/mm'), baseFileName);
+  icholTOutFileName = fullfile(strcat(myDir, '/mm'), strcat(myFiles(i).name, '.icholT.csr'));
+  [ matrix, m, n, numnonzero ] = mmread(fullFileName);
+  fprintf('icholing matrix %s...', baseFileName)
+  precond = ichol(matrix, struct('type','ict','droptol',1e-3,'diagcomp',alpha));
+  precondT = precond';
+  mmwrite(icholTOutFileName,precond);
+end
+
 for i = 1:length(myFiles)
     baseFileName = myFiles(i).name
     fullFileName = fullfile(strcat(myDir, '/mm'), baseFileName);
     normOutFileName = fullfile(strcat(myDir, '/norm'), strcat(myFiles(i).name, '.csr'));
-    rcmOutFileName = fullfile(strcat(myDir, '/rcm'), strcat(myFiles(i).name, '.rcm.csr'));
-    
-    [matrix, m, n, numnonzero] = mmread(fullFileName);
+    rcmOutFileName =fullfile(strcat(myDir, '/rcm'), strcat(myFiles(i).name, '.rcm.csr'));
+
+    [ matrix, m, n, numnonzero ] = mmread(fullFileName);
     fprintf('Converting matrix %s...', baseFileName)
-    
+
     tick = tic;
     perm = symrcm(matrix);
     reordered = matrix(perm, perm);
     tock = toc(tick);
     fprintf('reordered in %f...', tock)
 
-    [val, row_ptr, col_ind] = sparse2csr(matrix);
+        [val, row_ptr, col_ind] = sparse2csr(matrix);
     fprintf('converted original to csr...')
 
-    commandDeletePrior = ['rm -f ', normOutFileName];
+        commandDeletePrior = [ 'rm -f ', normOutFileName ];
     system(commandDeletePrior);
 
     ofile = fopen(normOutFileName, 'w');
@@ -32,10 +43,10 @@ for i = 1:length(myFiles)
     fprintf('wrote val...')
     fclose(ofile);
 
-    [val, row_ptr, col_ind] = sparse2csr(reordered);
+    [ val, row_ptr, col_ind ] = sparse2csr(reordered);
     fprintf('converted reordered to csr...')
 
-    commandDeletePrior = ['rm -f ', rcmOutFileName];
+    commandDeletePrior = [ 'rm -f ', rcmOutFileName ];
     system(commandDeletePrior);
 
     ofile = fopen(rcmOutFileName, 'w');
@@ -48,5 +59,4 @@ for i = 1:length(myFiles)
     fprintf('wrote val...')
     fclose(ofile);
 
-    fprintf('done\n')
-end
+    fprintf('done\n') end
