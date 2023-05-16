@@ -57,7 +57,10 @@ int batch_CCG(Data_CG *data) {
     // Create Matrix struct and Precond
     printf("%s\n", data->files[i]);
     my_crs_matrix *A = my_crs_read(data->files[i]);
-    my_crs_matrix *M = eye(A->n);
+    my_crs_matrix *M;
+    char *m_name = NULL;
+    if (m_name)
+      M = my_crs_read(m_name);
     n = A->n;
 
     // allocate arrays

@@ -42,10 +42,12 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
   for (int i = 0; i < n; i++)
     r[i] = b[i] - r[i];
 
-  // z = MT\(M\r)
-  // precondition(M, r, z);
-  for (int i = 0; i < n; i++)
-    z[i] = r[i];
+  if (M)
+    M = A;
+  // z = MT\(M\r);
+  else
+    for (j = 0; j < n; j++)
+      z[j] = r[j];
 
   for (int i = 0; i < n; i++)
     p[i] = z[i];
