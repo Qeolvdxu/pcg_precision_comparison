@@ -361,10 +361,10 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 
       //printf("\e[1;1H\e[2J");
       }
-  cudaDeviceSynchronize();
 #ifdef ENABLE_TESTS
     printf("TOtal of %d CuCG ITerations\n",itert);
 #endif
+  cudaDeviceSynchronize();
 cudaEventRecord(stop, stream);
 cudaEventSynchronize(stop);
 
@@ -457,7 +457,8 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
 }
 
 
-void call_CuCG(char* name, char* m_name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit, PRECI_DT tol, int* iter, double* elapsed)
+void call_CuCG(char* name, char* m_name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit,
+               PRECI_DT tol, int* iter, double* elapsed, double* mem_elapsed)
 {
   //printf("Creating cusparse handle!\n");
   cublasHandle_t cublasHandle;
@@ -531,6 +532,12 @@ void call_CuCG(char* name, char* m_name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit
     //fclose(file);
 
     // Copy data from host to device
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaStream_t stream;
+  cudaStreamCreate(&stream);
+  cudaEventRecord(start, stream);
     cudaMemcpy(A_matrix->rowptr, rowptr, (n+1) * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(A_matrix->col, col, nz * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(A_matrix->val, val, nz * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
@@ -540,6 +547,12 @@ void call_CuCG(char* name, char* m_name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit
   cudaMemcpy(p_vec->val, h_rpqz, n_t * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cudaMemcpy(q_vec->val, h_rpqz, n_t * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cudaMemcpy(z_vec->val, h_rpqz, n_t * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
+  cudaDeviceSynchronize();
+  cudaEventRecord(stop, stream);
+  cudaEventSynchronize(stop);
+  float milliseconds = 0;
+  cudaEventElapsedTime(&milliseconds, start, stop);
+  *mem_elapsed = milliseconds;
 
     A_matrix->n = n;
     A_matrix->m = m;

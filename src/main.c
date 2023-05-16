@@ -91,7 +91,7 @@ int batch_CuCG(Data_CG *data) {
   FILE *ofile = fopen("results_CudaCG_TEST.csv", "w");
   printf("%d matrices\n", data->matrix_count);
   int i, j, iter;
-  double elapsed;
+  double elapsed, mem_elapsed;
   PRECI_DT *x;
   PRECI_DT *b;
   int m, n, z;
@@ -112,14 +112,15 @@ int batch_CuCG(Data_CG *data) {
 
     // run gpu
     call_CuCG(data->files[i], NULL, b, x, data->maxit, data->tol, &iter,
-              &elapsed);
+              &elapsed, &mem_elapsed);
     // printf("%d %lf\n", iter, elapsed);
     if (i == 0)
-      fprintf(ofile,
-              "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,N,X_VECTOR\n");
+      fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEMCPY_TIME,"
+                     "N,X_VECTOR\n");
     fprintf(ofile, "GPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%d", "TODO", iter, elapsed, A->n);
+    fprintf(ofile, "%s,%d,%lf,%lf,%d", "TODO", iter, elapsed, mem_elapsed,
+            A->n);
     for (j = 0; j < n; j++)
       fprintf(ofile, "%0.10lf,", x[j]);
     fprintf(ofile, "\n");
