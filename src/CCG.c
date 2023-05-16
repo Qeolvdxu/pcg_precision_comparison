@@ -3,13 +3,15 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "../include/CCG.h"
 
-int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
-        int max_iter, PRECI_DT tolerance,
-        int (*precond_fn)(void *, void *x, void *b), void *precond_args) {
+void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
+         int max_iter, PRECI_DT tolerance,
+         int (*precond_fn)(void *, void *x, void *b), void *precond_args,
+         int *iter, double *elapsed) {
   int n = A->n;
   PRECI_DT *r = (PRECI_DT *)malloc(n * sizeof(PRECI_DT));
 
@@ -20,7 +22,6 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
   PRECI_DT alpha = 0.0;
   PRECI_DT beta = 0.0;
 
-  int iter = 0;
   int j = 0;
 
   PRECI_DT v = 0;
@@ -70,13 +71,25 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
            "tolerance(%lf)\n\n\n",
            x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);
   */
+
+  /* CPU TIME
+   clock_t start_t, end_t;
+  double total_t;
+  start_t = clock();*/
+
+  // WALL TIME
+  struct timeval begin, end;
+  gettimeofday(&begin, 0);
+
   // main CG loop
-  while (iter <= max_iter && ratio > tolerance) {
+  int itert = 0;
+  //  printf("%d \n", *iter);
+  while (itert <= max_iter && ratio > tolerance) {
 // next iteration
 #ifdef ENABLE_TESTS
-    printf("\nITERATION %d\n", iter);
+    printf("\nITERATION %d\n", itert);
 #endif
-    iter++;
+    itert++;
 
     // Precondition
     // precondition(M, r, z);
@@ -98,7 +111,7 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
 #endif
 
     // p = z + beta * p
-    if (iter == 1) {
+    if (itert == 1) {
       for (j = 0; j < n; j++)
         p[j] = z[j];
 
@@ -163,7 +176,7 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
     printf("ratio = %lf\n", ratio);
 #endif
 
-    if (iter > 0) {
+    if (itert > 0) {
       matvec(A, x, r);
 #ifdef ENABLE_TESTS
       printf("r[1] = %lf\n", r[1]);
@@ -184,11 +197,17 @@ int CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
 
     // printf("\e[1;1H\e[2J");
   }
+  *iter = itert;
+  gettimeofday(&end, 0);
+  double seconds = end.tv_sec - begin.tv_sec;
+  double microseconds = end.tv_usec - begin.tv_usec;
+  *elapsed = seconds + microseconds * 1e-6 * 1000;
+
   free(r);
   free(p);
   free(q);
   free(z);
-  return iter;
+  // return;
 }
 
 // incomplete Choleskys

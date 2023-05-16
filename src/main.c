@@ -50,7 +50,8 @@ int batch_CCG(Data_CG *data) {
   int i, j;
   PRECI_DT *x;
   PRECI_DT *b;
-  int m, n, z;
+  int m, n, z, iter;
+  double elapsed;
   printf("BATCH\n");
 
   for (i = 0; i < data->matrix_count; i++) {
@@ -70,11 +71,15 @@ int batch_CCG(Data_CG *data) {
       b[j] = 1;
 
     // run cpu
-    CCG(A, NULL, b, x, data->maxit, data->tol, NULL, NULL);
+    CCG(A, NULL, b, x, data->maxit, data->tol, NULL, NULL, &iter, &elapsed);
+    if (i == 0)
+      fprintf(ofile,
+              "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,N,X_VECTOR\n");
     fprintf(ofile, "CPU,");
     fprintf(ofile, "%s,", data->files[i]);
+    fprintf(ofile, "%s,%d,%lf,%d", "TODO", iter, elapsed, A->n);
     for (j = 0; j < n; j++)
-      fprintf(ofile, "%.2e,", x[j]);
+      fprintf(ofile, "%0.10lf,", x[j]);
     fprintf(ofile, "\n");
     printf("C CG Test %d complete!\n", i);
   }
@@ -82,11 +87,11 @@ int batch_CCG(Data_CG *data) {
   fclose(ofile);
   return 0;
 }
-
 int batch_CuCG(Data_CG *data) {
   FILE *ofile = fopen("results_CudaCG_TEST.csv", "w");
   printf("%d matrices\n", data->matrix_count);
-  int i, j;
+  int i, j, iter;
+  double elapsed;
   PRECI_DT *x;
   PRECI_DT *b;
   int m, n, z;
@@ -106,11 +111,17 @@ int batch_CuCG(Data_CG *data) {
       b[j] = 1;
 
     // run gpu
-    call_CuCG(data->files[i], NULL, b, x, data->maxit, data->tol);
+    call_CuCG(data->files[i], NULL, b, x, data->maxit, data->tol, &iter,
+              &elapsed);
+    // printf("%d %lf\n", iter, elapsed);
+    if (i == 0)
+      fprintf(ofile,
+              "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,N,X_VECTOR\n");
     fprintf(ofile, "GPU,");
     fprintf(ofile, "%s,", data->files[i]);
+    fprintf(ofile, "%s,%d,%lf,%d", "TODO", iter, elapsed, A->n);
     for (j = 0; j < n; j++)
-      fprintf(ofile, "%.2e,", x[j]);
+      fprintf(ofile, "%0.10lf,", x[j]);
     fprintf(ofile, "\n");
     printf("Cuda CG Test %d complete!\n", i);
   }
@@ -149,7 +160,7 @@ int main(void) {
   // scanf("%lf",&tol);
 
   // Stop algorithm from continuing after this many iterations
-  maxit = 1000; // 00000;
+  maxit = 100000; // 00000;
   // printf("Enter the maximum iterations : ");
   // scanf("%d",&maxit);
 
@@ -171,7 +182,7 @@ int main(void) {
   batch_CuCG(data);
 
   pthread_join(th1, NULL);
-  // pthread_join(th2, NULL);
+  //  pthread_join(th2, NULL);
 
   // Clean
   free(files);
