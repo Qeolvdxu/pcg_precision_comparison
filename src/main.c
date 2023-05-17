@@ -74,7 +74,7 @@ int batch_CCG(Data_CG *data) {
     CCG(A, NULL, b, x, data->maxit, data->tol, NULL, NULL, &iter, &elapsed);
     if (i == 0)
       fprintf(ofile,
-              "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,N,X_VECTOR\n");
+              "DEVICE,MATRIX,PRECISION,ITERATIONS,CPU_TIME,N,X_VECTOR\n");
     fprintf(ofile, "CPU,");
     fprintf(ofile, "%s,", data->files[i]);
     fprintf(ofile, "%s,%d,%lf,%d", "TODO", iter, elapsed, n);
@@ -115,8 +115,9 @@ int batch_CuCG(Data_CG *data) {
               &elapsed, &mem_elapsed);
     // printf("%d %lf\n", iter, elapsed);
     if (i == 0)
-      fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEMCPY_TIME,"
-                     "N,X_VECTOR\n");
+      fprintf(ofile,
+              "DEVICE,MATRIX,PRECISION,ITERATIONS,EVENT_TIME,MEM_WALL_TIME,"
+              "N,X_VECTOR\n");
     fprintf(ofile, "GPU,");
     fprintf(ofile, "%s,", data->files[i]);
     fprintf(ofile, "%s,%d,%lf,%lf,%d", "TODO", iter, elapsed, mem_elapsed, n);
