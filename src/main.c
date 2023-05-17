@@ -77,7 +77,7 @@ int batch_CCG(Data_CG *data) {
               "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,N,X_VECTOR\n");
     fprintf(ofile, "CPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%d", "TODO", iter, elapsed, A->n);
+    fprintf(ofile, "%s,%d,%lf,%d", "TODO", iter, elapsed, n);
     for (j = 0; j < n; j++)
       fprintf(ofile, "%0.10lf,", x[j]);
     fprintf(ofile, "\n");
@@ -119,8 +119,7 @@ int batch_CuCG(Data_CG *data) {
                      "N,X_VECTOR\n");
     fprintf(ofile, "GPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%lf,%d", "TODO", iter, elapsed, mem_elapsed,
-            A->n);
+    fprintf(ofile, "%s,%d,%lf,%lf,%d", "TODO", iter, elapsed, mem_elapsed, n);
     for (j = 0; j < n; j++)
       fprintf(ofile, "%0.10lf,", x[j]);
     fprintf(ofile, "\n");
@@ -161,7 +160,7 @@ int main(void) {
   // scanf("%lf",&tol);
 
   // Stop algorithm from continuing after this many iterations
-  maxit = 100000; // 00000;
+  maxit = 10000; // 00000;
   // printf("Enter the maximum iterations : ");
   // scanf("%d",&maxit);
 
@@ -174,7 +173,7 @@ int main(void) {
 
   // Iterativly run conjugate gradient for each matrix
   // Runs through C implementation on a thread and another for CUDA calling
-  // printf("launching CCG thread...");
+  printf("launching CCG thread...");
   pthread_create(&th1, NULL, batch_CCG, data);
   // batch_CCG(data);
 
@@ -183,7 +182,7 @@ int main(void) {
   batch_CuCG(data);
 
   pthread_join(th1, NULL);
-  //  pthread_join(th2, NULL);
+  // pthread_join(th2, NULL);
 
   // Clean
   free(files);

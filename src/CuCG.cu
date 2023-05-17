@@ -479,27 +479,11 @@ void call_CuCG(char* name, char* m_name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit
   {
       size_t pitch;
 
-      my_cuda_csr_matrix *A_matrix = (my_cuda_csr_matrix*)malloc(sizeof(my_cuda_csr_matrix));
-      my_cuda_vector *b_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
-      my_cuda_vector *x_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
-      my_cuda_vector *r_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
-      my_cuda_vector *p_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
-      my_cuda_vector *q_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
-      my_cuda_vector *z_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
 
       int i;
       fscanf(file, "%d %d %d", &m, &n, &nz);
       int64_t n_t=n;
 
-    cudaMallocPitch((void**)&A_matrix->rowptr,&pitch, ( n +1) * sizeof(int),1);
-    cudaMallocPitch((void**)&A_matrix->col,&pitch, nz * sizeof(int),1);
-    cudaMallocPitch((void**)&A_matrix->val,&pitch, nz * sizeof(PRECI_DT),1);
-  cudaMallocPitch((void**)&x_vec->val,&pitch, n_t * sizeof(PRECI_DT),1);
-  cudaMallocPitch((void**)&b_vec->val, &pitch, n_t * sizeof(PRECI_DT),1);
-  cudaMallocPitch((void**)&r_vec->val,&pitch, n_t * sizeof(PRECI_DT), 1);
-  cudaMallocPitch((void**)&p_vec->val,&pitch, n_t * sizeof(PRECI_DT),1);
-  cudaMallocPitch((void**)&q_vec->val,&pitch, n_t * sizeof(PRECI_DT),1);
-  cudaMallocPitch((void**)&z_vec->val,&pitch, n_t * sizeof(PRECI_DT),1);
   PRECI_DT* val = (PRECI_DT*)malloc(sizeof(PRECI_DT)*nz);
   int* col = (int*)malloc(sizeof(int)*nz);
   int* rowptr = (int*)malloc(sizeof(int)*n+1);
@@ -531,16 +515,46 @@ void call_CuCG(char* name, char* m_name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit
     #endif
     //fclose(file);
 
-    // Copy data from host to device
-  cudaEvent_t start, stop;
+  // Copy data from host to device
+
+
+  /*EVENT TIME
+   cudaEvent_t start, stop;
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
   cudaStream_t stream;
   cudaStreamCreate(&stream);
-  cudaEventRecord(start, stream);
-    cudaMemcpy(A_matrix->rowptr, rowptr, (n+1) * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(A_matrix->col, col, nz * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(A_matrix->val, val, nz * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
+  cudaEventRecord(start, stream);*/
+
+  // WALL TIME
+  struct timeval begin, end;
+  gettimeofday(&begin, 0);
+
+  my_cuda_csr_matrix *A_matrix = (my_cuda_csr_matrix*)malloc(sizeof(my_cuda_csr_matrix));
+  my_cuda_vector *b_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
+  my_cuda_vector *x_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
+  my_cuda_vector *r_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
+  my_cuda_vector *p_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
+  my_cuda_vector *q_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
+  my_cuda_vector *z_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
+  my_cuda_csr_matrix *M_matrix;
+  A_matrix->n = n;
+  A_matrix->m = m;
+  A_matrix->nz = nz;
+
+  cudaMallocPitch((void**)&A_matrix->rowptr,&pitch, ( n +1) * sizeof(int),1);
+  cudaMallocPitch((void**)&A_matrix->col,&pitch, nz * sizeof(int),1);
+  cudaMallocPitch((void**)&A_matrix->val,&pitch, nz * sizeof(PRECI_DT),1);
+  cudaMallocPitch((void**)&x_vec->val,&pitch, n_t * sizeof(PRECI_DT),1);
+  cudaMallocPitch((void**)&b_vec->val, &pitch, n_t * sizeof(PRECI_DT),1);
+  cudaMallocPitch((void**)&r_vec->val,&pitch, n_t * sizeof(PRECI_DT), 1);
+  cudaMallocPitch((void**)&p_vec->val,&pitch, n_t * sizeof(PRECI_DT),1);
+  cudaMallocPitch((void**)&q_vec->val,&pitch, n_t * sizeof(PRECI_DT),1);
+  cudaMallocPitch((void**)&z_vec->val,&pitch, n_t * sizeof(PRECI_DT),1);
+
+  cudaMemcpy(A_matrix->rowptr, rowptr, (n+1) * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(A_matrix->col, col, nz * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(A_matrix->val, val, nz * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cudaMemcpy(x_vec->val, h_x, n_t * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cudaMemcpy(b_vec->val, h_b, n_t * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cudaMemcpy(r_vec->val, h_rpqz, n_t * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
@@ -548,19 +562,34 @@ void call_CuCG(char* name, char* m_name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit
   cudaMemcpy(q_vec->val, h_rpqz, n_t * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cudaMemcpy(z_vec->val, h_rpqz, n_t * sizeof(PRECI_DT), cudaMemcpyHostToDevice);
   cudaDeviceSynchronize();
+
+
+  cusparseCreateDnVec(&b_vec->desc, n_t, b_vec->val,PRECI_CUDA);
+  cusparseCreateDnVec(&x_vec->desc, n_t, x_vec->val,PRECI_CUDA);
+  cusparseCreateDnVec(&r_vec->desc, n_t, r_vec->val,PRECI_CUDA);
+  cusparseCreateDnVec(&p_vec->desc, n_t, p_vec->val,PRECI_CUDA);
+  cusparseCreateDnVec(&q_vec->desc, n_t, q_vec->val,PRECI_CUDA);
+  cusparseCreateDnVec(&z_vec->desc, n_t, z_vec->val,PRECI_CUDA);
+  cusparseCreateCsr(&A_matrix->desc, n, n, nz, A_matrix->rowptr, A_matrix->col, A_matrix->val,
+                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, PRECI_CUDA);
+  cudaDeviceSynchronize();
+  /* //EVENT TIME
   cudaEventRecord(stop, stream);
   cudaEventSynchronize(stop);
   float milliseconds = 0;
   cudaEventElapsedTime(&milliseconds, start, stop);
-  *mem_elapsed = milliseconds;
+  *mem_elapsed = milliseconds;*/
+   //WALL
+    gettimeofday(&end, 0);
+    double seconds = end.tv_sec - begin.tv_sec;
+    double microseconds = end.tv_usec - begin.tv_usec;
+    *mem_elapsed = seconds + microseconds * 1e-6 * 1000;
 
-    A_matrix->n = n;
-    A_matrix->m = m;
-    A_matrix->nz = nz;
+
+
 
     //Create the CSR matrix
 
-      my_cuda_csr_matrix *M_matrix;
 
    if (m_name)
        M_matrix = cusparse_crs_read((char*)m_name);
@@ -573,14 +602,12 @@ void call_CuCG(char* name, char* m_name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit
       //for(int i=0;i<n;i++) h_b[i] = 1;
 
   // vectors
-  cusparseCreateDnVec(&b_vec->desc, n_t, b_vec->val,PRECI_CUDA);
-  cusparseCreateDnVec(&x_vec->desc, n_t, x_vec->val,PRECI_CUDA);
-  cusparseCreateDnVec(&r_vec->desc, n_t, r_vec->val,PRECI_CUDA);
-  cusparseCreateDnVec(&p_vec->desc, n_t, p_vec->val,PRECI_CUDA);
-  cusparseCreateDnVec(&q_vec->desc, n_t, q_vec->val,PRECI_CUDA);
-  cusparseCreateDnVec(&z_vec->desc, n_t, z_vec->val,PRECI_CUDA);
-  cusparseCreateCsr(&A_matrix->desc, n, n, nz, A_matrix->rowptr, A_matrix->col, A_matrix->val,
-                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, PRECI_CUDA);
+/* //WALL
+    gettimeofday(&end, 0);
+    double seconds = end.tv_sec - begin.tv_sec;
+    double microseconds = end.tv_usec - begin.tv_usec;
+    *elapsed = seconds + microseconds * 1e-6 * 1000;
+   */
 
 #ifdef ENABLE_TESTS
       printf("Created Vectors!\n");

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "../include/CCG.h"
@@ -72,14 +73,16 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
            x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);
   */
 
-  /* CPU TIME
-   clock_t start_t, end_t;
-  double total_t;
-  start_t = clock();*/
-
   // WALL TIME
-  struct timeval begin, end;
-  gettimeofday(&begin, 0);
+  /*struct timeval begin, end;
+   *gettimeofday(&begin, 0);
+   */
+
+  // CPU TIME
+  clock_t start, end;
+  double cpu_time_used;
+
+  start = clock();
 
   // main CG loop
   int itert = 0;
@@ -198,10 +201,17 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
     // printf("\e[1;1H\e[2J");
   }
   *iter = itert;
-  gettimeofday(&end, 0);
-  double seconds = end.tv_sec - begin.tv_sec;
-  double microseconds = end.tv_usec - begin.tv_usec;
-  *elapsed = seconds + microseconds * 1e-6 * 1000;
+
+  // CPU TIME
+  end = clock();
+  *elapsed = 1000 * (((double)(end - start)) / CLOCKS_PER_SEC);
+
+  /* //WALL
+    gettimeofday(&end, 0);
+    double seconds = end.tv_sec - begin.tv_sec;
+    double microseconds = end.tv_usec - begin.tv_usec;
+    *elapsed = seconds + microseconds * 1e-6 * 1000;
+   */
 
   free(r);
   free(p);
