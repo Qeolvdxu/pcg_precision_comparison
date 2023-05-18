@@ -5,7 +5,7 @@ CFLAGS = -g -Wall -Wextra -pedantic -v -gdwarf-4 #-DENABLE_TESTS
 NVCCFLAGS = -O3 -Xcompiler -Wall,-Wpedantic -x c -g -G -v #-DENABLE_TESTS
 
 
-LIB_FLAGS = -lm -lcudart -lcusparse -lcuda -lcublas -lpthread
+LIB_FLAGS = -lm -lcudart -lcusparse -lcuda -lcublas -lpthread -fopenmp
 
 BUILDDIR = ./build/
 

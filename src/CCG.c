@@ -1,6 +1,7 @@
 #include "../include/my_crs_matrix.h"
 
 #include <math.h>
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -74,15 +75,14 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
   */
 
   // WALL TIME
-  /*struct timeval begin, end;
-   *gettimeofday(&begin, 0);
-   */
+  double start;
+  double end;
+  start = omp_get_wtime();
 
   // CPU TIME
-  clock_t start, end;
-  double cpu_time_used;
-
-  start = clock();
+  // clock_t start, end;
+  // double cpu_time_used;
+  // start = clock();
 
   // main CG loop
   int itert = 0;
@@ -203,15 +203,12 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
   *iter = itert;
 
   // CPU TIME
-  end = clock();
-  *elapsed = 1000 * (((double)(end - start)) / CLOCKS_PER_SEC);
+  // end = clock();
+  //*elapsed = 1000 * (((double)(end - start)) / CLOCKS_PER_SEC);
 
-  /* //WALL
-    gettimeofday(&end, 0);
-    double seconds = end.tv_sec - begin.tv_sec;
-    double microseconds = end.tv_usec - begin.tv_usec;
-    *elapsed = seconds + microseconds * 1e-6 * 1000;
-   */
+  // WALL
+  end = omp_get_wtime();
+  *elapsed = (end - start) * 1000;
 
   free(r);
   free(p);

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <omp.h>
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
@@ -184,13 +185,20 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 	 iter, onex[0], alpha, beta, v, oner[0], onep[0], oneq[0], onez[0], ratio,
 	 tolerance);*/
   #endif
-
+/* //CUDA_EVENT_TIME
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
   cudaStream_t stream;
   cudaStreamCreate(&stream);
   cudaEventRecord(start, stream);
+  */
+
+  // WALL TIME
+  double start;
+  double end;
+  start = omp_get_wtime();
+
   while (itert <= max_iter && ratio > tolerance)
     {
   #ifdef ENABLE_TESTS
@@ -361,17 +369,21 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 
       //printf("\e[1;1H\e[2J");
       }
+  cudaDeviceSynchronize();
+
+  // WALL TIME
+  end = omp_get_wtime();
+/* //CUDA EVENT TIME
+  cudaEventRecord(stop, stream);
+  cudaEventSynchronize(stop);
+  float milliseconds = 0;
+  cudaEventElapsedTime(&milliseconds, start, stop);
+*/
 #ifdef ENABLE_TESTS
     printf("TOtal of %d CuCG ITerations\n",itert);
 #endif
-  cudaDeviceSynchronize();
-cudaEventRecord(stop, stream);
-cudaEventSynchronize(stop);
 
-float milliseconds = 0;
-cudaEventElapsedTime(&milliseconds, start, stop);
-
-    *elapsed = milliseconds;
+    *elapsed = (end - start)*1000;
     *iter = itert;
     return;
 }
@@ -527,8 +539,9 @@ void call_CuCG(char* name, char* m_name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit
   cudaEventRecord(start, stream);*/
 
   // WALL TIME
-  struct timeval begin, end;
-  gettimeofday(&begin, 0);
+  double start;
+  double end;
+  start = omp_get_wtime();
 
   my_cuda_csr_matrix *A_matrix = (my_cuda_csr_matrix*)malloc(sizeof(my_cuda_csr_matrix));
   my_cuda_vector *b_vec = (my_cuda_vector*)malloc(sizeof(my_cuda_vector));
@@ -580,10 +593,8 @@ void call_CuCG(char* name, char* m_name, PRECI_DT* h_b, PRECI_DT* h_x, int maxit
   cudaEventElapsedTime(&milliseconds, start, stop);
   *mem_elapsed = milliseconds;*/
    //WALL
-    gettimeofday(&end, 0);
-    double seconds = end.tv_sec - begin.tv_sec;
-    double microseconds = end.tv_usec - begin.tv_usec;
-    *mem_elapsed = seconds + microseconds * 1e-6 * 1000;
+  end = omp_get_wtime();
+    *mem_elapsed = (end - start)*1000;
 
 
 

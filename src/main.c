@@ -74,16 +74,16 @@ int batch_CCG(Data_CG *data) {
     CCG(A, NULL, b, x, data->maxit, data->tol, NULL, NULL, &iter, &elapsed);
     if (i == 0)
       fprintf(ofile,
-              "DEVICE,MATRIX,PRECISION,ITERATIONS,CPU_TIME,N,X_VECTOR\n");
+              "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,,X_VECTOR\n");
     fprintf(ofile, "CPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%d", "TODO", iter, elapsed, n);
-    for (j = 0; j < n; j++)
+    fprintf(ofile, "%s,%d,%lf,,", "TODO", iter, elapsed);
+    for (j = 0; j < 5; j++)
       fprintf(ofile, "%0.10lf,", x[j]);
     fprintf(ofile, "\n");
     printf("C CG Test %d complete!\n", i);
   }
-  printf("\t C COMPLETE!");
+  printf("\t C COMPLETE!\n");
   fclose(ofile);
   return 0;
 }
@@ -116,17 +116,17 @@ int batch_CuCG(Data_CG *data) {
     // printf("%d %lf\n", iter, elapsed);
     if (i == 0)
       fprintf(ofile,
-              "DEVICE,MATRIX,PRECISION,ITERATIONS,EVENT_TIME,MEM_WALL_TIME,"
-              "N,X_VECTOR\n");
+              "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_TIME,"
+              "X_VECTOR\n");
     fprintf(ofile, "GPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%lf,%d", "TODO", iter, elapsed, mem_elapsed, n);
-    for (j = 0; j < n; j++)
+    fprintf(ofile, "%s,%d,%lf,%lf,", "TODO", iter, elapsed, mem_elapsed);
+    for (j = 0; j < 5; j++)
       fprintf(ofile, "%0.10lf,", x[j]);
     fprintf(ofile, "\n");
     printf("Cuda CG Test %d complete!\n", i);
   }
-  printf("\t CUDA COMPLETE!");
+  printf("\t CUDA COMPLETE!\n");
   // fclose(ofile);
   return 0;
 }
