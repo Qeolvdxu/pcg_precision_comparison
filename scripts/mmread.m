@@ -86,7 +86,7 @@ function  [A,rows,cols,entries,rep,field,symm] = mmread(filename)
       cols = sizeinfo(2);
       entries = sizeinfo(3);
       
-      if  ( strcmp(field,'real') | strcmp(field,'integer') )               % real valued entries:
+      if  ( strcmp(field,'real') || strcmp(field,'integer') )               % real valued entries:
       
         [T,count] = fscanf(mmfile,'%f',3);
         T = [T; fscanf(mmfile,'%f')];
