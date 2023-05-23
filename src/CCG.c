@@ -45,9 +45,9 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
   for (int i = 0; i < n; i++)
     r[i] = b[i] - r[i];
 
-  if (M)
-    M = A;
   // z = MT\(M\r);
+  if (M)
+    precondition(A,r,z,M);
   else
     for (j = 0; j < n; j++)
       z[j] = r[j];
@@ -95,13 +95,13 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
     itert++;
 
     // Precondition
-    // precondition(M, r, z);
-    if (M)
-      M = A;
     // z = MT\(M\r);
+    if (M)
+      precondition(A,r,z,M);
     else
       for (j = 0; j < n; j++)
         z[j] = r[j];
+
 #ifdef ENABLE_TESTS
     printf("z[1] = %lf\n", z[1]);
 #endif
@@ -198,7 +198,9 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
            iter, x[0], alpha, beta, res_norm, v, r[0], p[0], q[0], z[0], ratio,
            tolerance);*/
 
-    // printf("\e[1;1H\e[2J");
+#ifdef ENABLE_TESTS
+    printf("\e[1;1H\e[2J");
+#endif
   }
   *iter = itert;
 
@@ -217,42 +219,13 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
   // return;
 }
 
-// incomplete Choleskys
-void ichol(my_crs_matrix *M, double *L)
-
-{
-  int n = M->n;
-  int i, j, k;
-  double s;
-  for (i = 0; i < n; i++) {
-    for (j = M->rowptr[i]; j < M->rowptr[i + 1]; j++) {
-      if (M->col[j] < i)
-        continue;
-      s = 0;
-      for (k = M->rowptr[i]; k < j; k++) {
-        if (M->col[k] < i)
-          continue;
-        s += L[k] * L[M->rowptr[M->col[k]]] + i - M->col[k];
-      }
-      L[j] = (i == M->col[j]) ? sqrt(M->val[j] - s)
-                              : (1.0 / L[M->rowptr[M->col[j]] + i - M->col[j]] *
-                                 (M->val[j] - s));
-    }
-  }
-}
-
-void precondition(my_crs_matrix *M, PRECI_DT *r, PRECI_DT *z)
-
 // find z = M^(-1)r
+/*void precondition(my_crs_matrix *M, my_crs_matrix *L, PRECI_DT *r, PRECI_DT *z)
 {
   int n = M->n;
   int i, j;
 
-  PRECI_DT *L = (PRECI_DT *)malloc(sizeof(PRECI_DT) * n);
-
-  ichol(M, L);
-
-  PRECI_DT *y = (PRECI_DT *)malloc(n * sizeof(PRECI_DT));
+  PRECI_DT *y = (PRECI_DT *)malloc(sizeof(PRECI_DT) * n);
   printf("test 1\n");
 
   for (i = 0; i < n; i++) {
@@ -276,6 +249,40 @@ void precondition(my_crs_matrix *M, PRECI_DT *r, PRECI_DT *z)
     z[i] /= L[M->rowptr[i]];
   }
   free(L);
+  free(y);
+}*/
+
+void precondition(my_csr_matrix *M, PRECI_DT *r, PRECI_DT *z, my_csr_matrix *L)
+{
+  int n = M->n;
+  int i, j;
+
+  PRECI_DT *y = (PRECI_DT *)malloc(n * sizeof(PRECI_DT));
+
+  for (i = 0; i < n; i++) {
+    y[i] = r[i];
+    int start = L->rowptr[i];
+    int end = L->rowptr[i + 1];
+
+    for (j = start; j < end; j++) {
+      y[i] -= L->val[j] * y[L->col[j]];
+    }
+
+    y[i] /= L->val[start];
+  }
+
+  for (i = n - 1; i >= 0; i--) {
+    z[i] = y[i];
+    int start = L->rowptr[i];
+    int end = L->rowptr[i + 1];
+
+    for (j = start; j < end; j++) {
+      z[i] -= L->val[j] * z[L->col[j]];
+    }
+
+    z[i] /= L->val[start];
+  }
+
   free(y);
 }
 
@@ -341,4 +348,6 @@ PRECI_DT norm(int n, PRECI_DT *v) {
     }
   }
   return scale * sqrt(ssq);
+}
+  free(y);
 }
