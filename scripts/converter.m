@@ -10,6 +10,7 @@ for i = 1 : length(myFiles)
   alpha = max(sum(abs(matrix),2)./diag(matrix))-2;
   precond = ichol(matrix, struct('type','ict','droptol',1e-3,'diagcomp',alpha));
   mmwrite(icholTOutFileName,precond);
+  fprintf('Done!\n')
 end
 
 for i = 1:length(myFiles)
