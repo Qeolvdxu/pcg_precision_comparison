@@ -50,7 +50,7 @@ int batch_CCG(Data_CG *data) {
   int i, j;
   PRECI_DT *x;
   PRECI_DT *b;
-  int m, n, z, iter;
+  int iter;
   double elapsed;
   printf("BATCH\n");
 
@@ -62,7 +62,7 @@ int batch_CCG(Data_CG *data) {
     char *m_name = NULL;
     if (m_name)
       M = my_crs_read(m_name);
-    n = A->n;
+    int n = A->n;
 
     // allocate arrays
     x = calloc(A->n, sizeof(PRECI_DT));
@@ -71,7 +71,7 @@ int batch_CCG(Data_CG *data) {
       b[j] = 1;
 
     // run cpu
-    CCG(A, NULL, b, x, data->maxit, data->tol, NULL, NULL, &iter, &elapsed);
+    CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed);
     if (i == 0)
       fprintf(ofile,
               "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,,X_VECTOR\n");
@@ -94,8 +94,7 @@ int batch_CuCG(Data_CG *data) {
   double elapsed, mem_elapsed;
   PRECI_DT *x;
   PRECI_DT *b;
-  int m, n, z;
-  FILE *file;
+  int n;
 
   for (i = 0; i < data->matrix_count; i++) {
     // get matrix size
@@ -135,14 +134,13 @@ int main(void) {
 
   // Set inital values
   int i = 0;
-  int j = 0;
   char *name;
   double tol = 0;
   int maxit = 0;
   int matrix_count = 0;
   char **files;
-  int iter = 0;
-  pthread_t th1, th2;
+  pthread_t th1;
+  // pthread_t th2;
   Data_CG *data;
 
   // Collect information from user
@@ -175,7 +173,7 @@ int main(void) {
   // Iterativly run conjugate gradient for each matrix
   // Runs through C implementation on a thread and another for CUDA calling
   printf("launching CCG thread...");
-  //pthread_create(&th1, NULL, batch_CCG, data);
+  // pthread_create(&th1, NULL, batch_CCG, data);
   batch_CCG(data);
 
   printf("launching CuCG thread...\n");

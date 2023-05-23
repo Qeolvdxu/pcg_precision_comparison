@@ -11,9 +11,7 @@
 #include "../include/CCG.h"
 
 void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
-         int max_iter, PRECI_DT tolerance,
-         int (*precond_fn)(void *, void *x, void *b), void *precond_args,
-         int *iter, double *elapsed) {
+         int max_iter, PRECI_DT tolerance, int *iter, double *elapsed) {
   int n = A->n;
   PRECI_DT *r = (PRECI_DT *)malloc(n * sizeof(PRECI_DT));
 
@@ -47,7 +45,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
 
   // z = MT\(M\r);
   if (M)
-    precondition(A,r,z,M);
+    precondition(A, r, z, M);
   else
     for (j = 0; j < n; j++)
       z[j] = r[j];
@@ -97,7 +95,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
     // Precondition
     // z = MT\(M\r);
     if (M)
-      precondition(A,r,z,M);
+      precondition(A, r, z, M);
     else
       for (j = 0; j < n; j++)
         z[j] = r[j];
@@ -216,11 +214,12 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
   free(p);
   free(q);
   free(z);
-  // return;
+  return;
 }
 
 // find z = M^(-1)r
-/*void precondition(my_crs_matrix *M, my_crs_matrix *L, PRECI_DT *r, PRECI_DT *z)
+/*void precondition(my_crs_matrix *M, my_crs_matrix *L, PRECI_DT *r, PRECI_DT
+*z)
 {
   int n = M->n;
   int i, j;
@@ -252,8 +251,8 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
   free(y);
 }*/
 
-void precondition(my_csr_matrix *M, PRECI_DT *r, PRECI_DT *z, my_csr_matrix *L)
-{
+void precondition(my_crs_matrix *M, PRECI_DT *r, PRECI_DT *z,
+                  my_crs_matrix *L) {
   int n = M->n;
   int i, j;
 
@@ -314,13 +313,11 @@ PRECI_DT dot(PRECI_DT *v, PRECI_DT *u, int n) {
 }
 
 void matvec(my_crs_matrix *A, PRECI_DT *x, PRECI_DT *y) {
-  PRECI_DT test;
   int n = A->n;
   for (int i = 0; i < n; i++) {
     y[i] = 0.0;
     for (int j = A->rowptr[i]; j < A->rowptr[i + 1]; j++) {
       // printf("%d ? %d\n", A->col[j], n);
-      test = x[A->col[j]];
       y[i] += A->val[j] * x[A->col[j]];
     }
   }
@@ -348,6 +345,4 @@ PRECI_DT norm(int n, PRECI_DT *v) {
     }
   }
   return scale * sqrt(ssq);
-}
-  free(y);
 }
