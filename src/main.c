@@ -15,6 +15,7 @@
 typedef struct {
   int matrix_count;
   char **files;
+  char **pfiles;
   int maxit;
   PRECI_DT tol;
 } Data_CG;
@@ -58,10 +59,7 @@ int batch_CCG(Data_CG *data) {
     // Create Matrix struct and Precond
     printf("%s\n", data->files[i]);
     my_crs_matrix *A = my_crs_read(data->files[i]);
-    my_crs_matrix *M;
-    char *m_name = NULL;
-    if (m_name)
-      M = my_crs_read(m_name);
+    my_crs_matrix *M = my_crs_read(data->pfiles[i]);
     int n = A->n;
 
     // allocate arrays
@@ -71,7 +69,7 @@ int batch_CCG(Data_CG *data) {
       b[j] = 1;
 
     // run cpu
-    CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed);
+    CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed);
     if (i == 0)
       fprintf(ofile,
               "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,,X_VECTOR\n");
@@ -126,7 +124,7 @@ int batch_CuCG(Data_CG *data) {
     printf("Cuda CG Test %d complete!\n", i);
   }
   printf("\t CUDA COMPLETE!\n");
-  // fclose(ofile);
+  fclose(ofile);
   return 0;
 }
 
@@ -135,10 +133,13 @@ int main(void) {
   // Set inital values
   int i = 0;
   char *name;
+  char *pname;
   double tol = 0;
   int maxit = 0;
   int matrix_count = 0;
+  int precond_count = 0;
   char **files;
+  char **pfiles;
   pthread_t th1;
   // pthread_t th2;
   Data_CG *data;
@@ -148,10 +149,18 @@ int main(void) {
 
   // Read Directory of Matrices
   name = "../../test_subjects/norm";
+  pname = "../../test_subjects/precond_norm";
   // printf("Enter the directory of matrices: ");
   // scanf("%s",name);
+  pfiles = find_files(pname, &precond_count);
   files = find_files(name, &matrix_count);
-  printf("%d\n", matrix_count);
+
+  if (matrix_count != precond_count) {
+    printf("ERROR: number of matricies (%d) and precondtioners (%d) do not "
+           "match!\n",
+           matrix_count, precond_count);
+    return 1;
+  }
 
   // Set answer precision tolerance
   tol = 1e-7;
@@ -166,6 +175,7 @@ int main(void) {
   data = malloc(sizeof(Data_CG));
   data->matrix_count = matrix_count;
   data->files = files;
+  data->pfiles = pfiles;
   data->maxit = maxit;
   data->tol = tol;
   printf("%d\n", data->matrix_count);
@@ -178,13 +188,15 @@ int main(void) {
 
   printf("launching CuCG thread...\n");
   // pthread_create(&th1, NULL, batch_CuCG, data);
-  batch_CuCG(data);
+  // batch_CuCG(data);
 
-  pthread_join(th1, NULL);
-  // pthread_join(th2, NULL);
+  // pthread_join(th1, NULL);
+  //  pthread_join(th2, NULL);
 
   // Clean
+  printf("cleaning memory\n");
   free(files);
+  free(pfiles);
   printf("Tests Complete!\n");
 
   return 0;

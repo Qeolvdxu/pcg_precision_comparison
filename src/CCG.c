@@ -44,11 +44,11 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
     r[i] = b[i] - r[i];
 
   // z = MT\(M\r);
-  if (M)
+  /*if (M)
     precondition(A, r, z, M);
-  else
-    for (j = 0; j < n; j++)
-      z[j] = r[j];
+  else*/
+  for (j = 0; j < n; j++)
+    z[j] = r[j];
 
   for (int i = 0; i < n; i++)
     p[i] = z[i];
@@ -64,13 +64,11 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
     init_norm = 1.0;
   ratio = 1.0;
 
-  /*  printf("** %lf | %d | %d ** \n", A->val[1], A->col[1], A->rowptr[1]);
-    printf("iteration PREQUEL\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf
-    "
-           "\n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > "
-           "tolerance(%lf)\n\n\n",
-           x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);
-  */
+  /*printf("** %lf | %d | %d ** \n", A->val[1], A->col[1], A->rowptr[1]);
+  printf("iteration PREQUEL\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf "
+         "\n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > "
+         "tolerance(%lf)\n\n\n",
+         x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);*/
 
   // WALL TIME
   double start;
@@ -172,6 +170,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
     printf("res norm = %lf\n", res_norm);
 #endif
 
+    printf("ratio2 = %lf\n", res_norm / init_norm);
     ratio = res_norm / init_norm;
 #ifdef ENABLE_TESTS
     printf("ratio = %lf\n", ratio);
@@ -188,8 +187,9 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
       printf("r[1] = %lf\n", r[1]);
 #endif
     }
-    /*printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \t
-       res_norm = %lf"
+    /*printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \t"
+           "res_norm ="
+           "%lf"
            "\n v "
            "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
            "ratio(%lf) > tolerance(%lf)\n\n\n",
@@ -253,10 +253,12 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
 
 void precondition(my_crs_matrix *M, PRECI_DT *r, PRECI_DT *z,
                   my_crs_matrix *L) {
+  printf("test 1\n");
   int n = M->n;
   int i, j;
 
   PRECI_DT *y = (PRECI_DT *)malloc(n * sizeof(PRECI_DT));
+  printf("test 2\n");
 
   for (i = 0; i < n; i++) {
     y[i] = r[i];
@@ -269,6 +271,7 @@ void precondition(my_crs_matrix *M, PRECI_DT *r, PRECI_DT *z,
 
     y[i] /= L->val[start];
   }
+  printf("test 3\n");
 
   for (i = n - 1; i >= 0; i--) {
     z[i] = y[i];
@@ -281,8 +284,12 @@ void precondition(my_crs_matrix *M, PRECI_DT *r, PRECI_DT *z,
 
     z[i] /= L->val[start];
   }
+  printf("test 4\n");
 
   free(y);
+  printf("test 5\n");
+  for (i = 0; i < n; i++)
+    printf("%lf, ", z[i]);
 }
 
 PRECI_DT matvec_dot(my_crs_matrix *A, PRECI_DT *x, PRECI_DT *y, int n) {
