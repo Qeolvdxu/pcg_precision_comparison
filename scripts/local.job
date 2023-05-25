@@ -1,0 +1,6 @@
+#!/bin/bash
+octave converter.m
+cd ../src
+make
+cd build
+./cgpc

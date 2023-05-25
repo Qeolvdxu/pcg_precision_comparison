@@ -25,6 +25,8 @@ char **find_files(const char *dir_path, int *num_files) {
   struct dirent *entry;
   char **files = NULL;
   int count = 0;
+  int i, j;
+  char *temp;
 
   if (dir == NULL) {
     perror("opendir");
@@ -42,7 +44,19 @@ char **find_files(const char *dir_path, int *num_files) {
   }
 
   closedir(dir);
+
+  for (i = 0; i < count - 1; i++) {
+    for (j = 0; j < count - i - 1; j++) {
+      if (strcmp(files[j], files[j + 1]) > 0) {
+        temp = files[j];
+        files[j] = files[j + 1];
+        files[j + 1] = temp;
+      }
+    }
+  }
+
   *num_files = count;
+
   return files;
 }
 
@@ -57,7 +71,8 @@ int batch_CCG(Data_CG *data) {
 
   for (i = 0; i < data->matrix_count; i++) {
     // Create Matrix struct and Precond
-    printf("%s\n", data->files[i]);
+    printf("%s   and   ", data->files[i]);
+    printf("%s\n", data->pfiles[i]);
     my_crs_matrix *A = my_crs_read(data->files[i]);
     my_crs_matrix *M = my_crs_read(data->pfiles[i]);
     int n = A->n;
@@ -79,6 +94,12 @@ int batch_CCG(Data_CG *data) {
     for (j = 0; j < 5; j++)
       fprintf(ofile, "%0.10lf,", x[j]);
     fprintf(ofile, "\n");
+
+    my_crs_free(A);
+    my_crs_free(M);
+    free(b);
+    free(x);
+
     printf("C CG Test %d complete!\n", i);
   }
   printf("\t C COMPLETE!\n");
@@ -121,6 +142,11 @@ int batch_CuCG(Data_CG *data) {
     for (j = 0; j < 5; j++)
       fprintf(ofile, "%0.10lf,", x[j]);
     fprintf(ofile, "\n");
+
+    my_crs_free(A);
+    free(x);
+    free(b);
+
     printf("Cuda CG Test %d complete!\n", i);
   }
   printf("\t CUDA COMPLETE!\n");
@@ -195,8 +221,13 @@ int main(void) {
 
   // Clean
   printf("cleaning memory\n");
+  for (i = 0; i < matrix_count; i++) {
+    free(files[i]);
+    free(pfiles[i]);
+  }
   free(files);
   free(pfiles);
+  free(data);
   printf("Tests Complete!\n");
 
   return 0;
