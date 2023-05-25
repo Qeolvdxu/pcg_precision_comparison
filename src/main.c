@@ -84,7 +84,7 @@ int batch_CCG(Data_CG *data) {
       b[j] = 1;
 
     // run cpu
-    CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed);
+    CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed);
     if (i == 0)
       fprintf(ofile,
               "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,,X_VECTOR\n");
@@ -166,7 +166,7 @@ int main(void) {
   int precond_count = 0;
   char **files;
   char **pfiles;
-  pthread_t th1;
+  pthread_t th1, th2;
   // pthread_t th2;
   Data_CG *data;
 
@@ -209,15 +209,15 @@ int main(void) {
   // Iterativly run conjugate gradient for each matrix
   // Runs through C implementation on a thread and another for CUDA calling
   printf("launching CCG thread...");
-  // pthread_create(&th1, NULL, batch_CCG, data);
-  batch_CCG(data);
+  pthread_create(&th1, NULL, batch_CCG, data);
+  // batch_CCG(data);
 
   printf("launching CuCG thread...\n");
-  // pthread_create(&th1, NULL, batch_CuCG, data);
+  pthread_create(&th2, NULL, batch_CuCG, data);
   // batch_CuCG(data);
 
-  // pthread_join(th1, NULL);
-  //  pthread_join(th2, NULL);
+  pthread_join(th1, NULL);
+  pthread_join(th2, NULL);
 
   // Clean
   printf("cleaning memory\n");
