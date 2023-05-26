@@ -201,7 +201,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
 #endif
   }
   *iter = itert;
-  printf("\n %d TOTAL ITERATIONS \n", itert);
+  // printf("\n %d TOTAL ITERATIONS \n", itert);
 
   // CPU TIME
   // end = clock();
