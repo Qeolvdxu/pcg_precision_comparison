@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Read the CSV file into a DataFrame
-df = pd.read_csv('walls4booth.csv')
+df = pd.read_csv('../src/build/combo.csv')
 
 # Filter out rows with missing values
 df = df.dropna()
