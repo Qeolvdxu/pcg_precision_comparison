@@ -101,7 +101,8 @@ int batch_CCG(Data_CG *data) {
               "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,,X_VECTOR\n");
     fprintf(ofile, "CPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,,", "TODO", iter, elapsed);
+    fprintf(ofile, "%s,%d,%lf,,", C_PRECI_NAME, iter, elapsed);
+    printf("TOTAL C ITERATIONS: %d", iter);
     for (j = 0; j < 5; j++)
       fprintf(ofile, "%0.10lf,", x[j]);
     // printf("%0.10lf,", x[j]);
@@ -152,9 +153,12 @@ int batch_CuCG(Data_CG *data) {
               "X_VECTOR\n");
     fprintf(ofile, "GPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%lf,", "TODO", iter, elapsed, mem_elapsed);
+    fprintf(ofile, "%s,%d,%lf,%lf,", CUDA_PRECI_NAME, iter, elapsed,
+            mem_elapsed);
+    // printf("TOTAL CUDA ITERATIONS: %d", iter);
     for (j = 0; j < 5; j++)
       fprintf(ofile, "%0.10lf,", x[j]);
+    // printf("%0.10lf,", x[j]);
     fprintf(ofile, "\n");
 
     my_crs_free(A);

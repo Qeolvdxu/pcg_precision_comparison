@@ -1,8 +1,8 @@
 CC = gcc
 NVCC = nvcc
 
-CFLAGS = -g -Wall -Wextra -pedantic -v -gdwarf-4 -DC_DOUBLE #-DENABLE_TESTS
-NVCCFLAGS = -O3 -Xcompiler -Wall,-Wpedantic -x c -g -G -v -DCUDA_SINGLE #-DENABLE_TESTS
+CFLAGS = -g -Wall -Wextra -pedantic -gdwarf-4 -DC_DOUBLE #-DENABLE_TESTS
+NVCCFLAGS = -O3 -Xcompiler -Wall,-Wpedantic -x c -g -G -DCUDA_DOUBLE #-DENABLE_TESTS
 
 
 LIB_FLAGS = -lm -lcudart -lcusparse -lcuda -lcublas -lpthread -fopenmp
@@ -14,7 +14,7 @@ TARGET = cgpc
 all: $(TARGET)
 
 $(TARGET): cudacode.o 
-	$(CC) -o $(BUILDDIR)$(TARGET) $(CFLAGS) main.c my_crs_matrix.c CCG.c $(BUILDDIR)CuCG.o $(LIB_FLAGS) -DC_DOUBLE -DCUDA_SINGLE
+	$(CC) -o $(BUILDDIR)$(TARGET) $(CFLAGS) main.c my_crs_matrix.c CCG.c $(BUILDDIR)CuCG.o $(LIB_FLAGS) -DC_DOUBLE -DCUDA_DOUBLE
 
 cudacode.o:
 	mkdir -p $(BUILDDIR)
