@@ -9,7 +9,7 @@ for i = 1 : length(myFiles)
   fprintf('icholing matrix %s...', baseFileName)
   alpha = max(sum(abs(matrix),2)./diag(matrix))-2;
   precond = ichol(matrix, struct('type','ict','droptol',1e-3,'diagcomp',alpha));
-  precond = inv(precond)
+  #precond = inv(precond)
 
   mmwrite(icholTOutFileName,precond);
   fprintf('Done!\n')

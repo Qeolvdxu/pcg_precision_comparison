@@ -12,6 +12,7 @@
 
 void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
          int max_iter, PRECI_DT tolerance, int *iter, double *elapsed) {
+
   int n = A->n;
   PRECI_DT *r = (PRECI_DT *)malloc(n * sizeof(PRECI_DT));
 
@@ -45,7 +46,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
 
   // z = MT\(M\r);
   if (M)
-    matvec(M, r, z);
+    precondition(M, r, z);
   else
     for (j = 0; j < n; j++)
       z[j] = r[j];
@@ -85,7 +86,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
   //  printf("%d \n", *iter);
   while (itert <= max_iter && ratio > tolerance) {
 // next iteration
-#ifdef ENABLE_TESTS
+#ifdef ENABLE_TEST
     printf("\nITERATION %d\n", itert);
 #endif
     itert++;
@@ -93,7 +94,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
     // Precondition
     // z = MT\(M\r);
     if (M)
-      matvec(M, r, z);
+      precondition(M, r, z);
     else
       for (j = 0; j < n; j++)
         z[j] = r[j];
@@ -201,7 +202,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
 #endif
   }
   *iter = itert;
-  // printf("\n %d TOTAL ITERATIONS \n", itert);
+  printf("\n %d TOTAL ITERATIONS \n", itert);
 
   // CPU TIME
   // end = clock();
@@ -250,32 +251,50 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
   }
   free(L);
   free(y);
-}*/
+}
+*/
+void precondition(my_crs_matrix *M, PRECI_DT *r, PRECI_DT *z) {
+  int n = M->n;
 
-void precondition(my_crs_matrix *L, PRECI_DT *r, PRECI_DT *z) {
-  int i, j, k;
-
-  // Forward substitution: L * y = r
-  for (i = 0; i < L->n; i++) {
-    double sum = 0.0;
-    int row_start = L->rowptr[i];
-    int row_end = L->rowptr[i + 1];
-    double L_ij;
-    double L_ii;
-
-    for (k = row_start; k < row_end; k++) {
-      j = L->col[k];
-      if (j < i) {
-        L_ij = L->val[k];
-        sum += L_ij * z[j];
-      } else if (j == i) {
-        L_ii = L->val[k];
-        z[i] = (r[i] - sum) / L_ii;
-      }
-      /*printf("PITERATION %d\n L_ij = %lf\n L_ii = %lf\n sum = %lf\n\n", i,
-         L_ij, L_ii, sum);*/
-    }
+  for (int i = 0; i < n; i++) {
+    z[i] = r[i] / M->val[M->rowptr[i]];
+    for (int j = M->rowptr[i] + 1; j < M->rowptr[i + 1]; j++)
+      r[M->col[j]] -= M->val[j] * z[i];
   }
+
+  /*for (int i = 0; i < n; i++) {
+    int start = M->rowptr[i];
+    int end = M->rowptr[i + 1];
+    double *row_vals = &M->val[start];
+    int *row_indices = &M->col[start];
+
+    z[i] = r[i];
+    for (int j = start; j < end; j++) {
+      int col_index = row_indices[j];
+      double val = row_vals[j];
+      if (col_index < i && col_index > 0) {
+        printf("%d\n", col_index);
+        z[i] -= val * z[col_index];
+      }
+    }
+    z[i] /= M->val[start];
+  }*/
+  // forward subsitution
+  /*z[0] = r[0] / M->val[0];
+  PRECI_DT comp = 0.0;
+
+  for (int i = 1; i < M->n; i++) {
+    comp = comp * 0;
+    for (int j = M->rowptr[i]; j < M->rowptr[i + 1]; j++) {
+      int colIndex = M->col[j];
+      // printf("colindex = %d\n", colIndex);
+      comp += M->val[j] * z[colIndex];
+      // printf("comp += %lf * %lf\n = %lf\n", M->val[j], z[colIndex], comp);
+    }
+    z[i] = (r[i] - comp) / M->val[M->rowptr[i]];
+    printf("z[%d] += (%lf - %lf) / [%d] %lf = %lf\n\n", i, r[i], comp,
+           M->rowptr[i], M->val[M->rowptr[i]], z[i]);
+  }*/
 }
 
 PRECI_DT matvec_dot(my_crs_matrix *A, PRECI_DT *x, PRECI_DT *y, int n) {

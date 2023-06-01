@@ -102,7 +102,8 @@ int batch_CCG(Data_CG *data) {
     fprintf(ofile, "%s,", data->files[i]);
     fprintf(ofile, "%s,%d,%lf,,", "TODO", iter, elapsed);
     for (j = 0; j < 5; j++)
-      fprintf(ofile, "%0.10lf,", x[j]);
+      // fprintf(ofile, "%0.10lf,", x[j]);
+      printf("%0.10lf,", x[j]);
     fprintf(ofile, "\n");
 
     my_crs_free(A);
@@ -117,6 +118,7 @@ int batch_CCG(Data_CG *data) {
   fclose(ofile);
   return 0;
 }
+
 int batch_CuCG(Data_CG *data) {
   FILE *ofile = fopen("results_CudaCG_TEST.csv", "w");
   printf("%d matrices\n", data->matrix_count);
@@ -225,19 +227,19 @@ int main(int argc, char *argv[]) {
     printf("Bad Precond Input!\n");
 
   // Set answer precision tolerance
-  tol = 1e-7;
+  data->tol = 1e-7;
   if (argc == 1) {
     printf("Enter the tolerance : ");
-    scanf(" %lf", &tol);
+    scanf(" %lf", &data->tol);
   } else if (argc >= 4) {
     data->tol = strtol(argv[3], NULL, 10);
   }
 
   // Stop algorithm from continuing after this many iterations
-  maxit = 1000; // 00000;
+  data->maxit = 10000; // 00000;
   if (argc == 1) {
     printf("Enter the maximum iterations : ");
-    scanf(" %d", &maxit);
+    scanf(" %d", &data->maxit);
   } else if (argc >= 5) {
     data->maxit = strtol(argv[4], NULL, 10);
   }
@@ -245,7 +247,7 @@ int main(int argc, char *argv[]) {
   // Iterativly run conjugate gradient for each matrix
   // Runs through C implementation on host and another thread for CUDA calling
 
-  printf("launching CCG thread...");
+  printf("\n\tlaunching CCG thread...");
   if (concurrent == 'Y')
     pthread_create(&th1, NULL, (void *(*)(void *))batch_CCG, data);
   else if (concurrent == 'N')
@@ -253,7 +255,7 @@ int main(int argc, char *argv[]) {
   else
     printf("Bad Concurrency Input!\n");
 
-  printf("launching CuCG thread...\n");
+  printf("\n\tlaunching CuCG thread...\n");
   // pthread_create(&th2, NULL, batch_CuCG, data);
   batch_CuCG(data);
 
@@ -264,11 +266,10 @@ int main(int argc, char *argv[]) {
   // Clean
   printf("cleaning memory\n");
   for (i = 0; i < matrix_count; i++) {
-    free(files[i]);
-    free(pfiles[i]);
+    free(data->files[i]);
+    if (precond == 'Y')
+      free(data->pfiles[i]);
   }
-  free(files);
-  free(pfiles);
   free(data);
   printf("Tests Complete!\n");
 
