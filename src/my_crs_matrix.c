@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../include/CUSTOMIZE.h"
 #include "../include/my_crs_matrix.h"
 
 my_crs_matrix *sparse_transpose(my_crs_matrix *input) {
@@ -13,7 +14,7 @@ my_crs_matrix *sparse_transpose(my_crs_matrix *input) {
   res->n = input->n;
   res->nz = input->nz;
 
-  res->val = malloc(sizeof(PRECI_DT) * res->nz);
+  res->val = malloc(sizeof(C_PRECI_DT) * res->nz);
 
   res->col = malloc(sizeof(int) * res->nz);
   res->rowptr = malloc(sizeof(int) * (res->n + 2));
@@ -46,7 +47,7 @@ my_crs_matrix *sparse_transpose(my_crs_matrix *input) {
       res->col[new_index] = i;
     }
   }
-  // res->rowptr = realloc(res->rowptr,res->n*sizeof(PRECI_DT));; // pop that
+  // res->rowptr = realloc(res->rowptr,res->n*sizeof());; // pop that
   // one extra
 
   return res;
@@ -60,7 +61,7 @@ my_crs_matrix *my_crs_read(char *name) {
     int i;
 
     fscanf(file, "%d %d %d", &M->m, &M->n, &M->nz);
-    M->val = malloc(sizeof(PRECI_DT) * M->nz);
+    M->val = malloc(sizeof(C_PRECI_DT) * M->nz);
 
     M->col = malloc(sizeof(int) * M->nz);
     M->rowptr = malloc(sizeof(int) * (M->n + 1));
@@ -70,7 +71,7 @@ my_crs_matrix *my_crs_read(char *name) {
     for (i = 0; i < M->nz; i++)
       fscanf(file, "%d ", &M->col[i]);
     for (i = 0; i < M->nz; i++)
-      fscanf(file, PRECI_S, &M->val[i]);
+      fscanf(file, C_PRECI_S, &M->val[i]);
 
     /*printf("CCG rowptr: ");
     for (i = 0; i <= M->n; i++)
@@ -103,7 +104,7 @@ my_crs_matrix *eye(int n) {
   M->n = n;
   M->nz = n;
 
-  M->val = malloc(sizeof(PRECI_DT) * M->nz);
+  M->val = malloc(sizeof(C_PRECI_DT) * M->nz);
   M->col = malloc(sizeof(int) * M->nz);
   M->rowptr = malloc(sizeof(int) * M->n);
 
@@ -145,7 +146,7 @@ void my_crs_print(my_crs_matrix *M) {
 
   printf("values,");
   for (i = 0; i < nz; i++) {
-    printf(PRECI_S, M->val[i]);
+    printf(C_PRECI_S, M->val[i]);
     printf(" ");
   }
   printf("\n");

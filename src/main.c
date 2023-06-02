@@ -1,14 +1,15 @@
 #define _DEFAULT_SOURCE
+
 #include <dirent.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "../include/my_crs_matrix.h"
-
 #include "../include/CCG.h"
+#include "../include/CUSTOMIZE.h"
 #include "../include/CuCG.h"
+#include "../include/my_crs_matrix.h"
 
 // call_CuCG(files[i],b,x,maxit,tol);
 
@@ -17,7 +18,7 @@ typedef struct {
   char **files;
   char **pfiles;
   int maxit;
-  PRECI_DT tol;
+  float tol;
 } Data_CG;
 
 char **find_files(const char *dir_path, int *num_files) {
@@ -63,8 +64,8 @@ char **find_files(const char *dir_path, int *num_files) {
 int batch_CCG(Data_CG *data) {
   FILE *ofile = fopen("results_CCG_TEST.csv", "w");
   int i, j;
-  PRECI_DT *x;
-  PRECI_DT *b;
+  C_PRECI_DT *x;
+  C_PRECI_DT *b;
   int iter;
   double elapsed;
   printf("BATCH\n");
@@ -84,16 +85,16 @@ int batch_CCG(Data_CG *data) {
     int n = A->n;
 
     // allocate arrays
-    x = calloc(A->n, sizeof(PRECI_DT));
-    b = malloc(sizeof(PRECI_DT) * A->n);
+    x = calloc(A->n, sizeof(C_PRECI_DT));
+    b = malloc(sizeof(C_PRECI_DT) * A->n);
     for (j = 0; j < A->n; j++)
       b[j] = 1;
 
     // run cpu
     if (data->pfiles)
-      CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed);
+      CCG(A, M, b, x, data->maxit, (C_PRECI_DT)data->tol, &iter, &elapsed);
     else
-      CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed);
+      CCG(A, NULL, b, x, data->maxit, (C_PRECI_DT)data->tol, &iter, &elapsed);
 
     if (i == 0)
       fprintf(ofile,
@@ -124,8 +125,8 @@ int batch_CuCG(Data_CG *data) {
   printf("%d matrices\n", data->matrix_count);
   int i, j, iter;
   double elapsed, mem_elapsed;
-  PRECI_DT *x;
-  PRECI_DT *b;
+  CUDA_PRECI_DT_HOST *x;
+  CUDA_PRECI_DT_HOST *b;
   int n;
 
   for (i = 0; i < data->matrix_count; i++) {
@@ -136,14 +137,14 @@ int batch_CuCG(Data_CG *data) {
     n = A->n;
 
     // allocate arrays
-    x = calloc(n, sizeof(PRECI_DT));
-    b = malloc(sizeof(PRECI_DT) * n);
+    x = calloc(n, sizeof(CUDA_PRECI_DT_HOST));
+    b = malloc(sizeof(CUDA_PRECI_DT_HOST) * n);
     for (j = 0; j < n; j++)
       b[j] = 1;
 
     // run gpu
-    call_CuCG(data->files[i], NULL, b, x, data->maxit, data->tol, &iter,
-              &elapsed, &mem_elapsed);
+    call_CuCG(data->files[i], NULL, b, x, data->maxit,
+              (CUDA_PRECI_DT_HOST)data->tol, &iter, &elapsed, &mem_elapsed);
     // printf("%d %lf\n", iter, elapsed);
     if (i == 0)
       fprintf(ofile,

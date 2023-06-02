@@ -1,4 +1,3 @@
-#include "../include/my_crs_matrix.h"
 
 #include <math.h>
 #include <omp.h>
@@ -9,29 +8,31 @@
 #include <unistd.h>
 
 #include "../include/CCG.h"
+#include "../include/CUSTOMIZE.h"
+#include "../include/my_crs_matrix.h"
 
-void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
-         int max_iter, PRECI_DT tolerance, int *iter, double *elapsed) {
+void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
+         int max_iter, C_PRECI_DT tolerance, int *iter, double *elapsed) {
 
   int n = A->n;
-  PRECI_DT *r = (PRECI_DT *)malloc(n * sizeof(PRECI_DT));
+  C_PRECI_DT *r = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
 
-  PRECI_DT *p = (PRECI_DT *)malloc(n * sizeof(PRECI_DT));
-  PRECI_DT *q = (PRECI_DT *)malloc(n * sizeof(PRECI_DT));
-  PRECI_DT *z = (PRECI_DT *)malloc(n * sizeof(PRECI_DT));
+  C_PRECI_DT *p = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
+  C_PRECI_DT *q = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
+  C_PRECI_DT *z = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
 
-  PRECI_DT alpha = 0.0;
-  PRECI_DT beta = 0.0;
+  C_PRECI_DT alpha = 0.0;
+  C_PRECI_DT beta = 0.0;
 
   int j = 0;
 
-  PRECI_DT v = 0;
-  PRECI_DT Rho = 0;
-  PRECI_DT Rtmp = 0;
+  C_PRECI_DT v = 0;
+  C_PRECI_DT Rho = 0;
+  C_PRECI_DT Rtmp = 0;
 
-  PRECI_DT res_norm = 0;
-  PRECI_DT init_norm = 0;
-  PRECI_DT ratio = 0;
+  C_PRECI_DT res_norm = 0;
+  C_PRECI_DT init_norm = 0;
+  C_PRECI_DT ratio = 0;
 
   double Tiny = 0.1e-28;
 
@@ -220,13 +221,13 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
 }
 
 // find z = M^(-1)r
-/*void precondition(my_crs_matrix *M, my_crs_matrix *L, PRECI_DT *r, PRECI_DT
-*z)
+/*void precondition(my_crs_matrix *M, my_crs_matrix *L, C_PRECI_DT *r,
+C_PRECI_DT *z)
 {
   int n = M->n;
   int i, j;
 
-  PRECI_DT *y = (PRECI_DT *)malloc(sizeof(PRECI_DT) * n);
+  C_PRECI_DT *y = (C_PRECI_DT *)malloc(sizeof(C_PRECI_DT) * n);
   printf("test 1\n");
 
   for (i = 0; i < n; i++) {
@@ -253,7 +254,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, PRECI_DT *b, PRECI_DT *x,
   free(y);
 }
 */
-void precondition(my_crs_matrix *M, PRECI_DT *r, PRECI_DT *z) {
+void precondition(my_crs_matrix *M, C_PRECI_DT *r, C_PRECI_DT *z) {
   int n = M->n;
 
   for (int i = 0; i < n; i++) {
@@ -281,7 +282,7 @@ void precondition(my_crs_matrix *M, PRECI_DT *r, PRECI_DT *z) {
   }*/
   // forward subsitution
   /*z[0] = r[0] / M->val[0];
-  PRECI_DT comp = 0.0;
+  C_PRECI_DT comp = 0.0;
 
   for (int i = 1; i < M->n; i++) {
     comp = comp * 0;
@@ -297,9 +298,9 @@ void precondition(my_crs_matrix *M, PRECI_DT *r, PRECI_DT *z) {
   }*/
 }
 
-PRECI_DT matvec_dot(my_crs_matrix *A, PRECI_DT *x, PRECI_DT *y, int n) {
+C_PRECI_DT matvec_dot(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y, int n) {
 
-  PRECI_DT result = 0.0;
+  C_PRECI_DT result = 0.0;
   for (int i = 0; i < n; i++) {
     for (int j = A->rowptr[i]; j < A->rowptr[i + 1]; j++) {
       result += x[i] * A->val[j] * y[A->col[j]];
@@ -314,9 +315,9 @@ PRECI_DT matvec_dot(my_crs_matrix *A, PRECI_DT *x, PRECI_DT *y, int n) {
 
 // find the dot product of two vectors
 
-PRECI_DT dot(PRECI_DT *v, PRECI_DT *u, int n) {
+C_PRECI_DT dot(C_PRECI_DT *v, C_PRECI_DT *u, int n) {
 
-  PRECI_DT x;
+  C_PRECI_DT x;
   int i;
 
   for (i = 0, x = 0.0; i < n; i++)
@@ -325,7 +326,7 @@ PRECI_DT dot(PRECI_DT *v, PRECI_DT *u, int n) {
   return x;
 }
 
-void matvec(my_crs_matrix *A, PRECI_DT *x, PRECI_DT *y) {
+void matvec(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y) {
   int n = A->n;
   for (int i = 0; i < n; i++) {
     y[i] = 0.0;
@@ -337,8 +338,8 @@ void matvec(my_crs_matrix *A, PRECI_DT *x, PRECI_DT *y) {
 }
 
 // find the norm of a vector
-PRECI_DT norm(int n, PRECI_DT *v) {
-  PRECI_DT ssq, scale, absvi;
+C_PRECI_DT norm(int n, C_PRECI_DT *v) {
+  C_PRECI_DT ssq, scale, absvi;
   int i;
 
   if (n == 1)
