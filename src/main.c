@@ -103,8 +103,8 @@ int batch_CCG(Data_CG *data) {
     fprintf(ofile, "%s,", data->files[i]);
     fprintf(ofile, "%s,%d,%lf,,", "TODO", iter, elapsed);
     for (j = 0; j < 5; j++)
-      // fprintf(ofile, "%0.10lf,", x[j]);
-      printf("%0.10lf,", x[j]);
+      fprintf(ofile, "%0.10lf,", x[j]);
+    // printf("%0.10lf,", x[j]);
     fprintf(ofile, "\n");
 
     my_crs_free(A);
