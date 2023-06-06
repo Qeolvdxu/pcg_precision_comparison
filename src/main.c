@@ -97,15 +97,16 @@ void *batch_CCG(void *arg) {
       CCG(A, NULL, b, x, data->maxit, (C_PRECI_DT)data->tol, &iter, &elapsed);
 
     if (i == 0)
-      fprintf(ofile,
-              "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,,X_VECTOR\n");
+      fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
+                     "TIME,FAULT_TIME,X_VECTOR\n");
     fprintf(ofile, "CPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,,", C_PRECI_NAME, iter, elapsed);
+    fprintf(ofile, "%s,%d,%lf,%d,%d,", C_PRECI_NAME, iter, elapsed, 0, 0);
     // printf("TOTAL C ITERATIONS: %d", iter);
-    for (j = 0; j < 5; j++)
+    for (j = 0; j < 5; j++) {
       fprintf(ofile, "%0.10lf,", x[j]);
-    // printf("%0.10lf,", x[j]);
+      printf("%0.10lf,", x[j]);
+    }
     fprintf(ofile, "\n");
 
     my_crs_free(A);
@@ -126,7 +127,7 @@ void *batch_CuCG(void *arg) {
   FILE *ofile = fopen("results_CudaCG_TEST.csv", "w");
   printf("%d matrices\n", data->matrix_count);
   int i, j, iter;
-  double elapsed, mem_elapsed;
+  double elapsed, mem_elapsed, fault_elapsed;
   CUDA_PRECI_DT_HOST *x;
   CUDA_PRECI_DT_HOST *b;
   int n;
@@ -146,20 +147,22 @@ void *batch_CuCG(void *arg) {
 
     // run gpu
     call_CuCG(data->files[i], NULL, b, x, data->maxit,
-              (CUDA_PRECI_DT_HOST)data->tol, &iter, &elapsed, &mem_elapsed);
+              (CUDA_PRECI_DT_HOST)data->tol, &iter, &elapsed, &mem_elapsed,
+              &fault_elapsed);
     // printf("%d %lf\n", iter, elapsed);
     if (i == 0)
-      fprintf(ofile,
-              "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_TIME,"
-              "X_VECTOR\n");
+      fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
+                     "TIME,FAULT_TIME,"
+                     "X_VECTOR\n");
     fprintf(ofile, "GPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%lf,", CUDA_PRECI_NAME, iter, elapsed,
-            mem_elapsed);
+    fprintf(ofile, "%s,%d,%lf,%lf,%lf", CUDA_PRECI_NAME, iter, elapsed,
+            mem_elapsed, fault_elapsed);
     // printf("TOTAL CUDA ITERATIONS: %d", iter);
-    for (j = 0; j < 5; j++)
+    for (j = 0; j < 5; j++) {
       fprintf(ofile, "%0.10lf,", x[j]);
-    // printf("%0.10lf,", x[j]);
+      printf("%0.10lf,", x[j]);
+    }
     fprintf(ofile, "\n");
 
     my_crs_free(A);

@@ -176,18 +176,17 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
 #ifdef ENABLE_TESTS
     printf("ratio = %lf\n", ratio);
 #endif
-
-    if (itert > 0) {
+    if (itert > 1) {
       matvec(A, x, r);
 #ifdef ENABLE_TESTS
       printf("r[1] = %lf\n", r[1]);
 #endif
       for (j = 0; j < n; j++)
         r[j] = b[j] - r[j];
-#ifdef ENABLE_TESTS
-      printf("r[1] = %lf\n", r[1]);
-#endif
     }
+#ifdef ENABLE_TESTS
+    printf("r[1] = %lf\n", r[1]);
+#endif
     /*printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \t"
            "res_norm ="
            "%lf"

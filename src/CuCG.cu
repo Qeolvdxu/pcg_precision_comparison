@@ -39,6 +39,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 					 CUDA_PRECI_DT_HOST tolerance,
                       int* iter,
                       CUDA_PRECI_DT_HOST* elapsed,
+                      CUDA_PRECI_DT_HOST* fault_elapsed,
 					  cusparseHandle_t* handle,
 					  cublasHandle_t* handle_blas)
 
@@ -48,8 +49,8 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   #endif
   int n = A->n;
 
-  #ifdef ENABLE_TESTS
   CUDA_PRECI_DT_HOST* onex = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*n);
+  #ifdef ENABLE_TESTS
   CUDA_PRECI_DT_HOST* onez = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*n);
   CUDA_PRECI_DT_HOST* oner = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*n);
   CUDA_PRECI_DT_HOST* oneq = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*n);
@@ -117,7 +118,8 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   cudaMalloc(&buff, bufferSizeMV);
 
 
-  /*cudaMemcpy(onex, x->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
+  #ifdef ENABLE_TESTS
+  cudaMemcpy(onex, x->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
   cudaMemcpy(onep, p_vec->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
   cudaMemcpy(oneq, q_vec->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
   cudaMemcpy(oner, r_vec->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
@@ -127,7 +129,8 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 	 "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
 	 "ratio(%lf) > tolerance(%lf)\n\n\n",
 	 iter, onex[0], alpha, beta, v, oner[0], onep[0], oneq[0], onez[0], ratio,
-	 tolerance);*/
+	 tolerance);
+  #endif
 
 
   //matvec(A,x,r);
@@ -205,12 +208,25 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   CUDA_PRECI_DT_HOST end;
   start = omp_get_wtime();
 
-  while (itert <= max_iter && ratio > tolerance)
+  CUDA_PRECI_DT_HOST faultcheck_start;
+  CUDA_PRECI_DT_HOST faultcheck_end;
+
+  while (itert < max_iter && ratio > tolerance)
     {
   #ifdef ENABLE_TESTS
       printf("\nITERATION %d\n",itert);
   #endif
       itert++;
+
+      // Check X value for faults every nth iteration
+      if (itert % 50 == 0)
+      {
+          faultcheck_start = omp_get_wtime();
+          cudaMemcpy(onex, x->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
+          faultcheck_end = omp_get_wtime();
+          *fault_elapsed += (faultcheck_end - faultcheck_start)*1000;
+          //printf("faultcheck_elapsed += (%f - %f)*1000\n",(float)faultcheck_end ,(float)faultcheck_start);
+      }
 
       if (M)
           //z = MT\(M\r);
@@ -323,7 +339,8 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
       printf("ratio = %lf\n", ratio);
 #endif
 
-        // A*x=r
+      if (itert > 1){
+        // A*x=r TONIGHTS_BIGGEST_LOSER
         cusparseSpMV_bufferSize(*handle,CUSPARSE_OPERATION_NON_TRANSPOSE, &n_one, A->desc, x->desc, &one, r_vec->desc, CUDA_PRECI_DT_DEVICE, CUSPARSE_MV_ALG_DEFAULT, &bufferSizeMV);
         cudaMalloc(&buff, bufferSizeMV);
         cusparseSpMV(*handle,
@@ -347,6 +364,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   //      cudaDeviceSynchronize();
         SCAL_FUN(*handle_blas, n, &ne_one, r_vec->val, 1);
     //    cudaDeviceSynchronize();
+        }
 #ifdef ENABLE_TESTS
       cudaMemcpy(oner, r_vec->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
       printf("r[1] = %lf\n", oner[1]);
@@ -386,6 +404,8 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
     printf("TOtal of %d CuCG ITerations\n",itert);
 #endif
 
+    printf(" * fault check elapsed: %f \n",(float)*fault_elapsed);
+    printf(" * total elapsed: %f \n",(float)*elapsed);
     *elapsed = (end - start)*1000;
     *iter = itert;
     return;
@@ -407,7 +427,7 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
     int i;
 
 
-      if (fscanf(file, "%d %d %d", &m, &n, &nz) != 3)
+      if (fscanf(file, "%d %d %d", &m, &n, &nz) < 0)
       {
           printf("error scanning head file %s\n",name);
       }
@@ -424,7 +444,7 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
 
     for (i = 0; i <= n; i++)
     {
-      if(fscanf(file, "%d ", &rowptr[i]) != 3)
+      if(fscanf(file, "%d ", &rowptr[i]) < 0)
       {
         printf("error scanning rowptr file %s\n",name);
         break;
@@ -432,7 +452,7 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
     }
     for (i = 0; i < nz; i++)
     {
-      if(fscanf(file, "%d ", &col[i]) != 3)
+      if(fscanf(file, "%d ", &col[i]) < 0)
       {
         printf("error scanning col file %s\n",name);
         break;
@@ -440,7 +460,7 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
     }
     for (i = 0; i < nz; i++)
     {
-      if(fscanf(file, CUDA_PRECI_S, &val[i]) != 3)
+      if(fscanf(file, CUDA_PRECI_S, &val[i]) < 0)
       {
         printf("error scanning val file %s\n",name);
         break;
@@ -499,7 +519,7 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
 
 
 void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_HOST* h_x, int maxit,
-               CUDA_PRECI_DT_HOST tol, int* iter, CUDA_PRECI_DT_HOST* elapsed, CUDA_PRECI_DT_HOST* mem_elapsed)
+               CUDA_PRECI_DT_HOST tol, int* iter, CUDA_PRECI_DT_HOST* elapsed, CUDA_PRECI_DT_HOST* mem_elapsed, CUDA_PRECI_DT_HOST* fault_elapsed)
 {
   //printf("Creating cusparse handle!\n");
   cublasHandle_t cublasHandle;
@@ -521,7 +541,7 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
 
 
       int i;
-      if (fscanf(file, "%d %d %d", &m, &n, &nz) != 3)
+      if (fscanf(file, "%d %d %d", &m, &n, &nz) < 0)
       {
           printf("error scanning head file %s\n",name);
           return;
@@ -536,7 +556,7 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
 
     for (i = 0; i <= n; i++)
     {
-      if(fscanf(file, "%d ", &rowptr[i]) != 3)
+      if(fscanf(file, "%d ", &rowptr[i]) < 0)
       {
         printf("error scanning rowptr file %s\n",name);
         return;
@@ -544,7 +564,7 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
     }
     for (i = 0; i < nz; i++)
     {
-      if(fscanf(file, "%d ", &col[i]) != 3)
+      if(fscanf(file, "%d ", &col[i]) < 0)
       {
         printf("error scanning col file %s\n",name);
         return;
@@ -552,7 +572,7 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
     }
     for (i = 0; i < nz; i++)
     {
-      if(fscanf(file, CUDA_PRECI_S, &val[i]) != 3)
+      if(fscanf(file, CUDA_PRECI_S, &val[i]) < 0)
       {
         printf("error scanning val file %s\n",name);
         return;
@@ -560,7 +580,7 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
     }
 
     #ifdef ENABLE_TESTS
-      printf("READ rowptr : ");
+    /*  printf("READ rowptr : ");
        for( i = 0; i <= n; i++)
         printf("%d ",rowptr[i]);
        printf("\n");
@@ -573,7 +593,7 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
        printf("READ val : ");
        for( i = 0; i < nz; i++)
          printf("%lf ",val[i]);
-       printf("end\n");
+       printf("end\n");*/
     #endif
     //fclose(file);
 
@@ -695,7 +715,7 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
 #endif
 
       cusparse_conjugate_gradient(A_matrix, NULL, b_vec,x_vec,r_vec,p_vec,q_vec,z_vec,
-                                  maxit,tol, iter, elapsed, &cusparseHandle, &cublasHandle);
+                                  maxit,tol, iter, elapsed, fault_elapsed, &cusparseHandle, &cublasHandle);
 
 #ifdef ENABLE_TESTS
       printf("Done!\n");
