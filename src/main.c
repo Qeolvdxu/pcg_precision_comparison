@@ -18,7 +18,7 @@ typedef struct {
   char **files;
   char **pfiles;
   int maxit;
-  float tol;
+  double tol;
 } Data_CG;
 
 char **find_files(const char *dir_path, int *num_files) {
@@ -61,7 +61,8 @@ char **find_files(const char *dir_path, int *num_files) {
   return files;
 }
 
-int batch_CCG(Data_CG *data) {
+void *batch_CCG(void *arg) {
+  Data_CG *data = (Data_CG *)arg;
   FILE *ofile = fopen("results_CCG_TEST.csv", "w");
   int i, j;
   C_PRECI_DT *x;
@@ -82,7 +83,6 @@ int batch_CCG(Data_CG *data) {
     my_crs_matrix *M;
     if (data->pfiles)
       M = my_crs_read(data->pfiles[i]);
-    int n = A->n;
 
     // allocate arrays
     x = calloc(A->n, sizeof(C_PRECI_DT));
@@ -102,7 +102,7 @@ int batch_CCG(Data_CG *data) {
     fprintf(ofile, "CPU,");
     fprintf(ofile, "%s,", data->files[i]);
     fprintf(ofile, "%s,%d,%lf,,", C_PRECI_NAME, iter, elapsed);
-    printf("TOTAL C ITERATIONS: %d", iter);
+    // printf("TOTAL C ITERATIONS: %d", iter);
     for (j = 0; j < 5; j++)
       fprintf(ofile, "%0.10lf,", x[j]);
     // printf("%0.10lf,", x[j]);
@@ -114,14 +114,15 @@ int batch_CCG(Data_CG *data) {
     free(b);
     free(x);
 
-    printf("C CG Test %d complete!\n", i);
+    printf("C CG Test %d complete in %d iterations!\n", i, iter);
   }
   printf("\t C COMPLETE!\n");
   fclose(ofile);
-  return 0;
+  return NULL;
 }
 
-int batch_CuCG(Data_CG *data) {
+void *batch_CuCG(void *arg) {
+  Data_CG *data = (Data_CG *)arg;
   FILE *ofile = fopen("results_CudaCG_TEST.csv", "w");
   printf("%d matrices\n", data->matrix_count);
   int i, j, iter;
@@ -165,11 +166,11 @@ int batch_CuCG(Data_CG *data) {
     free(x);
     free(b);
 
-    printf("Cuda CG Test %d complete!\n", i);
+    printf("CUDA CG Test %d complete in %d iterations!\n", i, iter);
   }
   printf("\t CUDA COMPLETE!\n");
   fclose(ofile);
-  return 0;
+  return NULL;
 }
 
 int main(int argc, char *argv[]) {
@@ -178,13 +179,9 @@ int main(int argc, char *argv[]) {
   char precond, concurrent;
   char *name;
   char *pname;
-  double tol = 0;
-  int maxit = 0;
   int matrix_count = 0;
   int precond_count = 0;
-  char **files;
-  char **pfiles;
-  pthread_t th1, th2;
+  pthread_t th1;
   // pthread_t th2;
   Data_CG *data;
 
