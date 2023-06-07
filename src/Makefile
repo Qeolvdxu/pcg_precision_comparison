@@ -1,8 +1,8 @@
 CC = gcc
 NVCC = nvcc
 
-CFLAGS = -g -Wall -Wextra -pedantic -gdwarf-4 -DC_DOUBLE -DCUDA_SINGLE #-DENABLE_TESTS
-NVCCFLAGS = -O3 -Xcompiler -Wall,-Wpedantic -x c -g -G -DCUDA_SINGLE #-DENABLE_TESTS
+CFLAGS = -g -Wall -Wextra -pedantic -gdwarf-4 -DC_DOUBLE -DCUDA_DOUBLE #-DENABLE_TESTS
+NVCCFLAGS = -O3 -Xcompiler -Wall,-Wpedantic -x c -g -G -DCUDA_DOUBLE #-DENABLE_TESTS
 
 
 LIB_FLAGS = -lm -lcudart -lcusparse -lcuda -lcublas -lpthread -fopenmp

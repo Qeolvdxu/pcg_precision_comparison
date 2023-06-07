@@ -74,10 +74,6 @@ void *batch_CCG(void *arg) {
   for (i = 0; i < data->matrix_count; i++) {
     // Create Matrix struct and Precond
     printf("%s", data->files[i]);
-    if (data->pfiles)
-      printf("    and    %s\n", data->pfiles[i]);
-    else
-      printf("\n");
     my_crs_matrix *A = my_crs_read(data->files[i]);
 
     my_crs_matrix *M;
@@ -91,10 +87,13 @@ void *batch_CCG(void *arg) {
       b[j] = 1;
 
     // run cpu
-    if (data->pfiles)
+    if (data->pfiles) {
+      printf("    and    %s\n", data->pfiles[i]);
       CCG(A, M, b, x, data->maxit, (C_PRECI_DT)data->tol, &iter, &elapsed);
-    else
+    } else {
+      printf("\n");
       CCG(A, NULL, b, x, data->maxit, (C_PRECI_DT)data->tol, &iter, &elapsed);
+    }
 
     if (i == 0)
       fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
@@ -105,7 +104,7 @@ void *batch_CCG(void *arg) {
     // printf("TOTAL C ITERATIONS: %d", iter);
     for (j = 0; j < 5; j++) {
       fprintf(ofile, "%0.10lf,", x[j]);
-      printf("%0.10lf,", x[j]);
+      // printf("%0.10lf,", x[j]);
     }
     fprintf(ofile, "\n");
 
@@ -115,9 +114,9 @@ void *batch_CCG(void *arg) {
     free(b);
     free(x);
 
-    printf("C CG Test %d complete in %d iterations!\n", i, iter);
+    printf("CPU CG Test %d complete in %d iterations!\n", i, iter);
   }
-  printf("\t C COMPLETE!\n");
+  printf("\t CPU COMPLETE!\n");
   fclose(ofile);
   return NULL;
 }
@@ -135,8 +134,8 @@ void *batch_CuCG(void *arg) {
   for (i = 0; i < data->matrix_count; i++) {
     // get matrix size
     //  	file = fopen(data->files[i], "r");
+    printf("%s", data->files[i]);
     my_crs_matrix *A = my_crs_read(data->files[i]);
-    printf("%s\n", data->files[i]);
     n = A->n;
 
     // allocate arrays
@@ -146,9 +145,17 @@ void *batch_CuCG(void *arg) {
       b[j] = 1;
 
     // run gpu
-    call_CuCG(data->files[i], NULL, b, x, data->maxit,
-              (CUDA_PRECI_DT_HOST)data->tol, &iter, &elapsed, &mem_elapsed,
-              &fault_elapsed);
+    if (data->pfiles) {
+      printf("    and    %s\n", data->pfiles[i]);
+      call_CuCG(data->files[i], data->pfiles[i], b, x, data->maxit,
+                (CUDA_PRECI_DT_HOST)data->tol, &iter, &elapsed, &mem_elapsed,
+                &fault_elapsed);
+    } else {
+      printf("\n");
+      call_CuCG(data->files[i], NULL, b, x, data->maxit,
+                (CUDA_PRECI_DT_HOST)data->tol, &iter, &elapsed, &mem_elapsed,
+                &fault_elapsed);
+    }
     // printf("%d %lf\n", iter, elapsed);
     if (i == 0)
       fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
@@ -161,7 +168,7 @@ void *batch_CuCG(void *arg) {
     // printf("TOTAL CUDA ITERATIONS: %d", iter);
     for (j = 0; j < 5; j++) {
       fprintf(ofile, "%0.10lf,", x[j]);
-      printf("%0.10lf,", x[j]);
+      // printf("%0.10lf,", x[j]);
     }
     fprintf(ofile, "\n");
 
@@ -169,9 +176,9 @@ void *batch_CuCG(void *arg) {
     free(x);
     free(b);
 
-    printf("CUDA CG Test %d complete in %d iterations!\n", i, iter);
+    printf("GPU CG Test %d complete in %d iterations!\n", i, iter);
   }
-  printf("\t CUDA COMPLETE!\n");
+  printf("\t GPU COMPLETE!\n");
   fclose(ofile);
   return NULL;
 }
@@ -185,7 +192,7 @@ int main(int argc, char *argv[]) {
   int matrix_count = 0;
   int precond_count = 0;
   pthread_t th1;
-  // pthread_t th2;
+  pthread_t th2;
   Data_CG *data;
 
   // Collect information from user
@@ -237,7 +244,7 @@ int main(int argc, char *argv[]) {
     printf("Enter the tolerance : ");
     scanf(" %lf", &data->tol);
   } else if (argc >= 4) {
-    data->tol = strtol(argv[3], NULL, 10);
+    data->tol = strtof(argv[3], NULL);
   }
 
   // Stop algorithm from continuing after this many iterations
@@ -252,22 +259,23 @@ int main(int argc, char *argv[]) {
   // Iterativly run conjugate gradient for each matrix
   // Runs through C implementation on host and another thread for CUDA calling
 
-  printf("\n\tlaunching CCG thread...");
-  if (concurrent == 'Y')
+  if (concurrent == 'Y') {
+    printf("\n\tlaunching CCG thread...");
     pthread_create(&th1, NULL, (void *(*)(void *))batch_CCG, data);
-  else if (concurrent == 'N')
+    printf("\n\tlaunching GPU CG thread...\n");
+    pthread_create(&th2, NULL, (void *(*)(void *))batch_CuCG, data);
+  } else if (concurrent == 'N') {
+    printf("\n\trunning CCG function...");
     batch_CCG(data);
-  else
+    printf("\n\trunning GPU CG function...");
+    batch_CuCG(data);
+  } else
     printf("Bad Concurrency Input!\n");
 
-  printf("\n\tlaunching CuCG thread...\n");
-  // pthread_create(&th2, NULL, batch_CuCG, data);
-  batch_CuCG(data);
-
-  if (concurrent == 'Y')
+  if (concurrent == 'Y') {
     pthread_join(th1, NULL);
-  // pthread_join(th2, NULL);
-
+    pthread_join(th2, NULL);
+  }
   // Clean
   printf("cleaning memory\n");
   for (i = 0; i < matrix_count; i++) {

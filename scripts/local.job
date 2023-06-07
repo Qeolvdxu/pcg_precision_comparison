@@ -1,8 +1,0 @@
-#!/bin/bash
-octave converter.m
-cd ../src
-make
-cd build
-./cgpc
-cat results_CCG_TEST.csv > combo.csv
-cat results_CudaCG_TEST.csv >> combo.csv

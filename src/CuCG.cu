@@ -5,7 +5,7 @@
 #include <time.h>
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
-#include <cusparse.h>
+#include <cusparse_v2.h>
 
 
 #include "../include/CUSTOMIZE.h"
@@ -19,6 +19,7 @@ typedef struct {
 
 typedef struct {
   cusparseSpMatDescr_t desc;
+  cusparseMatDescr_t desctwo;
   int n;
   int m;
   int nz;
@@ -49,18 +50,19 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   #endif
   int n = A->n;
 
-  CUDA_PRECI_DT_HOST* onex = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*n);
+  CUDA_PRECI_DT_HOST* xfive = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*5);
   #ifdef ENABLE_TESTS
+//	int* rowptr;
+//	int* col;
+//	CUDA_PRECI_DT_HOST* val;
+  CUDA_PRECI_DT_HOST* onex = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*n);
   CUDA_PRECI_DT_HOST* onez = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*n);
   CUDA_PRECI_DT_HOST* oner = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*n);
   CUDA_PRECI_DT_HOST* oneq = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*n);
   CUDA_PRECI_DT_HOST* onep = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*n);
-	int* rowptr;
-	int* col;
-	CUDA_PRECI_DT_HOST* val;
-    val = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*A->nz);
-    col = (int*)malloc(sizeof(int)*A->nz);
-    rowptr = (int*)malloc(sizeof(int)*n+1);
+//    val = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*A->nz);
+//    col = (int*)malloc(sizeof(int)*A->nz);
+//    rowptr = (int*)malloc(sizeof(int)*n+1);
 
    /* cudaMemcpy(rowptr, M->rowptr, (A->n+1) * sizeof(int), cudaMemcpyDeviceToHost);
     cudaMemcpy(col, M->col, A->nz * sizeof(int), cudaMemcpyDeviceToHost);
@@ -156,7 +158,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   // z = r
   if (M)
       //z = MT\(M\r);
-     /* cusparseSPSV_solver(*handle,
+      /*cusparseSpSV_solver(*handle,
                    CUSPARSE_OPERATION_NON_TRANSPOSE,
                    &n_one,
                    M->desc,
@@ -166,11 +168,18 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
                    CUSPARSE_MV_ALG_DEFAULT,
                    CUSPARSE_FILL_MODE_LOWER
                    );*/
-      M = A;
-  else
+      {
+      csrsv2Info_t info;
+      cusparseCreateCsrsv2Info(&info);
+      printf("* PRECOND TIME!\n");
+      cusparseDcsrsv2_solve(*handle, CUSPARSE_OPERATION_NON_TRANSPOSE, M->m,M->nz, &n_one, M->desctwo, M->val, M->rowptr, M->col, info, r_vec->val, z_vec->val, CUSPARSE_SOLVE_POLICY_NO_LEVEL, NULL);
+      //M = A;
+}
+else
+{
       // z = r
       COPY_FUN(*handle_blas,n,r_vec->val, 1, z_vec->val, 1);
-  //cudaDeviceSynchronize();
+ } //cudaDeviceSynchronize();
 
   // p = z
   COPY_FUN(*handle_blas,n,z_vec->val, 1, p_vec->val, 1);
@@ -210,6 +219,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 
   CUDA_PRECI_DT_HOST faultcheck_start;
   CUDA_PRECI_DT_HOST faultcheck_end;
+  *fault_elapsed = 0.0;
 
   while (itert < max_iter && ratio > tolerance)
     {
@@ -219,10 +229,10 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
       itert++;
 
       // Check X value for faults every nth iteration
-      if (itert % 50 == 0)
+      if (itert % 5 == 0)
       {
           faultcheck_start = omp_get_wtime();
-          cudaMemcpy(onex, x->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
+          cudaMemcpy(xfive, x->val, 5 * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
           faultcheck_end = omp_get_wtime();
           *fault_elapsed += (faultcheck_end - faultcheck_start)*1000;
           //printf("faultcheck_elapsed += (%f - %f)*1000\n",(float)faultcheck_end ,(float)faultcheck_start);
@@ -394,6 +404,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
 
   // WALL TIME
   end = omp_get_wtime();
+  *elapsed = (end - start)*1000;
 /* //CUDA EVENT TIME
   cudaEventRecord(stop, stream);
   cudaEventSynchronize(stop);
@@ -404,9 +415,8 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
     printf("TOtal of %d CuCG ITerations\n",itert);
 #endif
 
-    printf(" * fault check elapsed: %f \n",(float)*fault_elapsed);
-    printf(" * total elapsed: %f \n",(float)*elapsed);
-    *elapsed = (end - start)*1000;
+   // printf(" * fault check elapsed: %f \n",(float)*fault_elapsed);
+   // printf(" * total elapsed: %f \n",(float)*elapsed);
     *iter = itert;
     return;
 }
@@ -422,6 +432,7 @@ __host__ my_cuda_csr_matrix* cusparse_crs_read(char* name)
   int n = 0;
   int m = 0;
   int nz = 0;
+
   FILE *file;
   if ((file = fopen(name, "r"))) {
     int i;
@@ -531,7 +542,12 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
   int m = 0;
   int nz = 0;
 
+  int m_n = 0;
+  int m_m = 0;
+  int m_nz = 0;
+
   FILE *file;
+  FILE *m_file;
   if (status != CUSPARSE_STATUS_SUCCESS)
   {
     printf("Error creating cusparse Handle!\n"); 
@@ -551,9 +567,12 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
   CUDA_PRECI_DT_HOST* val = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*nz);
   int* col = (int*)malloc(sizeof(int)*nz);
   int* rowptr = (int*)malloc(sizeof(int)*n+1);
+
+
   CUDA_PRECI_DT_HOST* h_rpqz = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*n);
 
 
+  // READ MATRIX
     for (i = 0; i <= n; i++)
     {
       if(fscanf(file, "%d ", &rowptr[i]) < 0)
@@ -578,6 +597,51 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
         return;
       }
     }
+    fclose(file);
+
+  CUDA_PRECI_DT_HOST* m_val = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*m_nz);
+  int* m_col = (int*)malloc(sizeof(int)*m_nz);
+  int* m_rowptr = (int*)malloc(sizeof(int)*m_n+1);
+ // READ PRECOND
+ if(m_name && !(m_file = fopen(m_name, "r'")))
+     printf("error opening precod file %s",m_name);
+ else if (m_name && fscanf(m_file, "%d %d %d", &m_m, &m_n, &m_nz) > 0)
+     {
+  /*CUDA_PRECI_DT_HOST* m_val = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*m_nz);
+  int* m_col = (int*)malloc(sizeof(int)*m_nz);
+  int* m_rowptr = (int*)malloc(sizeof(int)*m_n+1);*/
+     {
+    for (i = 0; i <= m_n; i++)
+    {
+      if(m_name && fscanf(m_file, "%d ", &m_rowptr[i]) < 0)
+      {
+        printf("error scanning m rowptr file %s\n",name);
+        return;
+      }
+    }
+    for (i = 0; i < m_nz; i++)
+    {
+      if(fscanf(m_file, "%d ", &m_col[i]) < 0)
+      {
+        printf("error scanning m col file %s\n",name);
+        return;
+      }
+    }
+    for (i = 0; i < m_nz; i++)
+    {
+      if(fscanf(m_file, CUDA_PRECI_S, &m_val[i]) < 0)
+      {
+        printf("error scanning m val file %s\n",name);
+        return;
+      }
+    }
+}
+     fclose(m_file);
+}
+ else if (m_name)
+      {
+          printf("error scanning m head file %s\n",name);
+      }
 
     #ifdef ENABLE_TESTS
     /*  printf("READ rowptr : ");
@@ -593,6 +657,21 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
        printf("READ val : ");
        for( i = 0; i < nz; i++)
          printf("%lf ",val[i]);
+       printf("end\n");*/
+
+    /*  printf("READ M rowptr : ");
+       for( i = 0; i <= m_n; i++)
+        printf("%d ",m_rowptr[i]);
+       printf("\n");
+
+       printf("READ M col : ");
+       for( i = 0; i < m_nz; i++)
+         printf("%d ",m_col[i]);
+       printf("\n");
+
+       printf("READ M val : ");
+       for( i = 0; i < m_nz; i++)
+         printf("%lf ",m_val[i]);
        printf("end\n");*/
     #endif
     //fclose(file);
@@ -624,7 +703,24 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
   A_matrix->n = n;
   A_matrix->m = m;
   A_matrix->nz = nz;
-
+  if (m_name)
+      {
+  M_matrix = (my_cuda_csr_matrix*)malloc(sizeof(my_cuda_csr_matrix));
+  M_matrix->n = m_n;
+  M_matrix->m = m_m;
+  M_matrix->nz = m_nz;
+  cudaMalloc((void**)&M_matrix->rowptr, ( m_n +1) * sizeof(int));
+  cudaMalloc((void**)&M_matrix->col, m_nz * sizeof(int));
+  cudaMalloc((void**)&M_matrix->val, m_nz * sizeof(CUDA_PRECI_DT_HOST));
+  cudaMemcpy(M_matrix->rowptr, m_rowptr, (m_n+1) * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(M_matrix->col, m_col, m_nz * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(M_matrix->val, m_val, m_nz * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyHostToDevice);
+  cusparseCreateCsr(&M_matrix->desc, m_n, m_n, m_nz, M_matrix->rowptr, M_matrix->col, M_matrix->val,
+                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_PRECI_DT_DEVICE);
+  cusparseCreateMatDescr(&M_matrix->desctwo);
+  cusparseSetMatType(M_matrix->desctwo, CUSPARSE_MATRIX_TYPE_GENERAL);
+  cusparseSetMatFillMode(M_matrix->desctwo, CUSPARSE_FILL_MODE_LOWER);
+}
   /*cudaMallocPitch((void**)&A_matrix->rowptr,&pitch, ( n +1) * sizeof(int),1);
   cudaMallocPitch((void**)&A_matrix->col,&pitch, nz * sizeof(int),1);
   cudaMallocPitch((void**)&A_matrix->val,&pitch, nz * sizeof(CUDA_PRECI_DT_HOST),1);
@@ -666,9 +762,6 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
   cusparseCreateCsr(&A_matrix->desc, n, n, nz, A_matrix->rowptr, A_matrix->col, A_matrix->val,
                       CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_PRECI_DT_DEVICE);
 
-
-  if (m_name)
-       M_matrix = cusparse_crs_read((char*)m_name);
   cudaDeviceSynchronize();
   /* //EVENT TIME
   cudaEventRecord(stop, stream);
@@ -714,8 +807,17 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
       printf("Calling CG func...\n");
 #endif
 
-      cusparse_conjugate_gradient(A_matrix, NULL, b_vec,x_vec,r_vec,p_vec,q_vec,z_vec,
+      if (m_name && M_matrix)
+          {
+          cusparse_conjugate_gradient(A_matrix, M_matrix, b_vec,x_vec,r_vec,p_vec,q_vec,z_vec,
                                   maxit,tol, iter, elapsed, fault_elapsed, &cusparseHandle, &cublasHandle);
+          }
+      else
+          {
+          cusparse_conjugate_gradient(A_matrix, NULL, b_vec,x_vec,r_vec,p_vec,q_vec,z_vec,
+                                  maxit,tol, iter, elapsed, fault_elapsed, &cusparseHandle, &cublasHandle);
+          }
+
 
 #ifdef ENABLE_TESTS
       printf("Done!\n");
@@ -734,19 +836,27 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
       printf("\n");
 #endif
 
-      cusparseDestroySpMat(A_matrix->desc);
+      free(val);
+      free(col);
+      free(rowptr);
+      //cusparseDestroyMatDescr(A_matrix->desctwo);
       cudaFree(A_matrix->val);
       cudaFree(A_matrix->rowptr);
       cudaFree(A_matrix->col);
+      cusparseDestroySpMat(A_matrix->desc);
       free(A_matrix);
 
       if (m_name)
       {
-          cusparseDestroySpMat(M_matrix->desc);
+          free(m_val);
+          free(m_col);
+          free(m_rowptr);
           cudaFree(M_matrix->val);
-          cudaFree(M_matrix->rowptr);
           cudaFree(M_matrix->col);
-          free(M_matrix);
+          cudaFree(M_matrix->rowptr);
+          cusparseDestroyMatDescr(M_matrix->desctwo);
+          cusparseDestroySpMat(M_matrix->desc);
+         free(M_matrix);
       }
       cudaFree(x_vec->val);
       cusparseDestroyDnVec(x_vec->desc);
