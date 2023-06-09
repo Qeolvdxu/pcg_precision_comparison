@@ -68,7 +68,7 @@ void *batch_CCG(void *arg) {
   C_PRECI_DT *x;
   C_PRECI_DT *b;
   int iter;
-  double elapsed;
+  C_PRECI_DT elapsed;
   printf("BATCH\n");
 
   for (i = 0; i < data->matrix_count; i++) {
@@ -126,7 +126,7 @@ void *batch_CuCG(void *arg) {
   FILE *ofile = fopen("results_CudaCG_TEST.csv", "w");
   printf("%d matrices\n", data->matrix_count);
   int i, j, iter;
-  double elapsed, mem_elapsed, fault_elapsed;
+  CUDA_PRECI_DT_HOST elapsed, mem_elapsed, fault_elapsed;
   CUDA_PRECI_DT_HOST *x;
   CUDA_PRECI_DT_HOST *b;
   int n;
@@ -163,7 +163,7 @@ void *batch_CuCG(void *arg) {
                      "X_VECTOR\n");
     fprintf(ofile, "GPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%lf,%lf", CUDA_PRECI_NAME, iter, elapsed,
+    fprintf(ofile, "%s,%d,%lf,%lf,%lf,", CUDA_PRECI_NAME, iter, elapsed,
             mem_elapsed, fault_elapsed);
     // printf("TOTAL CUDA ITERATIONS: %d", iter);
     for (j = 0; j < 5; j++) {
@@ -263,7 +263,8 @@ int main(int argc, char *argv[]) {
     printf("\n\tlaunching CCG thread...");
     pthread_create(&th1, NULL, (void *(*)(void *))batch_CCG, data);
     printf("\n\tlaunching GPU CG thread...\n");
-    pthread_create(&th2, NULL, (void *(*)(void *))batch_CuCG, data);
+    // pthread_create(&th2, NULL, (void *(*)(void *))batch_CuCG, data);
+    batch_CuCG(data);
   } else if (concurrent == 'N') {
     printf("\n\trunning CCG function...");
     batch_CCG(data);
@@ -274,7 +275,7 @@ int main(int argc, char *argv[]) {
 
   if (concurrent == 'Y') {
     pthread_join(th1, NULL);
-    pthread_join(th2, NULL);
+    // pthread_join(th2, NULL);
   }
   // Clean
   printf("cleaning memory\n");

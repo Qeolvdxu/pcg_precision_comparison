@@ -20,6 +20,7 @@
 #define NORM_FUN(...) cublasDnrm2(__VA_ARGS__)
 #define SCAL_FUN(...) cublasDscal(__VA_ARGS__)
 #define TRSV_FUN(...) cublasDtrsv(__VA_ARGS__)
+#define SPSV_FUN(...) cusparseDcsrsv2_solve(__VA_ARGS__)
 #define CUDA_PRECI_DT_DEVICE CUDA_R_64F
 #define CUDA_PRECI_DT_HOST double
 #define CUDA_PRECI_S "%lf "
@@ -33,6 +34,7 @@
 #define NORM_FUN(...) cublasSnrm2(__VA_ARGS__)
 #define SCAL_FUN(...) cublasSscal(__VA_ARGS__)
 #define TRSV_FUN(...) cublasStrsv(__VA_ARGS__)
+#define SPSV_FUN(...) cusparseScsrsv2_solve(__VA_ARGS__)
 #define CUDA_PRECI_DT_DEVICE CUDA_R_32F
 #define CUDA_PRECI_DT_HOST float
 #define CUDA_PRECI_S "%f "

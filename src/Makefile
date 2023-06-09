@@ -1,10 +1,44 @@
 CC = gcc
 NVCC = nvcc
 
-CFLAGS = -g -Wall -Wextra -pedantic -gdwarf-4 -DC_DOUBLE -DCUDA_DOUBLE #-DENABLE_TESTS
-NVCCFLAGS = -O3 -Xcompiler -Wall,-Wpedantic -x c -g -G -DCUDA_DOUBLE #-DENABLE_TESTS
+CFLAGS = -g -Wall -Wextra -pedantic -gdwarf-4
+NVCCFLAGS = -O3 -Xcompiler -Wall,-Wpedantic -x c -g -G
+#
+GPU_MODE := $(gpu_mode)
+ifeq ($(GPU_MODE),debug)
+    NVCCFLAGS += -DENABLE_TESTS
+endif
+CPU_MODE := $(gpu_mode)
+ifeq ($(CPU_MODE),debug)
+    CFLAGS += -DCUDA_SINGLE
+endif
+
+# Retrieve the value of the 'gpu' variable from the command line
+GPU_PRECI := $(gpu_preci)
+GPU_PRECI ?= single
+# Check the value of the 'gpu' variable and add corresponding compiler flags
+ifeq ($(GPU_PRECI),single)
+    NVCCFLAGS += -DCUDA_SINGLE
+    CFLAGS += -DCUDA_SINGLE
+endif
+ifeq ($(GPU_PRECI),double)
+    NVCCFLAGS += -DCUDA_DOUBLE
+    CFLAGS += -DCUDA_DOUBLE
+endif
+
+# Retrieve the value of the 'c' variable from the command line
+CPU_PRECI := $(cpu_preci)
+CPU_PRECI ?= double
+# Check the value of the 'c' variable and add corresponding compiler flags
+ifeq ($(CPU_PRECI),single)
+    CFLAGS += -DC_SINGLE
+endif
+ifeq ($(CPU_PRECI),double)
+    CFLAGS += -DC_DOUBLE
+endif
 
 
+PU_PRECI := $(gpu_preci)
 LIB_FLAGS = -lm -lcudart -lcusparse -lcuda -lcublas -lpthread -fopenmp
 
 BUILDDIR = ./build/

@@ -13,9 +13,9 @@ if [ "$all_empty" = false ]; then
    echo "Do you want to generate new preconditioners?"
    read -rp "(this is only necessary if you changed matrices) [Y/n] " choice
    if [[ "$choice" =~ ^[Yy]$ ]]; then
-      rm "../test_subjects/norm/*" 2>/dev/null
-      rm "../test_subjects/rcm/*" 2>/dev/null
-      rm "../test_subjects/precond*/*" 2>/dev/null
+      rm ../test_subjects/norm/* 2>/dev/null
+      rm ../test_subjects/rcm/* 2>/dev/null
+      rm ../test_subjects/precond*/* 2>/dev/null
    fi
 else
    echo "No CSR matrices found, generating files..."

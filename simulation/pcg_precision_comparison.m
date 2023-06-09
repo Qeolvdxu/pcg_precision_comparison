@@ -6,7 +6,7 @@ tol = 1e-6;
 datatype_count = 5;
 
 % find mtx sparse matrix files
-matrices = dir('../test_subjects/*.mtx');
+matrices = dir('../test_subjects/mm/*.mtx');
 test_count = size(matrices,1);
 
 % table data vars
@@ -42,7 +42,7 @@ for cur_test=1:test_count
 
     % Read matrix files
     cur_matrix = matrices(cur_test).name;
-    [A, ~, A_size, nonzero_count] = mmread(strcat('../test_subjects/',cur_matrix));
+    [A, ~, A_size, nonzero_count] = mmread(strcat('../test_subjects/mm/',cur_matrix));
 
     %x = randn(size(A,2), 1) * max(A);
     %b = A * x;

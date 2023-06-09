@@ -12,7 +12,7 @@
 #include "../include/my_crs_matrix.h"
 
 void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
-         int max_iter, C_PRECI_DT tolerance, int *iter, double *elapsed) {
+         int max_iter, C_PRECI_DT tolerance, int *iter, C_PRECI_DT *elapsed) {
 
   int n = A->n;
   C_PRECI_DT *r = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
@@ -85,9 +85,10 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
   // main CG loop
   int itert = 0;
   //  printf("%d \n", *iter);
-  while (itert <= max_iter && ratio > tolerance) {
+  while (itert < max_iter && ratio > tolerance) {
+    // printf("%d < %d && %f > %f\n", itert, max_iter, ratio, tolerance);
 // next iteration
-#ifdef ENABLE_TEST
+#ifdef ENABLE_TESTS
     printf("\nITERATION %d\n", itert);
 #endif
     itert++;

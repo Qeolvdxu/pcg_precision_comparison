@@ -126,11 +126,11 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   cudaMemcpy(oneq, q_vec->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
   cudaMemcpy(oner, r_vec->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
   cudaMemcpy(onez, z_vec->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
-  printf("\INITIAL VEC CREATION\n x1 = %lf \t alpha= %lf \t beta= %lf "
+  printf("\nINITIAL VEC CREATION\n x1 = %lf \t alpha= %lf \t beta= %lf "
 	 "\n v "
 	 "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
 	 "ratio(%lf) > tolerance(%lf)\n\n\n",
-	 iter, onex[0], alpha, beta, v, oner[0], onep[0], oneq[0], onez[0], ratio,
+	 onex[0], alpha, beta, v, oner[0], onep[0], oneq[0], onez[0], ratio,
 	 tolerance);
   #endif
 
@@ -172,7 +172,8 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
       csrsv2Info_t info;
       cusparseCreateCsrsv2Info(&info);
       printf("* PRECOND TIME!\n");
-      cusparseDcsrsv2_solve(*handle, CUSPARSE_OPERATION_NON_TRANSPOSE, M->m,M->nz, &n_one, M->desctwo, M->val, M->rowptr, M->col, info, r_vec->val, z_vec->val, CUSPARSE_SOLVE_POLICY_NO_LEVEL, NULL);
+      //cusparseScsrsv2_solve(*handle, CUSPARSE_OPERATION_NON_TRANSPOSE, M->m,M->nz, &n_one, M->desctwo, M->val, M->rowptr, M->col, info, r_vec->val, z_vec->val, CUSPARSE_SOLVE_POLICY_NO_LEVEL, NULL);
+      SPSV_FUN(*handle, CUSPARSE_OPERATION_NON_TRANSPOSE, M->m,M->nz, &n_one, M->desctwo, M->val, M->rowptr, M->col, info, r_vec->val, z_vec->val, CUSPARSE_SOLVE_POLICY_NO_LEVEL, NULL);
       //M = A;
 }
 else
@@ -562,7 +563,7 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
           printf("error scanning head file %s\n",name);
           return;
       }
-      int64_t n_t=n;
+      int n_t=n;
 
   CUDA_PRECI_DT_HOST* val = (CUDA_PRECI_DT_HOST*)malloc(sizeof(CUDA_PRECI_DT_HOST)*nz);
   int* col = (int*)malloc(sizeof(int)*nz);
@@ -809,8 +810,8 @@ void call_CuCG(char* name, char* m_name, CUDA_PRECI_DT_HOST* h_b, CUDA_PRECI_DT_
 
       if (m_name && M_matrix)
           {
-          cusparse_conjugate_gradient(A_matrix, M_matrix, b_vec,x_vec,r_vec,p_vec,q_vec,z_vec,
-                                  maxit,tol, iter, elapsed, fault_elapsed, &cusparseHandle, &cublasHandle);
+      //    cusparse_conjugate_gradient(A_matrix, M_matrix, b_vec,x_vec,r_vec,p_vec,q_vec,z_vec,
+      //                            maxit,tol, iter, elapsed, fault_elapsed, &cusparseHandle, &cublasHandle);
           }
       else
           {

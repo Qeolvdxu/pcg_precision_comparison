@@ -6,7 +6,7 @@
 
 // the big one
 void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
-         int max_iter, C_PRECI_DT tolerance, int *iter, double *elapsed);
+         int max_iter, C_PRECI_DT tolerance, int *iter, C_PRECI_DT *elapsed);
 
 // cg preconditioning related functions
 void ichol(my_crs_matrix *M, double *L);
