@@ -6,7 +6,7 @@ import GPUtil
 import seaborn as sns
 
 # Read the CSV file into a DataFrame
-df = pd.read_csv('./combo.csv')
+df = pd.read_csv('./coo.csv')
 
 # Filter out rows with missing values
 df = df.dropna()
@@ -29,10 +29,11 @@ df_combined = pd.DataFrame({'CPU Wall Time': df_cpu_grouped['WALL_TIME'],
                             'GPU Wall Time': df_gpu_grouped['WALL_TIME'],
                             'Mem Wall Time': df_mem_grouped['MEM_WALL_TIME'],
                             'Fault Time': df_mem_grouped['FAULT_TIME'],
-                            'Iteration Count': df_mem_grouped['ITERATIONS']})
+                            'CPU Iteration Count': df_cpu_grouped['ITERATIONS'],
+                            'GPU Iteration Count': df_gpu_grouped['ITERATIONS']})
 
 # Sort the DataFrame by the sum of WALL_TIME, MEM_WALL_TIME, and FAULT_TIME in descending order
-df_combined_sorted = df_combined.sort_values(by=['Iteration Count'], ascending=False)
+df_combined_sorted = df_combined.sort_values(by=['CPU Iteration Count'], ascending=False)
 
 # Calculate the GPU Wall Time by subtracting the Fault Time from the total Wall Time
 df_combined_sorted['GPU Wall Time'] -= df_combined_sorted['Fault Time']
@@ -48,34 +49,42 @@ num_matrices = len(matrix_names)
 bar_width = 0.2
 
 # Get the CPU model name using cpuinfo
-cpu_info = cpuinfo.get_cpu_info()
-cpu_name = cpu_info['brand_raw']
+#cpu_info = cpuinfo.get_cpu_info()
+#cpu_name = cpu_info['brand_raw']
 
 # Get the GPU model name using GPUtil
-gpus = GPUtil.getGPUs()
-if len(gpus) > 0:
-    gpu_name = gpus[0].name
-else:
-    gpu_name = 'N/A'
+#gpus = GPUtil.getGPUs()
+#if len(gpus) > 0:
+#    gpu_name = gpus[0].name
+#else:
+#    gpu_name = 'N/A'
 
 # Set the dark theme style with low contrast using Seaborn
 sns.set_style("darkgrid")
 sns.set_palette("dark")
 
 # Plotting for Wall Time
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(10,8))
 
 # Plot the memory wall time bars
-mem_bar = ax.bar(matrix_names, df_combined_sorted['Mem Wall Time'], width=bar_width, label='Mem Wall Time')
+mem_bar = ax.bar(matrix_names, df_combined_sorted['Mem Wall Time'], alpha=0.5, log=True, width=bar_width, label='Mem Wall Time')
 
 # Plot the fault time bars
 fault_bar = ax.bar(matrix_names, df_combined_sorted['Fault Time'], width=bar_width,
-                   bottom=df_combined_sorted['Mem Wall Time'], label='Fault Time')
+                   bottom=df_combined_sorted['Mem Wall Time'], alpha=0.5, label='Fault Time', log=True)
 
 # Plot the GPU wall time bars
 gpu_bar = ax.bar(matrix_names, df_combined_sorted['GPU Wall Time'], width=bar_width,
                  bottom=df_combined_sorted['Mem Wall Time'] + df_combined_sorted['Fault Time'],
-                 label='GPU Wall Time')
+                 label='GPU Wall Time', alpha=0.5, log=True)
+                 
+# Add a side bar for CPU Wall Time
+cpu_wall_time = df_combined_sorted['CPU Wall Time'].values
+index = np.arange(num_matrices)
+print(len(cpu_wall_time))
+print(len(matrix_names))
+ax.bar(index + bar_width * 2, cpu_wall_time, bar_width, log=True, label='CPU Wall Time', alpha=0.5, color='red')
+
 
 # Set the x-axis label
 ax.set_xlabel('Matrix')
@@ -96,13 +105,18 @@ plt.xticks(rotation=90)
 # Save the Wall Time plot as SVG
 plt.tight_layout()
 plt.savefig('wall_time_plot.svg', format='svg')
+plt.show()
 plt.close()
 
 # Plotting for Iteration Count
 fig, ax = plt.subplots()
 
+ax.set_yscale("log")
+
 # Plot the iteration count bars
-iteration_bar = ax.bar(matrix_names, df_combined_sorted['Iteration Count'], width=bar_width, label='Iteration Count')
+
+iteration_bar = ax.bar(matrix_names, df_combined_sorted['CPU Iteration Count'], width=bar_width, label='Iteration Count', color='red')
+iteration_bar = ax.bar(index+bar_width*2, df_combined_sorted['GPU Iteration Count'], width=bar_width, label='Iteration Count', color ='green')
 
 # Set the x-axis label
 ax.set_xlabel('Matrix')
@@ -122,5 +136,5 @@ plt.xticks(rotation=90)
 # Save the Iteration Count plot as SVG
 plt.tight_layout()
 plt.savefig('iteration_count_plot.svg', format='svg')
+plt.show()
 plt.close()
-
