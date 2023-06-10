@@ -1,4 +1,3 @@
-
 #include <math.h>
 #include <omp.h>
 #include <stdio.h>
@@ -26,15 +25,15 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
 
   int j = 0;
 
-  C_PRECI_DT v = 0;
-  C_PRECI_DT Rho = 0;
-  C_PRECI_DT Rtmp = 0;
+  C_PRECI_DT v = 0.0;
+  C_PRECI_DT Rho = 0.0;
+  C_PRECI_DT Rtmp = 0.0;
 
-  C_PRECI_DT res_norm = 0;
-  C_PRECI_DT init_norm = 0;
-  C_PRECI_DT ratio = 0;
+  C_PRECI_DT res_norm = 0.0;
+  C_PRECI_DT init_norm = 0.0;
+  C_PRECI_DT ratio = 0.0;
 
-  double Tiny = 0.1e-28;
+  C_PRECI_DT Tiny = 0.0;
 
   // x = zeros
   for (int i = 0; i < n; i++)

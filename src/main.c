@@ -200,8 +200,8 @@ int main(int argc, char *argv[]) {
          "Enter your options now, or pass them as arguments on launch\n\n");
 
   // Read Directory of Matrices
-  name = "../../test_subjects/norm";
-  pname = "../../test_subjects/precond_norm";
+  name = "../test_subjects/norm";
+  pname = "../test_subjects/precond_norm";
   // printf("Enter the directory of matrices: ");
   // scanf("%s",name);
 
