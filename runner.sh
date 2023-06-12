@@ -63,6 +63,9 @@ else
     echo Using whatever is in the files.
 fi
 
+echo $cpu_preci
+echo $gpu_preci
+
 make cpu_mode="$cpu_mode" gpu_mode="$gpu_mode" gpu_preci="$gpu_preci" cpu_preci="$cpu_preci"
 
 (cd Build; ./cgpc "$precond_choice" "$concurrent_choice" "$tolerance" "$iteration_cap")

@@ -9,13 +9,14 @@ GPU_MODE := $(gpu_mode)
 ifeq ($(GPU_MODE),debug)
     NVCCFLAGS += -DENABLE_TESTS
 endif
-CPU_MODE := $(gpu_mode)
+CPU_MODE := $(cpu_mode)
 ifeq ($(CPU_MODE),debug)
-    CFLAGS += -DCUDA_SINGLE
+    CFLAGS += -DENABLE_TESTS
 endif
 
+
 # Retrieve the value of the 'gpu' variable from the command line
-#GPU_PRECI := $(gpu_preci)
+GPU_PRECI := $(gpu_preci)
 GPU_PRECI ?=single
 # Check the value of the 'gpu' variable and add corresponding compiler flags
 ifeq ($(GPU_PRECI),single)
@@ -28,7 +29,7 @@ ifeq ($(GPU_PRECI),double)
 endif
 
 # Retrieve the value of the 'c' variable from the command line
-#CPU_PRECI := $(cpu_preci)
+CPU_PRECI := $(cpu_preci)
 CPU_PRECI ?=double
 # Check the value of the 'c' variable and add corresponding compiler flags
 ifeq ($(CPU_PRECI),single)
