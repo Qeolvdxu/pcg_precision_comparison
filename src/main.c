@@ -65,7 +65,7 @@ void *batch_CCG(void *arg) {
   Data_CG *data = (Data_CG *)arg;
   FILE *ofile = fopen("results_CCG_TEST.csv", "w");
   int i, j;
-  double *x;
+  C_PRECI_DT *x;
   C_PRECI_DT *b;
   int iter;
   C_PRECI_DT elapsed;
@@ -81,7 +81,7 @@ void *batch_CCG(void *arg) {
       M = my_crs_read(data->pfiles[i]);
 
     // allocate arrays
-    x = calloc(A->n, sizeof(double));
+    x = calloc(A->n, sizeof(C_PRECI_DT));
     b = malloc(sizeof(C_PRECI_DT) * A->n);
     for (j = 0; j < A->n; j++)
       b[j] = 1;
@@ -89,10 +89,10 @@ void *batch_CCG(void *arg) {
     // run cpu
     if (data->pfiles) {
       printf("    and    %s\n", data->pfiles[i]);
-      CCG(A, M, b, x, data->maxit, (double)data->tol, &iter, &elapsed);
+      CCG(A, M, b, x, data->maxit, (C_PRECI_DT)data->tol, &iter, &elapsed);
     } else {
       printf("\n");
-      CCG(A, NULL, b, x, data->maxit, (double)data->tol, &iter, &elapsed);
+      CCG(A, NULL, b, x, data->maxit, (C_PRECI_DT)data->tol, &iter, &elapsed);
     }
 
     if (i == 0)
@@ -260,8 +260,8 @@ int main(int argc, char *argv[]) {
   // Runs through C implementation on host and another thread for CUDA calling
 
   if (concurrent == 'Y') {
-    printf("\n\tlaunching CCG thread...");
-    pthread_create(&th1, NULL, (void *(*)(void *))batch_CCG, data);
+    // printf("\n\tlaunching CCG thread...");
+    // pthread_create(&th1, NULL, (void *(*)(void *))batch_CCG, data);
     printf("\n\tlaunching GPU CG thread...\n");
     // pthread_create(&th2, NULL, (void *(*)(void *))batch_CuCG, data);
     batch_CuCG(data);
@@ -273,10 +273,10 @@ int main(int argc, char *argv[]) {
   } else
     printf("Bad Concurrency Input!\n");
 
-  if (concurrent == 'Y') {
-    pthread_join(th1, NULL);
-    // pthread_join(th2, NULL);
-  }
+  // if (concurrent == 'Y') {
+  //  pthread_join(th1, NULL);
+  //  pthread_join(th2, NULL);
+  //}
   // Clean
   printf("cleaning memory\n");
   for (i = 0; i < matrix_count; i++) {

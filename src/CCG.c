@@ -10,7 +10,7 @@
 #include "../include/CUSTOMIZE.h"
 #include "../include/my_crs_matrix.h"
 
-void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, double *x,
+void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
          int max_iter, C_PRECI_DT tolerance, int *iter, C_PRECI_DT *elapsed) {
 
   for (int i = 0; i < A->n; i++) {
@@ -18,10 +18,10 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, double *x,
   }
   int n = A->n;
 
-  double *r = (double *)malloc(n * sizeof(double));
-  double *p = (double *)malloc(n * sizeof(double));
-  double *q = (double *)malloc(n * sizeof(double));
-  double *z = (double *)malloc(n * sizeof(double));
+  C_PRECI_DT *r = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
+  C_PRECI_DT *p = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
+  C_PRECI_DT *q = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
+  C_PRECI_DT *z = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
 
   C_PRECI_DT alpha = 0.0;
   C_PRECI_DT beta = 0.0;
@@ -101,13 +101,13 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, double *x,
          x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);*/
 
   // WALL TIME
-  double start;
-  double end;
+  C_PRECI_DT start;
+  C_PRECI_DT end;
   start = omp_get_wtime();
 
   // CPU TIME
   // clock_t start, end;
-  // double cpu_time_used;
+  // C_PRECI_DT cpu_time_used;
   // start = clock();
 
   // main CG loop
@@ -272,7 +272,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, double *x,
 
   // CPU TIME
   // end = clock();
-  //*elapsed = 1000 * (((double)(end - start)) / CLOCKS_PER_SEC);
+  //*elapsed = 1000 * (((C_PRECI_DT)(end - start)) / CLOCKS_PER_SEC);
 
   // WALL
   end = omp_get_wtime();
@@ -320,7 +320,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, double *x,
 }
 */
 
-void precondition(my_crs_matrix *M, double *r, double *z) {
+void precondition(my_crs_matrix *M, C_PRECI_DT *r, C_PRECI_DT *z) {
   int n = M->n;
 
   for (int i = 0; i < n; i++) {
@@ -332,13 +332,13 @@ void precondition(my_crs_matrix *M, double *r, double *z) {
   /*for (int i = 0; i < n; i++) {
     int start = M->rowptr[i];
     int end = M->rowptr[i + 1];
-    double *row_vals = &M->val[start];
+    C_PRECI_DT *row_vals = &M->val[start];
     int *row_indices = &M->col[start];
 
     z[i] = r[i];
     for (int j = start; j < end; j++) {
       int col_index = row_indices[j];
-      double val = row_vals[j];
+      C_PRECI_DT val = row_vals[j];
       if (col_index < i && col_index > 0) {
         printf("%d\n", col_index);
         z[i] -= val * z[col_index];
@@ -382,7 +382,7 @@ C_PRECI_DT matvec_dot(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y, int n) {
 
 // find the dot product of two vectors
 
-C_PRECI_DT dot(double *v, double *u, int n) {
+C_PRECI_DT dot(C_PRECI_DT *v, C_PRECI_DT *u, int n) {
 
   C_PRECI_DT x;
   int i;
@@ -393,7 +393,7 @@ C_PRECI_DT dot(double *v, double *u, int n) {
   return x;
 }
 
-void matvec(my_crs_matrix *A, C_PRECI_DT *x, double *y) {
+void matvec(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y) {
   int n = A->n;
   for (int i = 0; i < n; i++) {
     y[i] = 0.0;

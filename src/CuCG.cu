@@ -107,7 +107,7 @@ __host__ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A,
   CUDA_PRECI_DT_HOST ratio = 0;
 
   
-  CUDA_PRECI_DT_HOST Tiny = 0.1e-28;
+  CUDA_PRECI_DT_HOST Tiny = 0.0;
   CUDA_PRECI_DT_HOST minus_alpha = 0.0;
 
   // x is already zero
@@ -248,7 +248,8 @@ else
       //cudaDeviceSynchronize();
   #ifdef ENABLE_TESTS
       cudaMemcpy(onez, z_vec->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
-      printf("z[1] = %lf\n",onez[1]);
+      cudaMemcpy(oner, r_vec->val, n * sizeof(CUDA_PRECI_DT_HOST), cudaMemcpyDeviceToHost);
+      printf("z[%d] = %lf & r[%d] = %lf\n",1,onez[1],1,oner[1]);
   #endif
 
       // Rho = r z dot prod

@@ -1,5 +1,4 @@
 import csv
-from tabulate import tabulate
 import svgwrite
 
 def calculate_percentage(wall_time, mem_wall_time, fault_time):
@@ -39,9 +38,6 @@ with open(filename, 'r') as file:
 # Define the table headers
 headers = ['Device', 'Matrix', 'Precision', 'Iteration',
            'Wall Time (%)', 'Mem Wall Time (%)', 'Fault Time (%)']
-
-# Generate the table
-table = tabulate(table_data, headers, tablefmt="fancy_grid")
 
 # Convert table to SVG
 dwg = svgwrite.Drawing('Data/gpu_table.svg', profile='tiny')
