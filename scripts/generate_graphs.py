@@ -148,3 +148,4 @@ plt.tight_layout()
 plt.savefig('Data/iteration_counts.svg', format='svg')
 plt.show()
 plt.close()
+

@@ -65,7 +65,7 @@ void *batch_CCG(void *arg) {
   Data_CG *data = (Data_CG *)arg;
   FILE *ofile = fopen("results_CCG_TEST.csv", "w");
   int i, j;
-  C_PRECI_DT *x;
+  double *x;
   C_PRECI_DT *b;
   int iter;
   C_PRECI_DT elapsed;
@@ -81,7 +81,7 @@ void *batch_CCG(void *arg) {
       M = my_crs_read(data->pfiles[i]);
 
     // allocate arrays
-    x = calloc(A->n, sizeof(C_PRECI_DT));
+    x = calloc(A->n, sizeof(double));
     b = malloc(sizeof(C_PRECI_DT) * A->n);
     for (j = 0; j < A->n; j++)
       b[j] = 1;
@@ -89,10 +89,10 @@ void *batch_CCG(void *arg) {
     // run cpu
     if (data->pfiles) {
       printf("    and    %s\n", data->pfiles[i]);
-      CCG(A, M, b, x, data->maxit, (C_PRECI_DT)data->tol, &iter, &elapsed);
+      CCG(A, M, b, x, data->maxit, (double)data->tol, &iter, &elapsed);
     } else {
       printf("\n");
-      CCG(A, NULL, b, x, data->maxit, (C_PRECI_DT)data->tol, &iter, &elapsed);
+      CCG(A, NULL, b, x, data->maxit, (double)data->tol, &iter, &elapsed);
     }
 
     if (i == 0)

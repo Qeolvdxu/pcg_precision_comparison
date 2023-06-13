@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 all_empty=true
 
 # Exclude the mm directory from the find command

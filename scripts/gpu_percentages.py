@@ -10,7 +10,7 @@ def calculate_percentage(wall_time, mem_wall_time, fault_time):
     return wall_time_percentage, mem_wall_time_percentage, fault_time_percentage
 
 # Replace 'input.csv' with the actual file name
-filename = 'coo.csv'
+filename = 'Data/combo.csv'
 
 table_data = []
 
