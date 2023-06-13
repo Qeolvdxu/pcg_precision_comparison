@@ -260,8 +260,8 @@ int main(int argc, char *argv[]) {
   // Runs through C implementation on host and another thread for CUDA calling
 
   if (concurrent == 'Y') {
-    // printf("\n\tlaunching CCG thread...");
-    // pthread_create(&th1, NULL, (void *(*)(void *))batch_CCG, data);
+    printf("\n\tlaunching CCG thread...");
+    pthread_create(&th1, NULL, (void *(*)(void *))batch_CCG, data);
     printf("\n\tlaunching GPU CG thread...\n");
     // pthread_create(&th2, NULL, (void *(*)(void *))batch_CuCG, data);
     batch_CuCG(data);
@@ -273,10 +273,10 @@ int main(int argc, char *argv[]) {
   } else
     printf("Bad Concurrency Input!\n");
 
-  // if (concurrent == 'Y') {
-  //  pthread_join(th1, NULL);
-  //  pthread_join(th2, NULL);
-  //}
+  if (concurrent == 'Y') {
+    pthread_join(th1, NULL);
+    //  pthread_join(th2, NULL);
+  }
   // Clean
   printf("cleaning memory\n");
   for (i = 0; i < matrix_count; i++) {
