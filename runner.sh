@@ -71,10 +71,8 @@ echo "running the CG"
 (cd Build; ./cgpc "$precond_choice" "$concurrent_choice" "$tolerance" "$iteration_cap")
 
 echo "Creating the Data"
-(cd Build; cat results_CCG_TEST.csv > combo.csv && cat results_CudaCG_TEST.csv >> combo.csv)
 mkdir -p Data 2>/dev/null
-mv Build/*.csv Data/.
-
+(cd Data; cat results_CCG_TEST.csv > combo.csv && cat results_CudaCG_TEST.csv >> combo.csv)
 python3 scripts/gpu_percentages.py
 python3 scripts/iteration_graph.py
 python3 scripts/timings_graph.py
