@@ -65,12 +65,13 @@ else
     echo Using whatever is in the files.
 fi
 
-make cpu_mode="$cpu_mode" gpu_mode="$gpu_mode" gpu_preci="$gpu_preci" cpu_preci="$cpu_preci"
+make cpu_mode="$cpu_mode" gpu_mode="$gpu_mode" GPU_PRECI="$gpu_preci" CPU_PRECI="$cpu_preci"
 
-echo "running the CG"
+mkdir -p Data 2>/dev/null
+echo -r "\n * Running the CG\n"
 (cd Build; ./cgpc "$precond_choice" "$concurrent_choice" "$tolerance" "$iteration_cap")
 
-echo "Creating the Data"
+echo -e "\n * Creating the Data\n"
 mkdir -p Data 2>/dev/null
 (cd Data; cat results_CCG_TEST.csv > combo.csv && cat results_CudaCG_TEST.csv >> combo.csv)
 python3 scripts/gpu_percentages.py
