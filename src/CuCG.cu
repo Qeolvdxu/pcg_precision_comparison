@@ -352,7 +352,6 @@ else
 #endif
 
       if (itert > 1){
-        // A*x=r TONIGHTS_BIGGEST_LOSER
         cusparseSpMV_bufferSize(*handle,CUSPARSE_OPERATION_NON_TRANSPOSE, &n_one, A->desc, x->desc, &one, r_vec->desc, CUDA_PRECI_DT_DEVICE, CUSPARSE_MV_ALG_DEFAULT, &bufferSizeMV);
         cudaMalloc(&buff, bufferSizeMV);
         cusparseSpMV(*handle,
