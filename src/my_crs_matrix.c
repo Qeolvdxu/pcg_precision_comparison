@@ -61,7 +61,7 @@ my_crs_matrix *my_crs_read(char *name) {
     int i;
 
     fscanf(file, "%d %d %d", &M->m, &M->n, &M->nz);
-    M->val = malloc(sizeof(C_PRECI_DT) * M->nz);
+    M->val = malloc(sizeof(double) * M->nz);
 
     M->col = malloc(sizeof(int) * M->nz);
     M->rowptr = malloc(sizeof(int) * (M->n + 1));
@@ -71,7 +71,7 @@ my_crs_matrix *my_crs_read(char *name) {
     for (i = 0; i < M->nz; i++)
       fscanf(file, "%d ", &M->col[i]);
     for (i = 0; i < M->nz; i++)
-      fscanf(file, C_PRECI_S, &M->val[i]);
+      fscanf(file, "%lf ", &M->val[i]);
 
     /*printf("CCG rowptr: ");
     for (i = 0; i <= M->n; i++)
@@ -104,7 +104,7 @@ my_crs_matrix *eye(int n) {
   M->n = n;
   M->nz = n;
 
-  M->val = malloc(sizeof(C_PRECI_DT) * M->nz);
+  M->val = malloc(sizeof(double) * M->nz);
   M->col = malloc(sizeof(int) * M->nz);
   M->rowptr = malloc(sizeof(int) * M->n);
 

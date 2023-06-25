@@ -65,10 +65,10 @@ void *batch_CCG(void *arg) {
   Data_CG *data = (Data_CG *)arg;
   FILE *ofile = fopen("../Data/results_CCG_TEST.csv", "w");
   int i, j;
-  C_PRECI_DT *x;
-  C_PRECI_DT *b;
+  double *x;
+  double *b;
   int iter;
-  C_PRECI_DT elapsed;
+  double elapsed;
   printf("BATCH\n");
 
   for (i = 0; i < data->matrix_count; i++) {
@@ -81,18 +81,18 @@ void *batch_CCG(void *arg) {
       M = my_crs_read(data->pfiles[i]);
 
     // allocate arrays
-    x = calloc(A->n, sizeof(C_PRECI_DT));
-    b = malloc(sizeof(C_PRECI_DT) * A->n);
+    x = calloc(A->n, sizeof(double));
+    b = malloc(sizeof(double) * A->n);
     for (j = 0; j < A->n; j++)
       b[j] = 1;
 
     // run cpu
     if (data->pfiles) {
       printf("    and    %s\n", data->pfiles[i]);
-      CCG(A, M, b, x, data->maxit, (C_PRECI_DT)data->tol, &iter, &elapsed);
+      CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed);
     } else {
       printf("\n");
-      CCG(A, NULL, b, x, data->maxit, (C_PRECI_DT)data->tol, &iter, &elapsed);
+      CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed);
     }
 
     if (i == 0)
@@ -117,7 +117,7 @@ void *batch_CCG(void *arg) {
     printf("CPU CG Test %d complete in %d iterations!\n", i, iter);
   }
   printf("\t CPU COMPLETE!\n");
-  fclose(ofile);
+  // fclose(ofile);
   return NULL;
 }
 
@@ -260,8 +260,8 @@ int main(int argc, char *argv[]) {
   // Runs through C implementation on host and another thread for CUDA calling
 
   if (concurrent == 'Y') {
-    //printf("\n\tlaunching CCG thread...");
-    //pthread_create(&th1, NULL, (void *(*)(void *))batch_CCG, data);
+    printf("\n\tlaunching CCG thread...");
+    pthread_create(&th1, NULL, (void *(*)(void *))batch_CCG, data);
     printf("\n\tlaunching GPU CG thread...\n");
     // pthread_create(&th2, NULL, (void *(*)(void *))batch_CuCG, data);
     batch_CuCG(data);
@@ -273,10 +273,11 @@ int main(int argc, char *argv[]) {
   } else
     printf("Bad Concurrency Input!\n");
 
-  //if (concurrent == 'Y') {
-    //pthread_join(th1, NULL);
+  if (concurrent == 'Y') {
+    pthread_join(th1, NULL);
     //  pthread_join(th2, NULL);
-  //}
+  }
+
   // Clean
   printf("cleaning memory\n");
   for (i = 0; i < matrix_count; i++) {

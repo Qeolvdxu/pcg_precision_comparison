@@ -10,30 +10,29 @@
 #include "../include/CUSTOMIZE.h"
 #include "../include/my_crs_matrix.h"
 
-void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
-         int max_iter, C_PRECI_DT tolerance, int *iter, C_PRECI_DT *elapsed) {
-
+void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
+         double tolerance, int *iter, double *elapsed) {
   int n = A->n;
-  C_PRECI_DT *r = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
+  double *r = (double *)malloc(n * sizeof(double));
 
-  C_PRECI_DT *p = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
-  C_PRECI_DT *q = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
-  C_PRECI_DT *z = (C_PRECI_DT *)malloc(n * sizeof(C_PRECI_DT));
+  double *p = (double *)malloc(n * sizeof(double));
+  double *q = (double *)malloc(n * sizeof(double));
+  double *z = (double *)malloc(n * sizeof(double));
 
-  C_PRECI_DT alpha = 0.0;
-  C_PRECI_DT beta = 0.0;
+  double alpha = 0.0;
+  double beta = 0.0;
 
   int j = 0;
 
-  C_PRECI_DT v = 0.0;
-  C_PRECI_DT Rho = 0.0;
-  C_PRECI_DT Rtmp = 0.0;
+  double v = 0.0;
+  double Rho = 0.0;
+  double Rtmp = 0.0;
 
-  C_PRECI_DT res_norm = 0.0;
-  C_PRECI_DT init_norm = 0.0;
-  C_PRECI_DT ratio = 0.0;
+  double res_norm = 0.0;
+  double init_norm = 0.0;
+  double ratio = 0.0;
 
-  C_PRECI_DT Tiny = 0.0;
+  double Tiny = 0.1e-27;
 
   // x = zeros
   for (int i = 0; i < n; i++)
@@ -42,11 +41,11 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
   // r = b - A*x
   matvec(A, x, r);
   for (int i = 0; i < n; i++)
-    r[i] = b[i] - r[i];
+    r[i] = (C_PRECI_DT)b[i] - (C_PRECI_DT)r[i];
 
   // z = MT\(M\r);
   if (M)
-    precondition(M, r, z);
+    precondition(M, (C_PRECI_DT *)r, z);
   else
     for (j = 0; j < n; j++)
       z[j] = r[j];
@@ -65,37 +64,25 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
     init_norm = 1.0;
   ratio = 1.0;
 
-  /*printf("** %lf | %d | %d ** \n", A->val[1], A->col[1], A->rowptr[1]);
-  printf("iteration PREQUEL\n x0 = %lf \t alpha= %lf \t beta= %lf \n r0 = %lf "
-         "\n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm ratio(%lf) > "
-         "tolerance(%lf)\n\n\n",
-         x[0], alpha, beta, r[0], p[0], q[0], z[0], ratio, tolerance);*/
-
   // WALL TIME
   double start;
   double end;
   start = omp_get_wtime();
 
-  // CPU TIME
-  // clock_t start, end;
-  // double cpu_time_used;
-  // start = clock();
-
   // main CG loop
   int itert = 0;
-  //  printf("%d \n", *iter);
   while (itert < max_iter && ratio > tolerance) {
-    // printf("%d < %d && %f > %f\n", itert, max_iter, ratio, tolerance);
-// next iteration
+
 #ifdef ENABLE_TESTS
     printf("\nITERATION %d\n", itert);
 #endif
+
     itert++;
 
     // Precondition
     // z = MT\(M\r);
     if (M)
-      precondition(M, r, z);
+      precondition(M, (C_PRECI_DT *)r, z);
     else
       for (j = 0; j < n; j++)
         z[j] = r[j];
@@ -119,12 +106,13 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
     } else {
       // beta = dot(r,z) / v
       //
+      // beta = (C_PRECI_DT)Rho / ((C_PRECI_DT)v + (C_PRECI_DT)Tiny);
       beta = Rho / (v + Tiny);
       for (j = 0; j < n; j++)
-        p[j] = z[j] + (beta * p[j]);
+        p[j] = (C_PRECI_DT)z[j] + ((C_PRECI_DT)beta * (C_PRECI_DT)p[j]);
     }
 #ifdef ENABLE_TESTS
-    printf("beta = %lf\n", beta);
+    printf("beta = %.11lf\n%.11lf / (%.11lf + %.11lf)\n", beta, Rho, v, Tiny);
     printf("p[1] = %lf\n", p[1]);
 #endif
 
@@ -135,7 +123,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
 #endif
 
     for (j = 0, Rtmp = 0.0; j < n; j++)
-      Rtmp += p[j] * q[j];
+      Rtmp += (C_PRECI_DT)p[j] * (C_PRECI_DT)q[j];
 #ifdef ENABLE_TESTS
     printf("Rtmp = %lf\n", Rtmp);
 #endif
@@ -147,21 +135,21 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
 #endif
 
     // alpha = v / dot(p,q)
-    alpha = Rho / (Rtmp + Tiny);
+    alpha = (C_PRECI_DT)Rho / ((C_PRECI_DT)Rtmp + (C_PRECI_DT)Tiny);
 #ifdef ENABLE_TESTS
     printf("alpha = %lf\n", alpha);
 #endif
 
     // x = x + alpha * p
     for (j = 0; j < n; j++)
-      x[j] = x[j] + (alpha * p[j]);
+      x[j] = (C_PRECI_DT)x[j] + ((C_PRECI_DT)alpha * (C_PRECI_DT)p[j]);
 #ifdef ENABLE_TESTS
-    printf("x[1] = %lf\n", x[1]);
+    printf("x[1] = %.11lf\n", x[1]);
 #endif
 
     // r = r - alpha * q
     for (j = 0; j < n; j++)
-      r[j] -= alpha * q[j];
+      r[j] -= (C_PRECI_DT)alpha * (C_PRECI_DT)q[j];
 #ifdef ENABLE_TESTS
     printf("r[1] = %lf\n", r[1]);
 #endif
@@ -172,9 +160,9 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
     printf("res norm = %lf\n", res_norm);
 #endif
 
-    ratio = res_norm / init_norm;
+    ratio = (C_PRECI_DT)res_norm / (C_PRECI_DT)init_norm;
 #ifdef ENABLE_TESTS
-    printf("ratio = %lf\n", ratio);
+    printf("ratio = %0.11lf\n", ratio);
 #endif
     if (itert > 1) {
       matvec(A, x, r);
@@ -182,7 +170,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
       printf("r[1] = %lf\n", r[1]);
 #endif
       for (j = 0; j < n; j++)
-        r[j] = b[j] - r[j];
+        r[j] = (C_PRECI_DT)b[j] - (C_PRECI_DT)r[j];
     }
 #ifdef ENABLE_TESTS
     printf("r[1] = %lf\n", r[1]);
@@ -220,8 +208,8 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, C_PRECI_DT *b, C_PRECI_DT *x,
 }
 
 // find z = M^(-1)r
-/*void precondition(my_crs_matrix *M, my_crs_matrix *L, C_PRECI_DT *r,
-C_PRECI_DT *z)
+/*void precondition(my_crs_matrix *M, my_crs_matrix *L, double *r,
+  C_PRECI_DT *z)
 {
   int n = M->n;
   int i, j;
@@ -253,13 +241,13 @@ C_PRECI_DT *z)
   free(y);
 }
 */
-void precondition(my_crs_matrix *M, C_PRECI_DT *r, C_PRECI_DT *z) {
+void precondition(my_crs_matrix *M, C_PRECI_DT *r, double *z) {
   int n = M->n;
 
   for (int i = 0; i < n; i++) {
-    z[i] = r[i] / M->val[M->rowptr[i]];
+    z[i] = (C_PRECI_DT)r[i] / (C_PRECI_DT)M->val[M->rowptr[i]];
     for (int j = M->rowptr[i] + 1; j < M->rowptr[i + 1]; j++)
-      r[M->col[j]] -= M->val[j] * z[i];
+      r[M->col[j]] -= (C_PRECI_DT)M->val[j] * (C_PRECI_DT)z[i];
   }
 
   /*for (int i = 0; i < n; i++) {
@@ -297,12 +285,13 @@ void precondition(my_crs_matrix *M, C_PRECI_DT *r, C_PRECI_DT *z) {
   }*/
 }
 
-C_PRECI_DT matvec_dot(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y, int n) {
+double matvec_dot(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y, int n) {
 
-  C_PRECI_DT result = 0.0;
+  double result = 0.0;
   for (int i = 0; i < n; i++) {
     for (int j = A->rowptr[i]; j < A->rowptr[i + 1]; j++) {
-      result += x[i] * A->val[j] * y[A->col[j]];
+      result = (C_PRECI_DT)result + (C_PRECI_DT)x[i] * (C_PRECI_DT)A->val[j] *
+                                        (C_PRECI_DT)y[A->col[j]];
       // printf("result += %lf * %lf * %lf\n", x[i] , A->val[j] ,
       // y[A->col[j]]);
     }
@@ -314,48 +303,50 @@ C_PRECI_DT matvec_dot(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y, int n) {
 
 // find the dot product of two vectors
 
-C_PRECI_DT dot(C_PRECI_DT *v, C_PRECI_DT *u, int n) {
+double dot(double *v, double *u, int n) {
 
-  C_PRECI_DT x;
+  double x;
   int i;
 
   for (i = 0, x = 0.0; i < n; i++)
-    x += v[i] * u[i];
+    x += (C_PRECI_DT)v[i] * (C_PRECI_DT)u[i];
 
   return x;
 }
 
-void matvec(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y) {
+void matvec(my_crs_matrix *A, double *x, double *y) {
   int n = A->n;
   for (int i = 0; i < n; i++) {
     y[i] = 0.0;
     for (int j = A->rowptr[i]; j < A->rowptr[i + 1]; j++) {
       // printf("%d ? %d\n", A->col[j], n);
-      y[i] += A->val[j] * x[A->col[j]];
+      y[i] += (C_PRECI_DT)A->val[j] * (C_PRECI_DT)x[A->col[j]];
     }
   }
 }
 
 // find the norm of a vector
-C_PRECI_DT norm(int n, C_PRECI_DT *v) {
-  C_PRECI_DT ssq, scale, absvi;
+double norm(int n, double *v) {
+  double ssq, scale, absvi;
   int i;
 
   if (n == 1)
-    return fabs(v[0]);
+    return fabs((C_PRECI_DT)v[0]);
 
   scale = 0.0;
   ssq = 1.0;
 
   for (i = 0; i < n; i++) {
-    if (v[i] != 0) {
-      absvi = fabs(v[i]);
-      if (scale < absvi) {
-        ssq = 1.0 + ssq * (scale / absvi) * (scale / absvi);
+    if ((C_PRECI_DT)v[i] != 0) {
+      absvi = fabs((C_PRECI_DT)v[i]);
+      if ((C_PRECI_DT)scale < (C_PRECI_DT)absvi) {
+        ssq = 1.0 + (C_PRECI_DT)ssq * ((C_PRECI_DT)scale / (C_PRECI_DT)absvi) *
+                        ((C_PRECI_DT)scale / (C_PRECI_DT)absvi);
         scale = absvi;
       } else
-        ssq = ssq + (absvi / scale) * (absvi / scale);
+        ssq = (C_PRECI_DT)ssq + ((C_PRECI_DT)absvi / (C_PRECI_DT)scale) *
+                                    ((C_PRECI_DT)absvi / (C_PRECI_DT)scale);
     }
   }
-  return scale * sqrt(ssq);
+  return (C_PRECI_DT)scale * (C_PRECI_DT)sqrt((C_PRECI_DT)ssq);
 }

@@ -1,17 +1,17 @@
 CC = gcc
 NVCC = nvcc
 
-CFLAGS = -g -Wall -Wextra -pedantic -gdwarf-4
-NVCCFLAGS = -O3 -Xcompiler -Wall,-Wpedantic -x c -g -G
+CFLAGS = -O3 -Wall -Wextra -pedantic -gdwarf-4
+NVCCFLAGS = -O3 -Wextra -Wall -Wpedantic
 
 # Retrieve the value of the 'gpu' variable from the command line
 GPU_MODE := $(gpu_mode)
 ifeq ($(GPU_MODE),debug)
-    NVCCFLAGS += -DENABLE_TESTS
+    NVCCFLAGS += -DENABLE_TESTS -g
 endif
 CPU_MODE := $(cpu_mode)
 ifeq ($(CPU_MODE),debug)
-    CFLAGS += -DENABLE_TESTS
+    CFLAGS += -DENABLE_TESTS -g
 endif
 
 
@@ -51,7 +51,7 @@ $(TARGET): $(BUILDDIR)cudacode.o
 
 $(BUILDDIR)cudacode.o:
 	mkdir -p $(BUILDDIR)
-	$(NVCC) $(NVCCFLAGS) -o $(BUILDDIR)CuCG.o -c $(SRCDIR)CuCG.cu -lcusparse
+	$(CC) $(NVCCFLAGS) -o $(BUILDDIR)CuCG.o -c $(SRCDIR)CuCG.c -lcusparse
 
 clean:
 	rm -rf $(BUILDDIR)*.o $(BUILDDIR)$(TARGET)

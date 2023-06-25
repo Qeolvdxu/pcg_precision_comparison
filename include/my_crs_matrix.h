@@ -8,7 +8,7 @@ typedef struct {
   int n;
   int m;
   int nz;
-  C_PRECI_DT *val;
+  double *val;
   int *col;
   int *rowptr;
 } my_crs_matrix;
