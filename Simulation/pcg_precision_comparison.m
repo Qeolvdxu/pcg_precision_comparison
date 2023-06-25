@@ -1,5 +1,5 @@
 %lrighty test custom PCG algorithm with various data types
-
+addpath('../scripts')
 % customizable settings 
 max_iters = 8000;
 tol = 1e-6;

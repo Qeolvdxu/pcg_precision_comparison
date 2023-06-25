@@ -1,21 +1,4 @@
 function [y,options] = roundit(x,options)
-%ROUNDIT   Round a matrix to integer entries, with various options.
-%   y = ROUNDIT(X,options) rounds the matrix X to have integer
-%   entries, as specified by options.round:
-%     1: round to nearest integer using round to even to break ties
-%        (the default),
-%     2: round towards plus infinity (round up),
-%     3: round towards minus infinity (round down,
-%     4: round towards zero,
-%     5: stochastic rounding - round to the next larger or next smaller
-%        integer with probability equal to 1 minus the distance to 
-%        those integers,
-%     6: stochastic rounding - round to the next larger or next smaller
-%        integer with equal probahility.
-%   For stochastic rounding, exact integers are not changed.
-%   If options.flip = 1 (default 0) then each element of the rounded result 
-%   has, with probability options.p (default 0.5), a randomly chosen bit
-%   (in its binary representation) flipped. 
 
 if nargin < 2 || isempty(options) 
    options.round = 1; options.flip = 0; options.p = 0.5;
