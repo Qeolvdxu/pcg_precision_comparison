@@ -45,7 +45,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 
   // z = MT\(M\r);
   if (M)
-    precondition(M, (C_PRECI_DT *)r, z);
+    forwardsub(M, (C_PRECI_DT *)r, z);
   else
     for (j = 0; j < n; j++)
       z[j] = r[j];
@@ -82,7 +82,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
     // Precondition
     // z = MT\(M\r);
     if (M)
-      precondition(M, (C_PRECI_DT *)r, z);
+      forwardsub(M, (C_PRECI_DT *)r, z);
     else
       for (j = 0; j < n; j++)
         z[j] = r[j];
@@ -241,48 +241,18 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   free(y);
 }
 */
-void precondition(my_crs_matrix *M, C_PRECI_DT *r, double *z) {
-  int n = M->n;
-
+void forwardsub(my_crs_matrix *A, C_PRECI_DT *b, double *x) {
+  int n = A->n;
   for (int i = 0; i < n; i++) {
-    z[i] = (C_PRECI_DT)r[i] / (C_PRECI_DT)M->val[M->rowptr[i]];
-    for (int j = M->rowptr[i] + 1; j < M->rowptr[i + 1]; j++)
-      r[M->col[j]] -= (C_PRECI_DT)M->val[j] * (C_PRECI_DT)z[i];
+    double sum = 0.0;
+    int row_start = A->rowptr[i];
+    int row_end = A->rowptr[i + 1];
+    for (int j = row_start; j < row_end; j++) {
+      int col = A->col[j];
+      sum += A->val[j] * x[col];
+    }
+    x[i] = (b[i] - sum) / A->val[row_end - 1];
   }
-
-  /*for (int i = 0; i < n; i++) {
-    int start = M->rowptr[i];
-    int end = M->rowptr[i + 1];
-    double *row_vals = &M->val[start];
-    int *row_indices = &M->col[start];
-
-    z[i] = r[i];
-    for (int j = start; j < end; j++) {
-      int col_index = row_indices[j];
-      double val = row_vals[j];
-      if (col_index < i && col_index > 0) {
-        printf("%d\n", col_index);
-        z[i] -= val * z[col_index];
-      }
-    }
-    z[i] /= M->val[start];
-  }*/
-  // forward subsitution
-  /*z[0] = r[0] / M->val[0];
-  C_PRECI_DT comp = 0.0;
-
-  for (int i = 1; i < M->n; i++) {
-    comp = comp * 0;
-    for (int j = M->rowptr[i]; j < M->rowptr[i + 1]; j++) {
-      int colIndex = M->col[j];
-      // printf("colindex = %d\n", colIndex);
-      comp += M->val[j] * z[colIndex];
-      // printf("comp += %lf * %lf\n = %lf\n", M->val[j], z[colIndex], comp);
-    }
-    z[i] = (r[i] - comp) / M->val[M->rowptr[i]];
-    printf("z[%d] += (%lf - %lf) / [%d] %lf = %lf\n\n", i, r[i], comp,
-           M->rowptr[i], M->val[M->rowptr[i]], z[i]);
-  }*/
 }
 
 double matvec_dot(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y, int n) {

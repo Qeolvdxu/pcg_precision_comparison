@@ -10,7 +10,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 
 // cg preconditioning related functions
 void ichol(my_crs_matrix *M, double *L);
-void precondition(my_crs_matrix *L, C_PRECI_DT *r, double *z);
+void forwardsub(my_crs_matrix *A, C_PRECI_DT *b, double *x);
 
 // various linear algebra functions needed for cg
 double matvec_dot(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y, int n);
