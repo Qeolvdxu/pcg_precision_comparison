@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH -J cgpc
+#SBATCH -t 48:00:00
+#SBATCH -N 1
+<<<<<<< HEAD
+#SBATCH -n 2
+=======
+#SBTACH -n 2
+>>>>>>> be5ae2ca4c438101836bba0b9ae212e63bdcb3a5
+
+module load cuda
+cd ../src && make
+exec ./build/cgpc

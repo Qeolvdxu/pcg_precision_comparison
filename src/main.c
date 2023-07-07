@@ -1,21 +1,24 @@
 #define _DEFAULT_SOURCE
-#include <stdio.h>
+
 #include <dirent.h>
-#include <stdlib.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "../include/my_crs_matrix.h"
 #include "../include/CCG.h"
+#include "../include/CUSTOMIZE.h"
 #include "../include/CuCG.h"
+#include "../include/my_crs_matrix.h"
 
-//call_CuCG(files[i],b,x,maxit,tol);
+// call_CuCG(files[i],b,x,maxit,tol);
 
-typedef struct{
+typedef struct {
   int matrix_count;
   char **files;
+  char **pfiles;
   int maxit;
-  PRECI_DT tol;
+  double tol;
 } Data_CG;
 
 char **find_files(const char *dir_path, int *num_files) {
@@ -23,6 +26,8 @@ char **find_files(const char *dir_path, int *num_files) {
   struct dirent *entry;
   char **files = NULL;
   int count = 0;
+  int i, j;
+  char *temp;
 
   if (dir == NULL) {
     perror("opendir");
@@ -32,147 +37,255 @@ char **find_files(const char *dir_path, int *num_files) {
   while ((entry = readdir(dir)) != NULL) {
     if (entry->d_type == DT_REG) {
       files = (char **)realloc(files, sizeof(char *) * (count + 1));
-      files[count] = (char *)malloc(strlen(dir_path) + strlen(entry->d_name) + 2);
+      files[count] =
+          (char *)malloc(strlen(dir_path) + strlen(entry->d_name) + 2);
       sprintf(files[count], "%s/%s", dir_path, entry->d_name);
       count++;
     }
   }
 
   closedir(dir);
+
+  for (i = 0; i < count - 1; i++) {
+    for (j = 0; j < count - i - 1; j++) {
+      if (strcmp(files[j], files[j + 1]) > 0) {
+        temp = files[j];
+        files[j] = files[j + 1];
+        files[j + 1] = temp;
+      }
+    }
+  }
+
   *num_files = count;
+
   return files;
 }
 
-int batch_CCG(Data_CG *data)
-{
-  FILE *ofile = fopen("results_CCG_TEST.csv","w");
+void *batch_CCG(void *arg) {
+  Data_CG *data = (Data_CG *)arg;
+  FILE *ofile = fopen("../Data/results_CCG_TEST.csv", "w");
   int i, j;
-  PRECI_DT *x;
-  PRECI_DT *b;
-  int m, n, z;
+  double *x;
+  double *b;
+  int iter;
+  double elapsed;
   printf("BATCH\n");
 
-  for (i = 0; i < data->matrix_count; i++)
-  {
-  	// Create Matrix struct and Precond
-	printf("%s\n",data->files[i]);
-  	my_crs_matrix *A = my_crs_read(data->files[i]);
-  	my_crs_matrix *M = eye(A->n);
-	n = A->n;
+  for (i = 0; i < data->matrix_count; i++) {
+    // Create Matrix struct and Precond
+    printf("%s", data->files[i]);
+    my_crs_matrix *A = my_crs_read(data->files[i]);
 
-	// allocate arrays
-  	x = calloc(A->n, sizeof(PRECI_DT));
-  	b = malloc(sizeof(PRECI_DT)*A->n);
-	for (j = 0; j < A->n; j++) b[j] = 1;
-  
-  	// run cpu
-  	CCG(A, M, b, x, data->maxit, data->tol, NULL, NULL);
-	fprintf(ofile, "CPU,");
-	fprintf(ofile, "%s,",data->files[i]);
-	for(j = 0; j < n; j++)
-	    fprintf(ofile,"%.2e,",x[j]);
-	fprintf(ofile,"\n");
-	printf("C CG Test %d complete!\n",i);
+    my_crs_matrix *M;
+    if (data->pfiles)
+      M = my_crs_read(data->pfiles[i]);
+
+    // allocate arrays
+    x = calloc(A->n, sizeof(double));
+    b = malloc(sizeof(double) * A->n);
+    for (j = 0; j < A->n; j++)
+      b[j] = 1;
+
+    // run cpu
+    if (data->pfiles) {
+      printf("    and    %s\n", data->pfiles[i]);
+      CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed);
+    } else {
+      printf("\n");
+      CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed);
+    }
+
+    if (i == 0)
+      fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
+                     "TIME,FAULT_TIME,X_VECTOR\n");
+    fprintf(ofile, "CPU,");
+    fprintf(ofile, "%s,", data->files[i]);
+    fprintf(ofile, "%s,%d,%lf,%d,%d,", C_PRECI_NAME, iter, elapsed, 0, 0);
+    // printf("TOTAL C ITERATIONS: %d", iter);
+    for (j = 0; j < 5; j++) {
+      fprintf(ofile, "%0.10lf,", x[j]);
+      // printf("%0.10lf,", x[j]);
+    }
+    fprintf(ofile, "\n");
+
+    my_crs_free(A);
+    if (data->pfiles)
+      my_crs_free(M);
+    free(b);
+    free(x);
+
+    printf("CPU CG Test %d complete in %d iterations!\n", i, iter);
   }
-  printf("\t C COMPLETE!");
-	fclose(ofile);
-  return 0;
+  printf("\t CPU COMPLETE!\n");
+  // fclose(ofile);
+  return NULL;
 }
 
-int batch_CuCG(Data_CG *data)
-{
-  FILE *ofile = fopen("results_CudaCG_TEST.csv","w");
-  printf("%d matrices\n",data->matrix_count); 
-  int i, j;
-  PRECI_DT *x;
-  PRECI_DT *b;
-  int m, n, z;
-  FILE *file;
+void *batch_CuCG(void *arg) {
+  Data_CG *data = (Data_CG *)arg;
+  FILE *ofile = fopen("../Data/results_CudaCG_TEST.csv", "w");
+  printf("%d matrices\n", data->matrix_count);
+  int i, j, iter;
+  CUDA_PRECI_DT_HOST elapsed, mem_elapsed, fault_elapsed;
+  CUDA_PRECI_DT_HOST *x;
+  CUDA_PRECI_DT_HOST *b;
+  int n;
 
-  for (i = 0; i < data->matrix_count; i++)
-  {
-	//get matrix size
-//  	file = fopen(data->files[i], "r");
-  	my_crs_matrix *A = my_crs_read(data->files[i]);
-	printf("%s\n",data->files[i]);
-	n = A->n;
+  for (i = 0; i < data->matrix_count; i++) {
+    // get matrix size
+    //  	file = fopen(data->files[i], "r");
+    printf("%s", data->files[i]);
+    my_crs_matrix *A = my_crs_read(data->files[i]);
+    n = A->n;
 
-	// allocate arrays
-  	x = calloc(n, sizeof(PRECI_DT));
-  	b = malloc(sizeof(PRECI_DT)*n);
-	for (j = 0; j < n; j++) b[j] = 1;
+    // allocate arrays
+    x = calloc(n, sizeof(CUDA_PRECI_DT_HOST));
+    b = malloc(sizeof(CUDA_PRECI_DT_HOST) * n);
+    for (j = 0; j < n; j++)
+      b[j] = 1;
 
-	// run gpu
-  	call_CuCG(data->files[i],b,x,data->maxit,data->tol);
-	fprintf(ofile, "GPU,");
-	fprintf(ofile, "%s,",data->files[i]);
-	for(j = 0; j < n; j++)
-	    fprintf(ofile,"%.2e,",x[j]);
-	fprintf(ofile,"\n");
-	printf("Cuda CG Test %d complete!\n",i);
+    // run gpu
+    if (data->pfiles) {
+      printf("    and    %s\n", data->pfiles[i]);
+      call_CuCG(data->files[i], data->pfiles[i], b, x, data->maxit,
+                (CUDA_PRECI_DT_HOST)data->tol, &iter, &elapsed, &mem_elapsed,
+                &fault_elapsed);
+    } else {
+      printf("\n");
+      call_CuCG(data->files[i], NULL, b, x, data->maxit,
+                (CUDA_PRECI_DT_HOST)data->tol, &iter, &elapsed, &mem_elapsed,
+                &fault_elapsed);
+    }
+    // printf("%d %lf\n", iter, elapsed);
+    if (i == 0)
+      fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
+                     "TIME,FAULT_TIME,"
+                     "X_VECTOR\n");
+    fprintf(ofile, "GPU,");
+    fprintf(ofile, "%s,", data->files[i]);
+    fprintf(ofile, "%s,%d,%lf,%lf,%lf,", CUDA_PRECI_NAME, iter, elapsed,
+            mem_elapsed, fault_elapsed);
+    // printf("TOTAL CUDA ITERATIONS: %d", iter);
+    for (j = 0; j < 5; j++) {
+      fprintf(ofile, "%0.10lf,", x[j]);
+      // printf("%0.10lf,", x[j]);
+    }
+    fprintf(ofile, "\n");
+
+    my_crs_free(A);
+    free(x);
+    free(b);
+
+    printf("GPU CG Test %d complete in %d iterations!\n", i, iter);
   }
-  printf("\t CUDA COMPLETE!");
-	//fclose(ofile);
-  return 0;
+  printf("\t GPU COMPLETE!\n");
+  fclose(ofile);
+  return NULL;
 }
 
-int main(void) {
-
-// Set inital values
+int main(int argc, char *argv[]) {
+  // Set inital values
   int i = 0;
-  int j = 0;
-  char* name;
-  double tol = 0;
-  int maxit = 0;
+  char precond, concurrent;
+  char *name;
+  char *pname;
   int matrix_count = 0;
-  char **files;
-  int iter = 0;
-  pthread_t th1, th2;
+  int precond_count = 0;
+  pthread_t th1;
+  pthread_t th2;
   Data_CG *data;
 
-// Collect information from user
-  printf("Conjugate Gradient GPU and CPU Precision Comparison Test\n");
+  // Collect information from user
+  printf("Conjugate Gradient GPU and CPU Precision Comparison Test\n"
+         "Enter your options now, or pass them as arguments on launch\n\n");
 
- //Read Directory of Matrices
-   name = "../../test_subjects/norm";
-  //printf("Enter the directory of matrices: ");
-  //scanf("%s",name);
-  files = find_files(name,&matrix_count);
-  printf("%d\n",matrix_count);
-
- // Set answer precision tolerance 
-  tol = 1e-7;
-  //printf("Enter the tolerance : ");
-  //scanf("%lf",&tol);
-
- // Stop algorithm from continuing after this many iterations
-  maxit = 1000;//00000;
-  //printf("Enter the maximum iterations : ");
-  //scanf("%d",&maxit);
+  // Read Directory of Matrices
+  name = "../test_subjects/norm";
+  pname = "../test_subjects/precond_norm";
+  // printf("Enter the directory of matrices: ");
+  // scanf("%s",name);
 
   data = malloc(sizeof(Data_CG));
-  data->matrix_count = matrix_count;
-  data->files = files;
-  data->maxit = maxit;
-  data->tol = tol;
-  printf("%d\n",data->matrix_count); 
 
+  if (argc == 1) {
+    printf("Use preconditioning? (Y or N): ");
+    scanf(" %c", &precond);
+  } else if (argc >= 2) {
+    precond = argv[1][0];
+  }
 
- // Iterativly run conjugate gradient for each matrix
- // Runs through C implementation on a thread and another for CUDA calling
- //printf("launching CCG thread...");
- pthread_create(&th1, NULL, batch_CCG, data);
- //batch_CCG(data);
+  concurrent = 'Y';
+  if (argc == 1) {
+    printf("Run CPU and GPU concurrently? (Y or N): ");
+    scanf(" %c", &concurrent);
+  } else if (argc >= 3) {
+    concurrent = argv[2][0];
+  }
 
- printf("launching CuCG thread...\n");
-// pthread_create(&th1, NULL, batch_CuCG, data);
- batch_CuCG(data);
+  data->files = find_files(name, &data->matrix_count);
 
- pthread_join(th1, NULL);
- //pthread_join(th2, NULL);
+  if (matrix_count != precond_count && precond == 'Y') {
+    printf("ERROR: number of matricies (%d) and precondtioners (%d) do not "
+           "match!\n",
+           matrix_count, precond_count);
+    return 1;
+  }
+
+  if (precond == 'Y')
+    data->pfiles = find_files(pname, &precond_count);
+  else if (precond == 'N')
+    data->pfiles = NULL;
+  else
+    printf("Bad Precond Input!\n");
+
+  // Set answer precision tolerance
+  data->tol = 1e-7;
+  if (argc == 1) {
+    printf("Enter the tolerance : ");
+    scanf(" %lf", &data->tol);
+  } else if (argc >= 4) {
+    data->tol = strtof(argv[3], NULL);
+  }
+
+  // Stop algorithm from continuing after this many iterations
+  data->maxit = 10000; // 00000;
+  if (argc == 1) {
+    printf("Enter the maximum iterations : ");
+    scanf(" %d", &data->maxit);
+  } else if (argc >= 5) {
+    data->maxit = strtol(argv[4], NULL, 10);
+  }
+
+  // Iterativly run conjugate gradient for each matrix
+  // Runs through C implementation on host and another thread for CUDA calling
+
+  if (concurrent == 'Y') {
+    printf("\n\tlaunching CCG thread...");
+    pthread_create(&th1, NULL, (void *(*)(void *))batch_CCG, data);
+    printf("\n\tlaunching GPU CG thread...\n");
+    // pthread_create(&th2, NULL, (void *(*)(void *))batch_CuCG, data);
+    batch_CuCG(data);
+  } else if (concurrent == 'N') {
+    printf("\n\trunning CCG function...");
+    batch_CCG(data);
+    printf("\n\trunning GPU CG function...");
+    batch_CuCG(data);
+  } else
+    printf("Bad Concurrency Input!\n");
+
+  if (concurrent == 'Y') {
+    pthread_join(th1, NULL);
+    //  pthread_join(th2, NULL);
+  }
 
   // Clean
-  free(files);
+  printf("cleaning memory\n");
+  for (i = 0; i < matrix_count; i++) {
+    free(data->files[i]);
+    if (precond == 'Y')
+      free(data->pfiles[i]);
+  }
+  free(data);
   printf("Tests Complete!\n");
 
   return 0;
