@@ -9,19 +9,27 @@
 #include "../include/CCG.h"
 #include "../include/CUSTOMIZE.h"
 #include "../include/my_crs_matrix.h"
+#include "../include/trisolv.h"
 
 void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
          double tolerance, int *iter, double *elapsed) {
   int n = A->n;
   double *r = (double *)malloc(n * sizeof(double));
-
   double *p = (double *)malloc(n * sizeof(double));
   double *q = (double *)malloc(n * sizeof(double));
   double *z = (double *)malloc(n * sizeof(double));
 
+  double *temp = (double *)malloc(n * sizeof(double));
+  double *y = (double *)malloc(n * sizeof(double));
+
   double alpha = 0.0;
   double beta = 0.0;
 
+  my_crs_matrix *MT;
+  if (M) {
+    MT = (my_crs_matrix *)malloc(sizeof(my_crs_matrix));
+    MT = sparse_transpose(M);
+  }
   int j = 0;
 
   double v = 0.0;
@@ -43,12 +51,8 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   for (int i = 0; i < n; i++)
     r[i] = (C_PRECI_DT)b[i] - (C_PRECI_DT)r[i];
 
-  // z = MT\(M\r);
-  if (M)
-    forwardsub(M, (C_PRECI_DT *)r, z);
-  else
-    for (j = 0; j < n; j++)
-      z[j] = r[j];
+  for (j = 0; j < n; j++)
+    z[j] = 0.0;
 
   for (int i = 0; i < n; i++)
     p[i] = z[i];
@@ -81,9 +85,26 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 
     // Precondition
     // z = MT\(M\r);
-    if (M)
-      forwardsub(M, (C_PRECI_DT *)r, z);
-    else
+    if (M && itert) {
+
+#ifdef ENABLE_TESTS
+      /*  if (!isLowerTriangular(M))
+          printf("Error: The matrix is NOT lower triangular.\n");
+        else
+          printf("The matrix is lower triangular.\n");
+        printMatrix("Matrix M", M);
+        printMatrix("Matrix MT", MT); */
+#endif
+
+      forwardSubstitutionCSR(M, r, y);
+      backwardSubstitutionCSR(MT, y, z);
+
+#ifdef ENABLE_TESTS
+      /* printVector("Solution z", z, n);
+       printVector("Vector r", r, n);
+       printVector("Vector y", y, n); */
+#endif
+    } else
       for (j = 0; j < n; j++)
         z[j] = r[j];
 

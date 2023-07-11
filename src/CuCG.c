@@ -123,15 +123,15 @@ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A, my_cuda_csr_matrix *M,
   AXPY_FUN(*handle_blas, n, &ne_one, r_vec->val, 1, b->val, 1);
   COPY_FUN(*handle_blas, n, b->val, 1, r_vec->val, 1);
 
-  if (M) { // z = MT\(M\r);
-    csrsv2Info_t info;
-    cusparseCreateCsrsv2Info(&info);
-    SPSV_FUN(*handle, CUSPARSE_OPERATION_NON_TRANSPOSE, M->m, M->nz, &n_one,
-             M->desctwo, M->val, M->rowptr, M->col, info, r_vec->val,
-             z_vec->val, CUSPARSE_SOLVE_POLICY_NO_LEVEL, NULL);
-  } else { // z = r
-    COPY_FUN(*handle_blas, n, r_vec->val, 1, z_vec->val, 1);
-  }
+  /*  if (M) { // z = MT\(M\r);
+      csrsv2Info_t info;
+      cusparseCreateCsrsv2Info(&info);
+      SPSV_FUN(*handle, CUSPARSE_OPERATION_NON_TRANSPOSE, M->m, M->nz, &n_one,
+               M->desctwo, M->val, M->rowptr, M->col, info, r_vec->val,
+               z_vec->val, CUSPARSE_SOLVE_POLICY_NO_LEVEL, NULL);
+    } else { // z = r*/
+  COPY_FUN(*handle_blas, n, r_vec->val, 1, z_vec->val, 1);
+  //}
 
   // p = z
   COPY_FUN(*handle_blas, n, z_vec->val, 1, p_vec->val, 1);

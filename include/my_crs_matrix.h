@@ -13,6 +13,8 @@ typedef struct {
   int *rowptr;
 } my_crs_matrix;
 
+my_crs_matrix *sparse_transpose(my_crs_matrix *matrix);
+
 // print each vector
 void my_crs_print(my_crs_matrix *M);
 

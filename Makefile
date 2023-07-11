@@ -47,7 +47,7 @@ TARGET = cgpc
 all: $(TARGET)
 
 $(TARGET): $(BUILDDIR)cudacode.o 
-	$(CC) -o $(BUILDDIR)$(TARGET) $(CFLAGS) $(SRCDIR)main.c $(SRCDIR)my_crs_matrix.c $(SRCDIR)CCG.c $(BUILDDIR)CuCG.o $(LIB_FLAGS)
+	$(CC) -o $(BUILDDIR)$(TARGET) $(CFLAGS) $(SRCDIR)main.c $(SRCDIR)my_crs_matrix.c $(SRCDIR)trisol.c $(SRCDIR)CCG.c $(BUILDDIR)CuCG.o $(LIB_FLAGS)
 
 $(BUILDDIR)cudacode.o:
 	mkdir -p $(BUILDDIR)

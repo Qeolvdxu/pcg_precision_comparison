@@ -95,6 +95,9 @@ void *batch_CCG(void *arg) {
       CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed);
     }
 
+    if (iter == 0)
+      return NULL;
+
     if (i == 0)
       fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
                      "TIME,FAULT_TIME,X_VECTOR\n");
