@@ -14,7 +14,7 @@
 void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
          double tolerance, int *iter, double *elapsed) {
   int n = A->n;
-  double s_abft_tol = 1;
+  double s_abft_tol = tolerance;
   double *r = (double *)malloc(n * sizeof(double));
   double *p = (double *)malloc(n * sizeof(double));
   double *q = (double *)malloc(n * sizeof(double));
@@ -95,17 +95,17 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
     if (M && itert) {
       forwardSubstitutionCSR(M, r, y);
       matvec(M, y, temp);
-      printVector("M*y=r\n r ", r, n);
-      printVector("ans ", temp, n);
-      if (1 == s_abft_trisol(M, r, y, s_abft_tol)) {
+      // printVector("M*y=r\n r ", r, n);
+      // printVector("ans ", temp, n);
+      if (1 == s_abft_forsub(M, r, y, s_abft_tol)) {
         printf("ERROR: S-ABFT DETECTED FAULT IN FORWARD SUB\n");
         exit(1);
       }
       backwardSubstitutionCSR(MT, y, z);
       matvec(MT, z, temp);
-      printVector("MT*z=y\n y ", y, n);
-      printVector("ans ", temp, n);
-      if (1 == s_abft_trisol(M, y, z, s_abft_tol)) {
+      // printVector("MT*z=y\n y ", y, n);
+      // printVector("ans ", temp, n);
+      if (1 == s_abft_backsub(M, y, z, s_abft_tol)) {
         printf("ERROR: S-ABFT DETECTED FAULT IN BACKWARD SUB\n");
         exit(1);
       }

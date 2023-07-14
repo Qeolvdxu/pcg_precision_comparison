@@ -51,16 +51,17 @@ void backwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x) {
 }
 
 // s_abft L x y = r for y
-int s_abft_trisol(my_crs_matrix *L, double *r, double *y, double tol) {
+int s_abft_forsub(my_crs_matrix *L, double *r, double *y, double tol) {
   int N = L->n;
-  // Compute L col checksum
+  // Compute triangular matrix col checksum
   double *p = (double *)calloc(N, sizeof(double));
-  for (int j = 0; j < N; j++) {
-    for (int i = L->rowptr[j]; i < L->rowptr[j + 1]; i++) {
-      p[j] += L->val[i];
+  for (int i = 0; i < N; i++) {
+    for (int j = L->rowptr[i]; j < L->rowptr[i + 1]; j++) {
+      int col = L->col[j];
+      p[col] += L->val[j];
     }
   }
-  //
+
   double dot_product = 0; // inner product between p^T and y
   double S = 0;           // Checksum of vector r
   for (int i = 0; i < N; i++) {
@@ -68,9 +69,42 @@ int s_abft_trisol(my_crs_matrix *L, double *r, double *y, double tol) {
     S += r[i];
   }
   free(p);
-  //#ifdef ENABLE_TESTS
+
+#ifdef ENABLE_TESTS
   printf("dp(%lf) == S(%lf)\n", dot_product, S);
-  //#endif
+#endif
+
+  double diff = fabs(dot_product - S);
+  if (diff <= tol)
+    return 0;
+  else
+    return 1;
+}
+
+// s_abft U x y = r for y
+int s_abft_backsub(my_crs_matrix *U, double *r, double *y, double tol) {
+  int N = U->n;
+  // Compute triangular matrix col checksum
+  double *p = (double *)calloc(N, sizeof(double));
+  for (int i = 0; i < N; i++) {
+    for (int j = U->rowptr[i]; j < U->rowptr[i + 1]; j++) {
+      int col = U->col[j];
+      p[i] += U->val[j];
+    }
+  }
+
+  double dot_product = 0; // inner product between p^T and y
+  double S = 0;           // Checksum of vector r
+  for (int i = 0; i < N; i++) {
+    dot_product += p[i] * y[i];
+    S += r[i];
+  }
+  free(p);
+
+#ifdef ENABLE_TESTS
+  printf("dp(%lf) == S(%lf)\n", dot_product, S);
+#endif
+
   double diff = fabs(dot_product - S);
   if (diff <= tol)
     return 0;
