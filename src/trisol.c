@@ -13,17 +13,16 @@ void forwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x) {
     row_start = A->rowptr[i];
     row_end = A->rowptr[i + 1];
     sum = 0.0;
-    for (j = row_start; j < row_end; j++) {
+    for (j = row_start; j < row_end - 1; j++) {
       int col = A->col[j];
       sum += A->val[j] * x[col];
     }
     x[i] = (b[i] - sum) / A->val[row_end - 1];
-
 #ifdef ENABLE_TESTS
     // Print intermediate results
-    printf("FORSUB Iteration %d:\n", i);
-    printf("answer[%d] = (%f - %f) / %f = %f\n", i, b[i], sum,
-           A->val[row_end - 1], x[i]);
+    // printf("FORSUB Iteration %d:\n", i);
+    // printf("answer[%d] = (%f - %f) / %f = %f\n", i, b[i], sum,
+    //       A->val[row_end - 1], x[i]);
 #endif
   }
 }
@@ -44,11 +43,67 @@ void backwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x) {
 
 #ifdef ENABLE_TESTS
     // Print intermediate results
-    printf("BACKSUB Iteration %d:\n", i);
-    printf("answer[%d] = (%f - %f) / %f = %f\n", i, b[i], sum,
-           A->val[row_start], x[i]);
+    // printf("BACKSUB Iteration %d:\n", i);
+    // printf("answer[%d] = (%f - %f) / %f = %f\n", i, b[i], sum,
+    //      A->val[row_start], x[i]);
 #endif
   }
+}
+
+// s_abft L x y = r for y
+int s_abft_trisol(my_crs_matrix *L, double *r, double *y, double tol) {
+  int N = L->n;
+  // Compute L col checksum
+  double *p = (double *)calloc(N, sizeof(double));
+  for (int j = 0; j < N; j++) {
+    for (int i = L->rowptr[j]; i < L->rowptr[j + 1]; i++) {
+      p[j] += L->val[i];
+    }
+  }
+  //
+  double dot_product = 0; // inner product between p^T and y
+  double S = 0;           // Checksum of vector r
+  for (int i = 0; i < N; i++) {
+    dot_product += p[i] * y[i];
+    S += r[i];
+  }
+  free(p);
+  //#ifdef ENABLE_TESTS
+  printf("dp(%lf) == S(%lf)\n", dot_product, S);
+  //#endif
+  double diff = fabs(dot_product - S);
+  if (diff <= tol)
+    return 0;
+  else
+    return 1;
+}
+
+// s_abft A * b = c for c
+int s_abft_spmv(my_crs_matrix *A, double *b, double *c, double tol) {
+  int N = A->n;
+  // Compute A col checksum
+  double *p = (double *)calloc(N, sizeof(double));
+  for (int j = 0; j < N; j++) {
+    for (int i = A->rowptr[j]; i < A->rowptr[j + 1]; i++) {
+      p[j] += A->val[i];
+    }
+  }
+  //
+  double dot_product = 0; // inner product between p^T and y
+  double S = 0;           // Checksum of vector r
+  for (int i = 0; i < N; i++) {
+    dot_product += p[i] * b[i];
+    S += c[i];
+  }
+  free(p);
+#ifdef ENABLE_TESTS
+  printf("dp(%.10lf) == \n S(%.10lf)\n", dot_product, S);
+#endif
+  double diff = fabs(dot_product - S);
+  if (diff <= tol)
+    return 0;
+  else
+    return 1;
 }
 
 int isLowerTriangular(my_crs_matrix *A) {

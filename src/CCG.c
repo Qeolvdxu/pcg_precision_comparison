@@ -14,13 +14,17 @@
 void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
          double tolerance, int *iter, double *elapsed) {
   int n = A->n;
+  double s_abft_tol = 1;
   double *r = (double *)malloc(n * sizeof(double));
   double *p = (double *)malloc(n * sizeof(double));
   double *q = (double *)malloc(n * sizeof(double));
   double *z = (double *)malloc(n * sizeof(double));
-
-  double *temp = (double *)malloc(n * sizeof(double));
   double *y = (double *)malloc(n * sizeof(double));
+  double *temp = (double *)malloc(n * sizeof(double));
+
+#ifdef STORE_PATH
+  double **path = NULL;
+#endif
 
   double alpha = 0.0;
   double beta = 0.0;
@@ -29,6 +33,10 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   if (M) {
     MT = (my_crs_matrix *)malloc(sizeof(my_crs_matrix));
     MT = sparse_transpose(M);
+    if (!isLowerTriangular(M)) {
+      printf("Error: The precondtioner is NOT lower triangular.\n");
+      exit(1);
+    }
   }
   int j = 0;
 
@@ -49,7 +57,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   // r = b - A*x
   matvec(A, x, r);
   for (int i = 0; i < n; i++)
-    r[i] = (C_PRECI_DT)b[i] - (C_PRECI_DT)r[i];
+    r[i] = b[i] - r[i];
 
   for (j = 0; j < n; j++)
     z[j] = 0.0;
@@ -76,28 +84,31 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   // main CG loop
   int itert = 0;
   while (itert < max_iter && ratio > tolerance) {
+    itert++;
 
 #ifdef ENABLE_TESTS
     printf("\nITERATION %d\n", itert);
 #endif
 
-    itert++;
-
     // Precondition
     // z = MT\(M\r);
     if (M && itert) {
-
-#ifdef ENABLE_TESTS
-      /*  if (!isLowerTriangular(M))
-          printf("Error: The matrix is NOT lower triangular.\n");
-        else
-          printf("The matrix is lower triangular.\n");
-        printMatrix("Matrix M", M);
-        printMatrix("Matrix MT", MT); */
-#endif
-
       forwardSubstitutionCSR(M, r, y);
+      matvec(M, y, temp);
+      printVector("M*y=r\n r ", r, n);
+      printVector("ans ", temp, n);
+      if (1 == s_abft_trisol(M, r, y, s_abft_tol)) {
+        printf("ERROR: S-ABFT DETECTED FAULT IN FORWARD SUB\n");
+        exit(1);
+      }
       backwardSubstitutionCSR(MT, y, z);
+      matvec(MT, z, temp);
+      printVector("MT*z=y\n y ", y, n);
+      printVector("ans ", temp, n);
+      if (1 == s_abft_trisol(M, y, z, s_abft_tol)) {
+        printf("ERROR: S-ABFT DETECTED FAULT IN BACKWARD SUB\n");
+        exit(1);
+      }
 
 #ifdef ENABLE_TESTS
       /* printVector("Solution z", z, n);
@@ -118,19 +129,17 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 #ifdef ENABLE_TESTS
     printf("Rho = %lf\n", Rho);
 #endif
-
     // p = z + beta * p
     if (itert == 1) {
       for (j = 0; j < n; j++)
         p[j] = z[j];
-
     } else {
       // beta = dot(r,z) / v
       //
-      // beta = (C_PRECI_DT)Rho / ((C_PRECI_DT)v + (C_PRECI_DT)Tiny);
+      // beta = Rho / (v + Tiny);
       beta = Rho / (v + Tiny);
       for (j = 0; j < n; j++)
-        p[j] = (C_PRECI_DT)z[j] + ((C_PRECI_DT)beta * (C_PRECI_DT)p[j]);
+        p[j] = z[j] + (beta * p[j]);
     }
 #ifdef ENABLE_TESTS
     printf("beta = %.11lf\n%.11lf / (%.11lf + %.11lf)\n", beta, Rho, v, Tiny);
@@ -139,12 +148,18 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 
     // q = A*p
     matvec(A, p, q);
+    if (1 == s_abft_spmv(A, p, q, s_abft_tol)) {
+      printf("S-ABFT DETECTED FAULT IN SPMV A*p=q\n");
+      exit(1);
+    }
 #ifdef ENABLE_TESTS
+    else
+      printf("S-ABFT : 0\n");
     printf("q[1] = %lf\n", q[1]);
 #endif
 
     for (j = 0, Rtmp = 0.0; j < n; j++)
-      Rtmp += (C_PRECI_DT)p[j] * (C_PRECI_DT)q[j];
+      Rtmp += p[j] * q[j];
 #ifdef ENABLE_TESTS
     printf("Rtmp = %lf\n", Rtmp);
 #endif
@@ -156,21 +171,21 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 #endif
 
     // alpha = v / dot(p,q)
-    alpha = (C_PRECI_DT)Rho / ((C_PRECI_DT)Rtmp + (C_PRECI_DT)Tiny);
+    alpha = Rho / (Rtmp + Tiny);
 #ifdef ENABLE_TESTS
     printf("alpha = %lf\n", alpha);
 #endif
 
     // x = x + alpha * p
     for (j = 0; j < n; j++)
-      x[j] = (C_PRECI_DT)x[j] + ((C_PRECI_DT)alpha * (C_PRECI_DT)p[j]);
+      x[j] = x[j] + (alpha * p[j]);
 #ifdef ENABLE_TESTS
     printf("x[1] = %.11lf\n", x[1]);
 #endif
 
     // r = r - alpha * q
     for (j = 0; j < n; j++)
-      r[j] -= (C_PRECI_DT)alpha * (C_PRECI_DT)q[j];
+      r[j] -= alpha * q[j];
 #ifdef ENABLE_TESTS
     printf("r[1] = %lf\n", r[1]);
 #endif
@@ -181,17 +196,23 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
     printf("res norm = %lf\n", res_norm);
 #endif
 
-    ratio = (C_PRECI_DT)res_norm / (C_PRECI_DT)init_norm;
+    ratio = res_norm / init_norm;
 #ifdef ENABLE_TESTS
     printf("ratio = %0.11lf\n", ratio);
 #endif
     if (itert > 1) {
       matvec(A, x, r);
+      if (1 == s_abft_spmv(A, x, r, s_abft_tol)) {
+        printf("S-ABFT DETECTED FAULT IN SPMV A*x=r\n");
+        exit(1);
+      }
 #ifdef ENABLE_TESTS
+      else
+        printf("S-ABFT : 0\n");
       printf("r[1] = %lf\n", r[1]);
 #endif
       for (j = 0; j < n; j++)
-        r[j] = (C_PRECI_DT)b[j] - (C_PRECI_DT)r[j];
+        r[j] = b[j] - r[j];
     }
 #ifdef ENABLE_TESTS
     printf("r[1] = %lf\n", r[1]);
@@ -204,6 +225,10 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
            "ratio(%lf) > tolerance(%lf)\n\n\n",
            iter, x[0], alpha, beta, res_norm, v, r[0], p[0], q[0], z[0], ratio,
            tolerance);*/
+#ifdef STORE_PATH
+    path = (double **)realloc(path, itert * sizeof(double *));
+    path[itert - 1] = x;
+#endif
 
 #ifdef ENABLE_TESTS
     fflush(stdout);
@@ -211,12 +236,20 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 #endif
   }
   *iter = itert;
-  // printf("\n %d TOTAL ITERATIONS \n", itert);
 
-  // CPU TIME
-  // end = clock();
-  //*elapsed = 1000 * (((double)(end - start)) / CLOCKS_PER_SEC);
-
+#ifdef STORE_PATH
+  FILE *file = fopen("path.csv", "w");
+  for (int i = 0; i < itert; i++) {
+    for (int j = 0; j < n; j++) {
+      fprintf(file, "%lf", path[i][j]);
+      if (j < n - 1) {
+        fprintf(file, ",");
+      }
+    }
+    fprintf(file, "\n");
+  }
+  fclose(file);
+#endif
   // WALL
   end = omp_get_wtime();
   *elapsed = (end - start) * 1000;
@@ -235,7 +268,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   int n = M->n;
   int i, j;
 
-  C_PRECI_DT *y = (C_PRECI_DT *)malloc(sizeof(C_PRECI_DT) * n);
+  C_PRECI_DT *y = (C_PRECI_DT *)malloc(sizeof * n);
   printf("test 1\n");
 
   for (i = 0; i < n; i++) {
@@ -281,8 +314,7 @@ double matvec_dot(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y, int n) {
   double result = 0.0;
   for (int i = 0; i < n; i++) {
     for (int j = A->rowptr[i]; j < A->rowptr[i + 1]; j++) {
-      result = (C_PRECI_DT)result + (C_PRECI_DT)x[i] * (C_PRECI_DT)A->val[j] *
-                                        (C_PRECI_DT)y[A->col[j]];
+      result = result + x[i] * A->val[j] * y[A->col[j]];
       // printf("result += %lf * %lf * %lf\n", x[i] , A->val[j] ,
       // y[A->col[j]]);
     }
@@ -300,7 +332,7 @@ double dot(double *v, double *u, int n) {
   int i;
 
   for (i = 0, x = 0.0; i < n; i++)
-    x += (C_PRECI_DT)v[i] * (C_PRECI_DT)u[i];
+    x += v[i] * u[i];
 
   return x;
 }
@@ -311,7 +343,7 @@ void matvec(my_crs_matrix *A, double *x, double *y) {
     y[i] = 0.0;
     for (int j = A->rowptr[i]; j < A->rowptr[i + 1]; j++) {
       // printf("%d ? %d\n", A->col[j], n);
-      y[i] += (C_PRECI_DT)A->val[j] * (C_PRECI_DT)x[A->col[j]];
+      y[i] += A->val[j] * x[A->col[j]];
     }
   }
 }
@@ -322,22 +354,20 @@ double norm(int n, double *v) {
   int i;
 
   if (n == 1)
-    return fabs((C_PRECI_DT)v[0]);
+    return fabs(v[0]);
 
   scale = 0.0;
   ssq = 1.0;
 
   for (i = 0; i < n; i++) {
-    if ((C_PRECI_DT)v[i] != 0) {
-      absvi = fabs((C_PRECI_DT)v[i]);
-      if ((C_PRECI_DT)scale < (C_PRECI_DT)absvi) {
-        ssq = 1.0 + (C_PRECI_DT)ssq * ((C_PRECI_DT)scale / (C_PRECI_DT)absvi) *
-                        ((C_PRECI_DT)scale / (C_PRECI_DT)absvi);
+    if (v[i] != 0) {
+      absvi = fabs(v[i]);
+      if (scale < absvi) {
+        ssq = 1.0 + ssq * (scale / absvi) * (scale / absvi);
         scale = absvi;
       } else
-        ssq = (C_PRECI_DT)ssq + ((C_PRECI_DT)absvi / (C_PRECI_DT)scale) *
-                                    ((C_PRECI_DT)absvi / (C_PRECI_DT)scale);
+        ssq = ssq + (absvi / scale) * (absvi / scale);
     }
   }
-  return (C_PRECI_DT)scale * (C_PRECI_DT)sqrt((C_PRECI_DT)ssq);
+  return scale * sqrt(ssq);
 }

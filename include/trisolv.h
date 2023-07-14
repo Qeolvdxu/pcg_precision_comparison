@@ -4,6 +4,8 @@
 #include "my_crs_matrix.h"
 
 void forwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x);
+int s_abft_trisol(my_crs_matrix *L, double *r, double *y, double tol);
+int s_abft_spmv(my_crs_matrix *A, double *b, double *c, double tol);
 void backwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x);
 int isLowerTriangular(my_crs_matrix *A);
 void printVector(const char *name, double *vec, int size);
