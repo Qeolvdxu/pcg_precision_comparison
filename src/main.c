@@ -268,8 +268,8 @@ int main(int argc, char *argv[]) {
     // pthread_create(&th2, NULL, (void *(*)(void *))batch_CuCG, data);
     batch_CuCG(data);
   } else if (concurrent == 'N') {
-    // printf("\n\trunning CCG function...");
-    // batch_CCG(data);
+    printf("\n\trunning CCG function...");
+    batch_CCG(data);
     printf("\n\trunning GPU CG function...");
     batch_CuCG(data);
   } else
