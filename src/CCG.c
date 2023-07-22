@@ -20,11 +20,11 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   double *q = (double *)malloc(n * sizeof(double));
   double *z = (double *)malloc(n * sizeof(double));
   double *y = (double *)malloc(n * sizeof(double));
-  double *temp = (double *)malloc(n * sizeof(double));
+  // double *temp = (double *)malloc(n * sizeof(double));
 
-#ifdef STORE_PATH
+  //#ifdef STORE_PATH
   double **path = NULL;
-#endif
+  //#endif
 
   double alpha = 0.0;
   double beta = 0.0;
@@ -94,19 +94,23 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
     // z = MT\(M\r);
     if (M && itert) {
       forwardSubstitutionCSR(M, r, y);
-      matvec(M, y, temp);
-      // printVector("M*y=r\n r ", r, n);
-      // printVector("ans ", temp, n);
-      if (1 == s_abft_forsub(M, r, y, s_abft_tol)) {
-        printf("ERROR: S-ABFT DETECTED FAULT IN FORWARD SUB\n");
+      // matvec(M, y, temp);
+      //  printVector("M*y=r\n r ", r, n);
+      //  printVector("ans ", temp, n);
+      if (1 ==
+          s_abft_forsub(M->val, M->col, M->rowptr, M->n, r, y, s_abft_tol)) {
+        printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN FORWARD SUB \n",
+               itert);
         exit(1);
       }
       backwardSubstitutionCSR(MT, y, z);
-      matvec(MT, z, temp);
-      // printVector("MT*z=y\n y ", y, n);
-      // printVector("ans ", temp, n);
-      if (1 == s_abft_backsub(M, y, z, s_abft_tol)) {
-        printf("ERROR: S-ABFT DETECTED FAULT IN BACKWARD SUB\n");
+      // matvec(MT, z, temp);
+      //  printVector("MT*z=y\n y ", y, n);
+      //  printVector("ans ", temp, n);
+      if (1 ==
+          s_abft_backsub(M->val, M->col, M->rowptr, M->n, y, z, s_abft_tol)) {
+        printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN BACKWARD SUB \n",
+               itert);
         exit(1);
       }
 
@@ -148,8 +152,9 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 
     // q = A*p
     matvec(A, p, q);
-    if (1 == s_abft_spmv(A, p, q, s_abft_tol)) {
-      printf("S-ABFT DETECTED FAULT IN SPMV A*p=q\n");
+    if (1 == s_abft_spmv(A->val, A->col, A->rowptr, A->n, p, q, s_abft_tol)) {
+      printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*p=q \n",
+             itert);
       exit(1);
     }
 #ifdef ENABLE_TESTS
@@ -202,8 +207,10 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 #endif
     if (itert > 1) {
       matvec(A, x, r);
-      if (1 == s_abft_spmv(A, x, r, s_abft_tol)) {
+      if (1 == s_abft_spmv(A->val, A->col, A->rowptr, A->n, x, r, s_abft_tol)) {
         printf("S-ABFT DETECTED FAULT IN SPMV A*x=r\n");
+        printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*x=r \n",
+               itert);
         exit(1);
       }
 #ifdef ENABLE_TESTS
@@ -225,10 +232,10 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
            "ratio(%lf) > tolerance(%lf)\n\n\n",
            iter, x[0], alpha, beta, res_norm, v, r[0], p[0], q[0], z[0], ratio,
            tolerance);*/
-#ifdef STORE_PATH
+    //#ifdef STORE_PATH
     path = (double **)realloc(path, itert * sizeof(double *));
     path[itert - 1] = x;
-#endif
+    //#endif
 
 #ifdef ENABLE_TESTS
     fflush(stdout);
@@ -237,7 +244,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   }
   *iter = itert;
 
-#ifdef STORE_PATH
+  //#ifdef STORE_PATH
   FILE *file = fopen("path.csv", "w");
   for (int i = 0; i < itert; i++) {
     for (int j = 0; j < n; j++) {
@@ -249,8 +256,8 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
     fprintf(file, "\n");
   }
   fclose(file);
-#endif
-  // WALL
+  //#endif
+  //  WALL
   end = omp_get_wtime();
   *elapsed = (end - start) * 1000;
 
@@ -258,6 +265,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   free(p);
   free(q);
   free(z);
+  // exit(1);
   return;
 }
 

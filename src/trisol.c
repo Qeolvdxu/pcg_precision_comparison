@@ -51,22 +51,30 @@ void backwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x) {
 }
 
 // s_abft L x y = r for y
-int s_abft_forsub(my_crs_matrix *L, double *r, double *y, double tol) {
-  int N = L->n;
-  // Compute triangular matrix col checksum
-  double *p = (double *)calloc(N, sizeof(double));
-  for (int i = 0; i < N; i++) {
-    for (int j = L->rowptr[i]; j < L->rowptr[i + 1]; j++) {
-      int col = L->col[j];
-      p[col] += L->val[j];
+int s_abft_forsub(double *val, int *col, int *rowptr, int n, double *r,
+                  double *y, double tol) {
+  // printVector("vector 1", r, n);
+  // printVector("vector 2", y, n);
+  //  Compute triangular matrix col checksum
+  double *p = (double *)calloc(n, sizeof(double));
+  for (int i = 0; i < n; i++) {
+    for (int j = rowptr[i]; j < rowptr[i + 1]; j++) {
+      int col_idx = col[j];
+      p[col_idx] += val[j];
+      // printf("forsub iter %d,%d : \n", j, i);
+      // printf(" rowptr :%d\n", rowptr[i]);
+      // printf(" col_idx :%d\n", col_idx);
+      // printf(" %11lf += %11lf\n\n", p[col_idx], val[j]);
     }
   }
 
   double dot_product = 0; // inner product between p^T and y
   double S = 0;           // Checksum of vector r
-  for (int i = 0; i < N; i++) {
+  for (int i = 0; i < n; i++) {
     dot_product += p[i] * y[i];
+    // printf("dp %11lf += %11lf * %11lf\n", dot_product, p[i], y[i]);
     S += r[i];
+    // printf("S : %11lf\n", S);
   }
   free(p);
 
@@ -82,20 +90,23 @@ int s_abft_forsub(my_crs_matrix *L, double *r, double *y, double tol) {
 }
 
 // s_abft U x y = r for y
-int s_abft_backsub(my_crs_matrix *U, double *r, double *y, double tol) {
-  int N = U->n;
-  // Compute triangular matrix col checksum
-  double *p = (double *)calloc(N, sizeof(double));
-  for (int i = 0; i < N; i++) {
-    for (int j = U->rowptr[i]; j < U->rowptr[i + 1]; j++) {
-      int col = U->col[j];
-      p[i] += U->val[j];
+int s_abft_backsub(double *val, int *col, int *rowptr, int n, double *r,
+                   double *y, double tol) {
+  // printVector("vector 1", r, n);
+  // printVector("vector 2", y, n);
+  //  Compute triangular matrix col checksum
+  double *p = (double *)calloc(n, sizeof(double));
+  for (int i = 0; i < n; i++) {
+    for (int j = rowptr[i]; j < rowptr[i + 1]; j++) {
+      // printf("backsub iteration %d,%d : \n", j, i);
+      p[i] += val[j];
+      // printf(" %11lf += %11lf\n\n", p[i], val[j]);
     }
   }
 
   double dot_product = 0; // inner product between p^T and y
   double S = 0;           // Checksum of vector r
-  for (int i = 0; i < N; i++) {
+  for (int i = 0; i < n; i++) {
     dot_product += p[i] * y[i];
     S += r[i];
   }
@@ -113,26 +124,28 @@ int s_abft_backsub(my_crs_matrix *U, double *r, double *y, double tol) {
 }
 
 // s_abft A * b = c for c
-int s_abft_spmv(my_crs_matrix *A, double *b, double *c, double tol) {
-  int N = A->n;
+int s_abft_spmv(double *val, int *col, int *rowptr, int n, double *b, double *c,
+                double tol) {
   // Compute A col checksum
-  double *p = (double *)calloc(N, sizeof(double));
-  for (int j = 0; j < N; j++) {
-    for (int i = A->rowptr[j]; i < A->rowptr[j + 1]; i++) {
-      p[j] += A->val[i];
+  double *p = (double *)calloc(n, sizeof(double));
+  for (int j = 0; j < n; j++) {
+    for (int i = rowptr[j]; i < rowptr[j + 1]; i++) {
+      p[j] += val[i];
     }
   }
-  //
+
   double dot_product = 0; // inner product between p^T and y
   double S = 0;           // Checksum of vector r
-  for (int i = 0; i < N; i++) {
+  for (int i = 0; i < n; i++) {
     dot_product += p[i] * b[i];
     S += c[i];
   }
   free(p);
+
 #ifdef ENABLE_TESTS
-  printf("dp(%.10lf) == \n S(%.10lf)\n", dot_product, S);
+  printf("dp(%.10lf) == S(%.10lf)\n", dot_product, S);
 #endif
+
   double diff = fabs(dot_product - S);
   if (diff <= tol)
     return 0;

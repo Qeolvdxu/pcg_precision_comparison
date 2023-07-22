@@ -129,9 +129,9 @@ void *batch_CuCG(void *arg) {
   FILE *ofile = fopen("../Data/results_CudaCG_TEST.csv", "w");
   printf("%d matrices\n", data->matrix_count);
   int i, j, iter;
-  CUDA_PRECI_DT_HOST elapsed, mem_elapsed, fault_elapsed;
-  CUDA_PRECI_DT_HOST *x;
-  CUDA_PRECI_DT_HOST *b;
+  double elapsed, mem_elapsed, fault_elapsed;
+  double *x;
+  double *b;
   int n;
 
   for (i = 0; i < data->matrix_count; i++) {
@@ -142,8 +142,8 @@ void *batch_CuCG(void *arg) {
     n = A->n;
 
     // allocate arrays
-    x = calloc(n, sizeof(CUDA_PRECI_DT_HOST));
-    b = malloc(sizeof(CUDA_PRECI_DT_HOST) * n);
+    x = calloc(n, sizeof(double));
+    b = malloc(sizeof(double) * n);
     for (j = 0; j < n; j++)
       b[j] = 1;
 
@@ -151,13 +151,12 @@ void *batch_CuCG(void *arg) {
     if (data->pfiles) {
       printf("    and    %s\n", data->pfiles[i]);
       call_CuCG(data->files[i], data->pfiles[i], b, x, data->maxit,
-                (CUDA_PRECI_DT_HOST)data->tol, &iter, &elapsed, &mem_elapsed,
+                (double)data->tol, &iter, &elapsed, &mem_elapsed,
                 &fault_elapsed);
     } else {
       printf("\n");
-      call_CuCG(data->files[i], NULL, b, x, data->maxit,
-                (CUDA_PRECI_DT_HOST)data->tol, &iter, &elapsed, &mem_elapsed,
-                &fault_elapsed);
+      call_CuCG(data->files[i], NULL, b, x, data->maxit, (double)data->tol,
+                &iter, &elapsed, &mem_elapsed, &fault_elapsed);
     }
     // printf("%d %lf\n", iter, elapsed);
     if (i == 0)
@@ -166,8 +165,8 @@ void *batch_CuCG(void *arg) {
                      "X_VECTOR\n");
     fprintf(ofile, "GPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%lf,%lf,", CUDA_PRECI_NAME, iter, elapsed,
-            mem_elapsed, fault_elapsed);
+    fprintf(ofile, "%s,%d,%lf,%lf,%lf,", "double", iter, elapsed, mem_elapsed,
+            fault_elapsed);
     // printf("TOTAL CUDA ITERATIONS: %d", iter);
     for (j = 0; j < 5; j++) {
       fprintf(ofile, "%0.10lf,", x[j]);
@@ -269,8 +268,8 @@ int main(int argc, char *argv[]) {
     // pthread_create(&th2, NULL, (void *(*)(void *))batch_CuCG, data);
     batch_CuCG(data);
   } else if (concurrent == 'N') {
-    printf("\n\trunning CCG function...");
-    batch_CCG(data);
+    // printf("\n\trunning CCG function...");
+    // batch_CCG(data);
     printf("\n\trunning GPU CG function...");
     batch_CuCG(data);
   } else
