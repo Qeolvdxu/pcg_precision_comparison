@@ -68,7 +68,8 @@ void *batch_CCG(void *arg) {
   double *x;
   double *b;
   int iter;
-  double elapsed;
+  double elapsed = 0.0;
+  double fault_elapsed = 0.0;
   printf("BATCH\n");
 
   for (i = 0; i < data->matrix_count; i++) {
@@ -89,10 +90,11 @@ void *batch_CCG(void *arg) {
     // run cpu
     if (data->pfiles) {
       printf("    and    %s\n", data->pfiles[i]);
-      CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed);
+      CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed);
     } else {
       printf("\n");
-      CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed);
+      CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed,
+          &fault_elapsed);
     }
 
     if (iter == 0)
@@ -103,7 +105,8 @@ void *batch_CCG(void *arg) {
                      "TIME,FAULT_TIME,X_VECTOR\n");
     fprintf(ofile, "CPU,");
     fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%d,%d,", C_PRECI_NAME, iter, elapsed, 0, 0);
+    fprintf(ofile, "%s,%d,%lf,%d,%lf,", C_PRECI_NAME, iter, elapsed, 0,
+            fault_elapsed);
     // printf("TOTAL C ITERATIONS: %d", iter);
     for (j = 0; j < 5; j++) {
       fprintf(ofile, "%0.10lf,", x[j]);
@@ -129,7 +132,9 @@ void *batch_CuCG(void *arg) {
   FILE *ofile = fopen("../Data/results_CudaCG_TEST.csv", "w");
   printf("%d matrices\n", data->matrix_count);
   int i, j, iter;
-  double elapsed, mem_elapsed, fault_elapsed;
+  double elapsed = 0.0;
+  double mem_elapsed = 0.0;
+  double fault_elapsed = 0.0;
   double *x;
   double *b;
   int n;

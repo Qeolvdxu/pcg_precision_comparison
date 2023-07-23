@@ -12,7 +12,7 @@
 #include "../include/trisolv.h"
 
 void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
-         double tolerance, int *iter, double *elapsed) {
+         double tolerance, int *iter, double *elapsed, double *fault_elapsed) {
   int n = A->n;
   double s_abft_tol = tolerance;
   double *r = (double *)malloc(n * sizeof(double));
@@ -79,6 +79,8 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   // WALL TIME
   double start;
   double end;
+  double fault_start;
+  double fault_end;
   start = omp_get_wtime();
 
   // main CG loop
@@ -97,22 +99,29 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
       // matvec(M, y, temp);
       //  printVector("M*y=r\n r ", r, n);
       //  printVector("ans ", temp, n);
+      fault_start = omp_get_wtime();
       if (1 ==
           s_abft_forsub(M->val, M->col, M->rowptr, M->n, r, y, s_abft_tol)) {
         printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN FORWARD SUB \n",
                itert);
         exit(1);
       }
+      fault_end = omp_get_wtime();
+      *fault_elapsed += (fault_end - fault_start) * 1000;
+
       backwardSubstitutionCSR(MT, y, z);
       // matvec(MT, z, temp);
       //  printVector("MT*z=y\n y ", y, n);
       //  printVector("ans ", temp, n);
+      fault_start = omp_get_wtime();
       if (1 ==
           s_abft_backsub(M->val, M->col, M->rowptr, M->n, y, z, s_abft_tol)) {
         printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN BACKWARD SUB \n",
                itert);
         exit(1);
       }
+      fault_end = omp_get_wtime();
+      *fault_elapsed += (fault_end - fault_start) * 1000;
 
 #ifdef ENABLE_TESTS
       /* printVector("Solution z", z, n);
@@ -152,14 +161,16 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 
     // q = A*p
     matvec(A, p, q);
+    fault_start = omp_get_wtime();
     if (1 == s_abft_spmv(A->val, A->col, A->rowptr, A->n, p, q, s_abft_tol)) {
       printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*p=q \n",
              itert);
       exit(1);
     }
+    fault_end = omp_get_wtime();
+    *fault_elapsed += (fault_end - fault_start) * 1000;
 #ifdef ENABLE_TESTS
-    else
-      printf("S-ABFT : 0\n");
+    else printf("S-ABFT : 0\n");
     printf("q[1] = %lf\n", q[1]);
 #endif
 
@@ -207,15 +218,17 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 #endif
     if (itert > 1) {
       matvec(A, x, r);
+      fault_start = omp_get_wtime();
       if (1 == s_abft_spmv(A->val, A->col, A->rowptr, A->n, x, r, s_abft_tol)) {
         printf("S-ABFT DETECTED FAULT IN SPMV A*x=r\n");
         printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*x=r \n",
                itert);
         exit(1);
       }
+      fault_end = omp_get_wtime();
+      *fault_elapsed += (fault_end - fault_start) * 1000;
 #ifdef ENABLE_TESTS
-      else
-        printf("S-ABFT : 0\n");
+      else printf("S-ABFT : 0\n");
       printf("r[1] = %lf\n", r[1]);
 #endif
       for (j = 0; j < n; j++)
@@ -244,7 +257,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   }
   *iter = itert;
 
-  //#ifdef STORE_PATH
+#ifdef STORE_PATH
   FILE *file = fopen("path.csv", "w");
   for (int i = 0; i < itert; i++) {
     for (int j = 0; j < n; j++) {
@@ -256,7 +269,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
     fprintf(file, "\n");
   }
   fclose(file);
-  //#endif
+#endif
   //  WALL
   end = omp_get_wtime();
   *elapsed = (end - start) * 1000;
