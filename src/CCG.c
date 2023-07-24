@@ -13,6 +13,8 @@
 
 void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
          double tolerance, int *iter, double *elapsed, double *fault_elapsed) {
+
+  int fault_freq = 100000;
   int n = A->n;
   double s_abft_tol = tolerance;
   double *r = (double *)malloc(n * sizeof(double));
@@ -83,6 +85,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   double fault_end;
   start = omp_get_wtime();
 
+
   // main CG loop
   int itert = 0;
   while (itert < max_iter && ratio > tolerance) {
@@ -100,28 +103,35 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
       //  printVector("M*y=r\n r ", r, n);
       //  printVector("ans ", temp, n);
       fault_start = omp_get_wtime();
-      if (1 ==
-          s_abft_forsub(M->val, M->col, M->rowptr, M->n, r, y, s_abft_tol)) {
-        printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN FORWARD SUB \n",
+      if (itert % fault_freq == 0)
+{
+      if (
+          1 == s_abft_forsub(M->val, M->col, M->rowptr, M->n, r, y,
+                             s_abft_tol)) {
+        printf(" ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN FORWARD SUB \n",
                itert);
         exit(1);
       }
       fault_end = omp_get_wtime();
       *fault_elapsed += (fault_end - fault_start) * 1000;
-
+}
       backwardSubstitutionCSR(MT, y, z);
       // matvec(MT, z, temp);
       //  printVector("MT*z=y\n y ", y, n);
       //  printVector("ans ", temp, n);
+      if (itert % fault_freq == 0)
+{
       fault_start = omp_get_wtime();
-      if (1 ==
-          s_abft_backsub(M->val, M->col, M->rowptr, M->n, y, z, s_abft_tol)) {
-        printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN BACKWARD SUB \n",
+      if (itert % fault_freq == 0 &&
+          1 == s_abft_backsub(M->val, M->col, M->rowptr, M->n, y, z,
+                              s_abft_tol)) {
+        printf("ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN BACKWARD SUB \n",
                itert);
         exit(1);
       }
       fault_end = omp_get_wtime();
       *fault_elapsed += (fault_end - fault_start) * 1000;
+}
 
 #ifdef ENABLE_TESTS
       /* printVector("Solution z", z, n);
@@ -161,16 +171,20 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 
     // q = A*p
     matvec(A, p, q);
+      if (itert % fault_freq == 0)
+{
     fault_start = omp_get_wtime();
-    if (1 == s_abft_spmv(A->val, A->col, A->rowptr, A->n, p, q, s_abft_tol)) {
-      printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*p=q \n",
+    if (itert % fault_freq == 0 &&
+        1 == s_abft_spmv(A->val, A->col, A->rowptr, A->n, p, q, s_abft_tol)) {
+      printf("ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*p=q \n",
              itert);
       exit(1);
     }
     fault_end = omp_get_wtime();
     *fault_elapsed += (fault_end - fault_start) * 1000;
+}
 #ifdef ENABLE_TESTS
-    else printf("S-ABFT : 0\n");
+    printf("S-ABFT : 0\n");
     printf("q[1] = %lf\n", q[1]);
 #endif
 
@@ -218,17 +232,20 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 #endif
     if (itert > 1) {
       matvec(A, x, r);
+      if (itert % fault_freq == 0)
+{
       fault_start = omp_get_wtime();
-      if (1 == s_abft_spmv(A->val, A->col, A->rowptr, A->n, x, r, s_abft_tol)) {
-        printf("S-ABFT DETECTED FAULT IN SPMV A*x=r\n");
-        printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*x=r \n",
+      if (itert % fault_freq == 0 &&
+          1 == s_abft_spmv(A->val, A->col, A->rowptr, A->n, x, r, s_abft_tol)) {
+        printf("ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*x=r \n",
                itert);
         exit(1);
       }
       fault_end = omp_get_wtime();
       *fault_elapsed += (fault_end - fault_start) * 1000;
+}
 #ifdef ENABLE_TESTS
-      else printf("S-ABFT : 0\n");
+      printf("S-ABFT : 0\n");
       printf("r[1] = %lf\n", r[1]);
 #endif
       for (j = 0; j < n; j++)
@@ -243,8 +260,8 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
            "\n v "
            "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
            "ratio(%lf) > tolerance(%lf)\n\n\n",
-           iter, x[0], alpha, beta, res_norm, v, r[0], p[0], q[0], z[0], ratio,
-           tolerance);*/
+           iter, x[0], alpha, beta, res_norm, v, r[0], p[0], q[0], z[0],
+       ratio, tolerance);*/
     //#ifdef STORE_PATH
     path = (double **)realloc(path, itert * sizeof(double *));
     path[itert - 1] = x;

@@ -70,11 +70,9 @@ void *batch_CCG(void *arg) {
   int iter;
   double elapsed = 0.0;
   double fault_elapsed = 0.0;
-  printf("BATCH\n");
 
   for (i = 0; i < data->matrix_count; i++) {
     // Create Matrix struct and Precond
-    printf("%s", data->files[i]);
     my_crs_matrix *A = my_crs_read(data->files[i]);
 
     my_crs_matrix *M;
@@ -88,6 +86,7 @@ void *batch_CCG(void *arg) {
       b[j] = 1;
 
     // run cpu
+    printf("CPU CG : %s", data->files[i]);
     if (data->pfiles) {
       printf("    and    %s\n", data->pfiles[i]);
       CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed);
@@ -142,7 +141,6 @@ void *batch_CuCG(void *arg) {
   for (i = 0; i < data->matrix_count; i++) {
     // get matrix size
     //  	file = fopen(data->files[i], "r");
-    printf("%s", data->files[i]);
     my_crs_matrix *A = my_crs_read(data->files[i]);
     n = A->n;
 
@@ -153,6 +151,7 @@ void *batch_CuCG(void *arg) {
       b[j] = 1;
 
     // run gpu
+    printf("GPU CG : %s", data->files[i]);
     if (data->pfiles) {
       printf("    and    %s\n", data->pfiles[i]);
       call_CuCG(data->files[i], data->pfiles[i], b, x, data->maxit,
