@@ -2,8 +2,7 @@ import csv
 import svgwrite
 
 def calculate_percentage(wall_time, mem_wall_time, fault_time):
-    total_time = wall_time
-    wall_time = wall_time - fault_time
+    total_time = wall_time + fault_time + mem_wall_time
     wall_time_percentage = (wall_time / total_time) * 100
     mem_wall_time_percentage = (mem_wall_time / total_time) * 100
     fault_time_percentage = (fault_time / total_time) * 100

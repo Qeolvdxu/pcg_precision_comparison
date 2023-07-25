@@ -8,7 +8,7 @@ int s_abft_forsub(double *val, int *col, int *rowptr, int n, double *r,
                   double *y, double tol);
 int s_abft_backsub(double *val, int *col, int *rowptr, int n, double *r,
                    double *y, double tol);
-int s_abft_spmv(double *val, int *col, int *rowptr, int n, double *b, double *c,
+int s_abft_spmv(double *val, int *col, int *rowptr, int n, double *p, double *t,
                 double tol);
 void backwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x);
 int isLowerTriangular(my_crs_matrix *A);

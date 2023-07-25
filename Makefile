@@ -1,8 +1,8 @@
 CC = gcc
 NVCC = nvcc
 
-CFLAGS = -O3 #-Wall -Wextra -pedantic -gdwarf-4
-NVCCFLAGS = -O3 #-Wextra -Wall -Wpedantic
+CFLAGS = -O3 -Wall -Wextra -pedantic -gdwarf-4
+NVCCFLAGS = -O3 -Wextra -Wall -Wpedantic
 
 # Retrieve the value of the 'gpu' variable from the command line
 GPU_MODE := $(gpu_mode)

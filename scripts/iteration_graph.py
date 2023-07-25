@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import csv
 
 # Data from the CSV file
 # Update the variables with the appropriate column indices based on your data
@@ -8,37 +9,33 @@ matrix_col = 1
 iter_col = 3
 
 # Extract relevant data from the CSV file
-devices = []
-matrices = []
-gpu_iter = []
-cpu_iter = []
+matrix_data = {}
 
 with open('Data/combo.csv', 'r') as file:
-    next(file)  # Skip the header row
-    for line in file:
-        row = line.strip().split(',')
-        devices.append(row[device_col])
-        matrices.append(row[matrix_col])
+    csv_reader = csv.reader(file)
+    next(csv_reader)  # Skip the header row
+    for row in csv_reader:
+        matrix = row[matrix_col]
         iter_val = float(row[iter_col])
+        if matrix not in matrix_data:
+            matrix_data[matrix] = {'CPU': 0, 'GPU': 0}
         if row[device_col] == 'CPU':
-            cpu_iter.append(iter_val)
-            gpu_iter.append(0)  # Fill in 0 for GPU iteration when CPU is used
+            matrix_data[matrix]['CPU'] += iter_val
         else:
-            gpu_iter.append(iter_val)
-            cpu_iter.append(0)  # Fill in 0 for CPU iteration when GPU is used
-
-# Combine matrices, CPU iteration data, and GPU iteration data
-data = list(zip(matrices, cpu_iter, gpu_iter))
-
-# Sort the data based on the matrix names
-data.sort(key=lambda x: x[0])
+            matrix_data[matrix]['GPU'] += iter_val
 
 # Extract sorted matrix names, CPU iteration values, and GPU iteration values
-sorted_matrices, sorted_cpu_iter, sorted_gpu_iter = zip(*data)
+sorted_matrices = []
+sorted_cpu_iter = []
+sorted_gpu_iter = []
 
-# Calculate the number of devices and matrices
-num_devices = len(set(devices))
-num_matrices = len(set(matrices))
+for matrix, iter_values in matrix_data.items():
+    sorted_matrices.append(matrix)
+    sorted_cpu_iter.append(iter_values['CPU'])
+    sorted_gpu_iter.append(iter_values['GPU'])
+
+# Calculate the number of matrices
+num_matrices = len(sorted_matrices)
 
 # Set the bar positions
 bar_width = 0.35
@@ -60,3 +57,4 @@ plt.legend()
 plt.savefig('Data/iterations.svg')
 # Display the graph
 plt.show()
+

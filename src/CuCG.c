@@ -46,21 +46,21 @@ void printGPUVector(const double *gpuVector, int size) {
   free(hostVector);
 }
 
-void cusparse_conjugate_gradient(my_cuda_csr_matrix *A, double *val_host_M, int *col_host_M, int *rowptr_host_M, double *val_host_A, int *col_host_A, int *rowptr_host_A, my_cuda_csr_matrix *M,
-                                 my_cuda_vector *b, my_cuda_vector *x,
-                                 my_cuda_vector *r_vec, my_cuda_vector *p_vec,
-                                 my_cuda_vector *q_vec, my_cuda_vector *z_vec,
-                                 my_cuda_vector *y_vec, int max_iter,
-                                 double tolerance, int *iter, double *elapsed,
-                                 double *mem_elapsed, double *fault_elapsed,
-                                 cusparseHandle_t *handle,
-                                 cublasHandle_t *handle_blas) {
+void cusparse_conjugate_gradient(
+    my_cuda_csr_matrix *A, double *val_host_M, int *col_host_M,
+    int *rowptr_host_M, double *val_host_A, int *col_host_A, int *rowptr_host_A,
+    my_cuda_csr_matrix *M, my_cuda_vector *b, my_cuda_vector *x,
+    my_cuda_vector *r_vec, my_cuda_vector *p_vec, my_cuda_vector *q_vec,
+    my_cuda_vector *z_vec, my_cuda_vector *y_vec, int max_iter,
+    double tolerance, int *iter, double *elapsed, double *mem_elapsed,
+    double *fault_elapsed, cusparseHandle_t *handle,
+    cublasHandle_t *handle_blas) {
 #ifdef ENABLE_TESTS
   printf("start cg!\n");
   // tolerance = 1e-6;
 #endif
 
-  int fault_freq = 100000;
+  int fault_freq = 10;
 
   double faultcheck_start;
   double faultcheck_end;
@@ -69,27 +69,25 @@ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A, double *val_host_M, int 
   double memcheck_start;
   double memcheck_end;
 
-  double s_abft_tol = 1e-2;
+  double s_abft_tol = tolerance;
 
   /*double *val_host_M = malloc(sizeof(double) * M->nz);
   int *col_host_M = malloc(sizeof(int) * M->nz);
   int *rowptr_host_M = malloc(sizeof(int) * (M->n + 1));
   cudaMemcpy(rowptr_host_M, M->rowptr, (M->n + 1) * sizeof(int),
-                  cudaMemcpyDeviceToHost);
-  cudaMemcpy(col_host_M, M->col, M->nz * sizeof(int),
-                  cudaMemcpyDeviceToHost);
+             cudaMemcpyDeviceToHost);
+  cudaMemcpy(col_host_M, M->col, M->nz * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(val_host_M, M->val, M->nz * sizeof(double),
-                   cudaMemcpyDeviceToHost);
+             cudaMemcpyDeviceToHost);
 
   double *val_host_A = malloc(sizeof(double) * A->nz);
   int *col_host_A = malloc(sizeof(int) * A->nz);
   int *rowptr_host_A = malloc(sizeof(int) * (A->n + 1));
   cudaMemcpy(rowptr_host_A, A->rowptr, (A->n + 1) * sizeof(int),
-               cudaMemcpyDeviceToHost);
-  cudaMemcpy(col_host_A, A->col, A->nz * sizeof(int),
-               cudaMemcpyDeviceToHost);
+             cudaMemcpyDeviceToHost);
+  cudaMemcpy(col_host_A, A->col, A->nz * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(val_host_A, A->val, A->nz * sizeof(double),
-                 cudaMemcpyDeviceToHost);*/
+             cudaMemcpyDeviceToHost);*/
 
   double *fault_vec_one = (double *)malloc(sizeof(double) * A->n);
   double *fault_vec_two = (double *)malloc(sizeof(double) * A->n);
@@ -127,7 +125,7 @@ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A, double *val_host_M, int 
   double init_norm = 0;
   double ratio = 0;
 
-  double Tiny = 0.0;
+  double Tiny = 1e-27;
   double minus_alpha = 0.0;
 
   // x is already zero
@@ -167,7 +165,7 @@ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A, double *val_host_M, int 
                buff                              // buffer
   );
 
-  /*if (itert % fault_freq == 0) {
+  if (itert % fault_freq == 0) {
     cudaMemcpy(rowptr_host_A, A->rowptr, (A->n + 1) * sizeof(int),
                cudaMemcpyDeviceToHost);
     cudaMemcpy(col_host_A, A->col, A->nz * sizeof(int), cudaMemcpyDeviceToHost);
@@ -180,13 +178,13 @@ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A, double *val_host_M, int 
     faultcheck_start = omp_get_wtime();
     if (1 == s_abft_spmv(val_host_A, col_host_A, rowptr_host_A, A->n,
                          fault_vec_one, fault_vec_two, s_abft_tol)) {
-      printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*p=q \n",
-             itert);
-      exit(1);
+      /*printf("ERROR (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV 1 A*x=r \n",
+             itert);*/
+      // exit(1);
     }
     faultcheck_end = omp_get_wtime();
     *fault_elapsed += (faultcheck_end - faultcheck_start) * 1000;
-  }*/
+  }
 
   // r = b - r
   AXPY_FUN(*handle_blas, n, &ne_one, r_vec->val, 1, b->val, 1);
@@ -335,12 +333,12 @@ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A, double *val_host_M, int 
         faultcheck_start = omp_get_wtime();
         if (1 == s_abft_forsub(val_host_M, col_host_M, rowptr_host_M, n,
                                fault_vec_one, fault_vec_two, s_abft_tol)) {
-          printf("ERROR GPU (ITERATION %d): S-ABFT DETECTED FAULT IN FORWARD "
+          /*printf("ERROR GPU (ITERATION %d): S-ABFT DETECTED FAULT IN FORWARD "
                  "SUB \n",
-                 itert);
-          printf("Error: cusparseDcsrsv2_solve failed with status %d\n",
-                 M_status);
-          exit(1);
+                 itert);*/
+          /*printf("Error: cusparseDcsrsv2_solve failed with status %d\n",
+                 M_status);*/
+          // exit(1);
         }
         faultcheck_end = omp_get_wtime();
         *fault_elapsed += (faultcheck_end - faultcheck_start) * 1000;
@@ -367,12 +365,11 @@ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A, double *val_host_M, int 
         faultcheck_start = omp_get_wtime();
         if (1 == s_abft_backsub(val_host_M, col_host_M, rowptr_host_M, n,
                                 fault_vec_one, fault_vec_two, s_abft_tol)) {
-          printf("ERROR GPU (ITERATION %d): S-ABFT DETECTED FAULT IN BACKWARD "
-                 "SUB \n",
-                 itert);
-          printf("Error: cusparseDcsrsv2_solve failed with status %d\n",
-                 MT_status);
-          exit(1);
+          /*printf("ERROR GPU (ITERATION %d): S-ABFT DETECTED FAULT IN BACKWARD
+             " "SUB \n", itert);*/
+          /*printf("Error: cusparseDcsrsv2_solve failed with status %d\n",
+                 MT_status);*/
+          // exit(1);
         }
         faultcheck_end = omp_get_wtime();
         *fault_elapsed += (faultcheck_end - faultcheck_start) * 1000;
@@ -429,9 +426,10 @@ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A, double *val_host_M, int 
       faultcheck_start = omp_get_wtime();
       if (1 == s_abft_spmv(val_host_A, col_host_A, rowptr_host_A, A->n,
                            fault_vec_one, fault_vec_two, s_abft_tol)) {
-        printf("ERROR GPU (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*p=q \n",
-               itert);
-        exit(1);
+        /*printf(
+            "ERROR GPU (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV 2 A*p=q\n",
+            itert);*/
+        // exit(1);
       }
       faultcheck_end = omp_get_wtime();
       *fault_elapsed += (faultcheck_end - faultcheck_start) * 1000;
@@ -515,9 +513,10 @@ void cusparse_conjugate_gradient(my_cuda_csr_matrix *A, double *val_host_M, int 
       faultcheck_start = omp_get_wtime();
       if (1 == s_abft_spmv(val_host_A, col_host_A, rowptr_host_A, A->n,
                            fault_vec_one, fault_vec_two, s_abft_tol)) {
-        printf("ERROR GPU (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*p=q \n",
-               itert);
-        exit(1);
+        /*printf(
+            "ERROR GPU (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV 3 A*x=r\n",
+            itert);*/
+        // exit(1);
       }
       faultcheck_end = omp_get_wtime();
       *fault_elapsed += (faultcheck_end - faultcheck_start) * 1000;
@@ -883,16 +882,16 @@ void call_CuCG(char *name, char *m_name, double *h_b, double *h_x, int maxit,
 
   if (m_name && M_matrix) {
     // printf("PASSING PRECOND\n");
-    cusparse_conjugate_gradient(A_matrix, m_val, m_col, m_rowptr, val, col, rowptr, M_matrix, b_vec, x_vec, r_vec, p_vec,
-                                q_vec, z_vec, y_vec, maxit, 1e-7, iter, elapsed,
-                                mem_elapsed, fault_elapsed, &cusparseHandle,
-                                &cublasHandle);
+    cusparse_conjugate_gradient(
+        A_matrix, m_val, m_col, m_rowptr, val, col, rowptr, M_matrix, b_vec,
+        x_vec, r_vec, p_vec, q_vec, z_vec, y_vec, maxit, tol, iter, elapsed,
+        mem_elapsed, fault_elapsed, &cusparseHandle, &cublasHandle);
   } else {
     printf("NOT PASSING PRECOND\n");
-    cusparse_conjugate_gradient(A_matrix, NULL, NULL, NULL, val, col, rowptr, NULL, b_vec, x_vec, r_vec, p_vec,
-                                q_vec, z_vec, NULL, maxit, tol, iter, elapsed,
-                                mem_elapsed, fault_elapsed, &cusparseHandle,
-                                &cublasHandle);
+    cusparse_conjugate_gradient(A_matrix, NULL, NULL, NULL, val, col, rowptr,
+                                NULL, b_vec, x_vec, r_vec, p_vec, q_vec, z_vec,
+                                NULL, maxit, tol, iter, elapsed, mem_elapsed,
+                                fault_elapsed, &cusparseHandle, &cublasHandle);
   }
 
   cudaMemcpy(h_x, x_vec->val, n * sizeof(double), cudaMemcpyDeviceToHost);

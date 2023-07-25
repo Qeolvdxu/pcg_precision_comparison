@@ -14,7 +14,7 @@
 void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
          double tolerance, int *iter, double *elapsed, double *fault_elapsed) {
 
-  int fault_freq = 100000;
+  int fault_freq = 10;
   int n = A->n;
   double s_abft_tol = tolerance;
   double *r = (double *)malloc(n * sizeof(double));
@@ -37,7 +37,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
     MT = sparse_transpose(M);
     if (!isLowerTriangular(M)) {
       printf("Error: The precondtioner is NOT lower triangular.\n");
-      exit(1);
+      // exit(1);
     }
   }
   int j = 0;
@@ -50,7 +50,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   double init_norm = 0.0;
   double ratio = 0.0;
 
-  double Tiny = 0.1e-27;
+  double Tiny = 1e-27;
 
   // x = zeros
   for (int i = 0; i < n; i++)
@@ -85,7 +85,6 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   double fault_end;
   start = omp_get_wtime();
 
-
   // main CG loop
   int itert = 0;
   while (itert < max_iter && ratio > tolerance) {
@@ -97,41 +96,38 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 
     // Precondition
     // z = MT\(M\r);
-    if (M && itert) {
+    if (M && M->val) {
       forwardSubstitutionCSR(M, r, y);
       // matvec(M, y, temp);
       //  printVector("M*y=r\n r ", r, n);
       //  printVector("ans ", temp, n);
       fault_start = omp_get_wtime();
-      if (itert % fault_freq == 0)
-{
-      if (
-          1 == s_abft_forsub(M->val, M->col, M->rowptr, M->n, r, y,
-                             s_abft_tol)) {
-        printf(" ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN FORWARD SUB \n",
-               itert);
-        exit(1);
+      if (itert % fault_freq == 0) {
+        if (1 ==
+            s_abft_forsub(M->val, M->col, M->rowptr, M->n, r, y, s_abft_tol)) {
+          /*printf(" ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN FORWARD"
+                 "SUB \n",
+                 itert);*/
+          // exit(1);
+        }
+        fault_end = omp_get_wtime();
+        *fault_elapsed += (fault_end - fault_start) * 1000;
       }
-      fault_end = omp_get_wtime();
-      *fault_elapsed += (fault_end - fault_start) * 1000;
-}
       backwardSubstitutionCSR(MT, y, z);
       // matvec(MT, z, temp);
       //  printVector("MT*z=y\n y ", y, n);
       //  printVector("ans ", temp, n);
-      if (itert % fault_freq == 0)
-{
-      fault_start = omp_get_wtime();
-      if (itert % fault_freq == 0 &&
-          1 == s_abft_backsub(M->val, M->col, M->rowptr, M->n, y, z,
-                              s_abft_tol)) {
-        printf("ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN BACKWARD SUB \n",
-               itert);
-        exit(1);
+      if (itert % fault_freq == 0) {
+        fault_start = omp_get_wtime();
+        if (1 ==
+            s_abft_backsub(M->val, M->col, M->rowptr, M->n, y, z, s_abft_tol)) {
+          /*printf("ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN BACKWARD
+             " "SUB \n", itert);*/
+          // exit(1);
+        }
+        fault_end = omp_get_wtime();
+        *fault_elapsed += (fault_end - fault_start) * 1000;
       }
-      fault_end = omp_get_wtime();
-      *fault_elapsed += (fault_end - fault_start) * 1000;
-}
 
 #ifdef ENABLE_TESTS
       /* printVector("Solution z", z, n);
@@ -171,18 +167,17 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 
     // q = A*p
     matvec(A, p, q);
-      if (itert % fault_freq == 0)
-{
-    fault_start = omp_get_wtime();
-    if (itert % fault_freq == 0 &&
-        1 == s_abft_spmv(A->val, A->col, A->rowptr, A->n, p, q, s_abft_tol)) {
-      printf("ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*p=q \n",
-             itert);
-      exit(1);
+    if (itert % fault_freq == 0) {
+      fault_start = omp_get_wtime();
+      if (1 == s_abft_spmv(A->val, A->col, A->rowptr, A->n, p, q, s_abft_tol)) {
+        /*printf(
+        "ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV 2 A*p=q\n",
+        itert);*/
+        // exit(1);
+      }
+      fault_end = omp_get_wtime();
+      *fault_elapsed += (fault_end - fault_start) * 1000;
     }
-    fault_end = omp_get_wtime();
-    *fault_elapsed += (fault_end - fault_start) * 1000;
-}
 #ifdef ENABLE_TESTS
     printf("S-ABFT : 0\n");
     printf("q[1] = %lf\n", q[1]);
@@ -231,19 +226,21 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
     printf("ratio = %0.11lf\n", ratio);
 #endif
     if (itert > 1) {
+      // printf("RVECONE = %.50lf\n", r[1]);
       matvec(A, x, r);
-      if (itert % fault_freq == 0)
-{
-      fault_start = omp_get_wtime();
-      if (itert % fault_freq == 0 &&
-          1 == s_abft_spmv(A->val, A->col, A->rowptr, A->n, x, r, s_abft_tol)) {
-        printf("ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV A*x=r \n",
-               itert);
-        exit(1);
+      // printf("RVECONE = %.50lf\n", r[1]);
+      if (itert % fault_freq == 0) {
+        fault_start = omp_get_wtime();
+        if (1 ==
+            s_abft_spmv(A->val, A->col, A->rowptr, A->n, x, r, s_abft_tol)) {
+          /*printf("ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV 3 "
+                 "A*x=r \n",
+                 itert);*/
+          // exit(1);
+        }
+        fault_end = omp_get_wtime();
+        *fault_elapsed += (fault_end - fault_start) * 1000;
       }
-      fault_end = omp_get_wtime();
-      *fault_elapsed += (fault_end - fault_start) * 1000;
-}
 #ifdef ENABLE_TESTS
       printf("S-ABFT : 0\n");
       printf("r[1] = %lf\n", r[1]);

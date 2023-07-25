@@ -72,6 +72,8 @@ void *batch_CCG(void *arg) {
   double fault_elapsed = 0.0;
 
   for (i = 0; i < data->matrix_count; i++) {
+    elapsed = 0.0;
+    fault_elapsed = 0.0;
     // Create Matrix struct and Precond
     my_crs_matrix *A = my_crs_read(data->files[i]);
 
@@ -99,6 +101,8 @@ void *batch_CCG(void *arg) {
     if (iter == 0)
       return NULL;
 
+    elapsed -= fault_elapsed;
+
     if (i == 0)
       fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
                      "TIME,FAULT_TIME,X_VECTOR\n");
@@ -106,6 +110,8 @@ void *batch_CCG(void *arg) {
     fprintf(ofile, "%s,", data->files[i]);
     fprintf(ofile, "%s,%d,%lf,%d,%lf,", C_PRECI_NAME, iter, elapsed, 0,
             fault_elapsed);
+    printf("cpu time : %s,%d,%lf,%d,%lf \n", C_PRECI_NAME, iter, elapsed, 0,
+           fault_elapsed);
     // printf("TOTAL C ITERATIONS: %d", iter);
     for (j = 0; j < 5; j++) {
       fprintf(ofile, "%0.10lf,", x[j]);
@@ -139,6 +145,9 @@ void *batch_CuCG(void *arg) {
   int n;
 
   for (i = 0; i < data->matrix_count; i++) {
+    elapsed = 0.0;
+    fault_elapsed = 0.0;
+    mem_elapsed = 0.0;
     // get matrix size
     //  	file = fopen(data->files[i], "r");
     my_crs_matrix *A = my_crs_read(data->files[i]);
@@ -163,6 +172,7 @@ void *batch_CuCG(void *arg) {
                 &iter, &elapsed, &mem_elapsed, &fault_elapsed);
     }
     // printf("%d %lf\n", iter, elapsed);
+    elapsed -= mem_elapsed + fault_elapsed;
     if (i == 0)
       fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
                      "TIME,FAULT_TIME,"
@@ -171,6 +181,8 @@ void *batch_CuCG(void *arg) {
     fprintf(ofile, "%s,", data->files[i]);
     fprintf(ofile, "%s,%d,%lf,%lf,%lf,", "double", iter, elapsed, mem_elapsed,
             fault_elapsed);
+    printf("gpu time : %s,%d,%lf,%lf,%lf\n", "double", iter, elapsed,
+           mem_elapsed, fault_elapsed);
     // printf("TOTAL CUDA ITERATIONS: %d", iter);
     for (j = 0; j < 5; j++) {
       fprintf(ofile, "%0.10lf,", x[j]);
@@ -229,6 +241,7 @@ int main(int argc, char *argv[]) {
   }
 
   data->files = find_files(name, &data->matrix_count);
+  // data->matrix_count = 4;
 
   if (matrix_count != precond_count && precond == 'Y') {
     printf("ERROR: number of matricies (%d) and precondtioners (%d) do not "
@@ -272,10 +285,10 @@ int main(int argc, char *argv[]) {
     // pthread_create(&th2, NULL, (void *(*)(void *))batch_CuCG, data);
     batch_CuCG(data);
   } else if (concurrent == 'N') {
-    printf("\n\trunning CCG function...");
-    batch_CCG(data);
     printf("\n\trunning GPU CG function...");
     batch_CuCG(data);
+    printf("\n\trunning CCG function...");
+    batch_CCG(data);
   } else
     printf("Bad Concurrency Input!\n");
 

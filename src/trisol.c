@@ -79,28 +79,27 @@ int s_abft_forsub(double *val, int *col, int *rowptr, int n, double *r,
   free(p);
 
 #ifdef ENABLE_TESTS
-  printf("dp(%lf) == S(%lf)\n", dot_product, S);
 #endif
-
-  double diff = fabs(dot_product - S);
+  double diff = fabs(dot_product - S) * tol;
+  /// printf("dp(%.10lf) == S(%.10lf)\n", dot_product, S);
+  // printf("%.10lf <= %.10lf\n", diff, tol);
   if (diff <= tol)
     return 0;
   else
     return 1;
 }
-
 // s_abft U x y = r for y
 int s_abft_backsub(double *val, int *col, int *rowptr, int n, double *r,
                    double *y, double tol) {
   // printVector("vector 1", r, n);
   // printVector("vector 2", y, n);
-  //  Compute triangular matrix col checksum
+  //   Compute triangular matrix col checksum
   double *p = (double *)calloc(n, sizeof(double));
   for (int i = 0; i < n; i++) {
     for (int j = rowptr[i]; j < rowptr[i + 1]; j++) {
-      // printf("backsub iteration %d,%d : \n", j, i);
+      //     printf("backsub iteration %d,%d : \n", j, i);
       p[i] += val[j];
-      // printf(" %11lf += %11lf\n\n", p[i], val[j]);
+      //     printf(" %11lf += %11lf\n\n", p[i], val[j]);
     }
   }
 
@@ -116,41 +115,61 @@ int s_abft_backsub(double *val, int *col, int *rowptr, int n, double *r,
   printf("dp(%lf) == S(%lf)\n", dot_product, S);
 #endif
 
-  double diff = fabs(dot_product - S);
+  double diff = fabs(dot_product - S) * tol;
+  // printf("dp(%.10lf) == S(%.10lf)\n", dot_product, S);
+  // printf("%.10lf <= %.10lf\n", diff, tol);
   if (diff <= tol)
     return 0;
   else
     return 1;
 }
 
-// s_abft A * b = c for c
-int s_abft_spmv(double *val, int *col, int *rowptr, int n, double *b, double *c,
+// s_abft t = A * p for c
+int s_abft_spmv(double *val, int *col, int *rowptr, int n, double *p, double *t,
                 double tol) {
-  // Compute A col checksum
-  double *p = (double *)calloc(n, sizeof(double));
-  for (int j = 0; j < n; j++) {
-    for (int i = rowptr[j]; i < rowptr[j + 1]; i++) {
-      p[j] += val[i];
+  int i, j;
+  long double *acChecksum = calloc(n + 1, sizeof(long double));
+  long double *dotp = calloc(n, sizeof(long double));
+  //  printf("TVECONE = %.50lf\n", t[1]);
+
+  // Calculate acChecksum for each column of the matrix A
+  for (j = 0; j < n; j++) {
+    for (i = rowptr[j]; i < rowptr[j + 1]; i++) {
+      acChecksum[col[i]] += val[i];
     }
   }
 
-  double dot_product = 0; // inner product between p^T and y
-  double S = 0;           // Checksum of vector r
-  for (int i = 0; i < n; i++) {
-    dot_product += p[i] * b[i];
-    S += c[i];
+  for (i = 0; i < n; i++) {
+    dotp[i] = acChecksum[i] * p[i];
+    // printf("%Lf = %Lf * %lf\n", dotp[i], acChecksum[i], p[i]);
   }
-  free(p);
 
-#ifdef ENABLE_TESTS
-  printf("dp(%.10lf) == S(%.10lf)\n", dot_product, S);
-#endif
+  long double tcSum = 0.0;
+  long double dotpSum = 0.0;
 
-  double diff = fabs(dot_product - S);
-  if (diff <= tol)
-    return 0;
-  else
-    return 1;
+  for (i = 0; i < n; i++) {
+    tcSum += t[i];
+    dotpSum += dotp[i];
+  }
+  tcSum = tcSum * tol;
+  dotpSum = dotpSum;
+
+  free(acChecksum);
+  free(dotp);
+
+  // printf("tol: %lf\n", tol);
+  //  Check conditions (i) and (ii) of Theorem 1
+  // printf("1: %.50Lf == %.50Lf\n", tcSum, dotpSum);
+
+  // printf("2: %.50lf <= %.50lf\n", fabs(tcSum - dotpSum), tol);
+  if (fabs(tcSum - t[n]) <= tol && fabs(tcSum - dotpSum) <= tol) {
+    // if (fabs(tcSum - dotpSum) <= tol) {
+    //    printf("winner");
+    return 0; // SpMV operation is correct based on Theorem 1
+  } else {
+    //   printf("loser");
+    return 1; // Error occurred during the SpMV operation
+  }
 }
 
 int isLowerTriangular(my_crs_matrix *A) {

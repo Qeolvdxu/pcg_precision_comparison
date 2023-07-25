@@ -44,7 +44,7 @@ with open('Data/combo.csv', 'r') as file:
             wall_times_cpu.append(wall_time)
             fault_times_cpu.append(fault_time)  # Append CPU fault time for the new bar
         else:
-            wall_times_gpu.append(wall_time - fault_time)
+            wall_times_gpu.append(wall_time)
             mem_times_gpu.append(mem_time)
             fault_times_gpu.append(fault_time)
 
@@ -57,14 +57,14 @@ bar_width = 0.25
 index = np.arange(num_matrices) * 2
 
 # Create the bar graph
-plt.bar(index, wall_times_cpu, bar_width, label='CPU WALL')
+plt.bar(index, fault_times_cpu, bar_width, label='CPU FAULT')
+plt.bar(index, wall_times_cpu, bar_width, bottom=fault_times_cpu, label='CPU WALL')
 plt.bar(index + bar_width, mem_times_gpu, bar_width, label='GPU MEM')
 plt.bar(index + bar_width, fault_times_gpu, bar_width, bottom=mem_times_gpu, label='GPU FAULT')
 plt.bar(index + bar_width, wall_times_gpu, bar_width, bottom=np.array(mem_times_gpu) + np.array(fault_times_gpu),
         label='GPU WALL')
-plt.bar(index + 2 * bar_width, fault_times_cpu, bar_width, label='CPU FAULT')  # New bar for CPU fault time
 
-plt.yscale('log', base=10)
+# plt.yscale('log', base=10)
 plt.subplots_adjust(bottom=0.5)
 
 # Add labels, titles, and legend
