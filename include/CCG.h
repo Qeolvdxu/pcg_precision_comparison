@@ -4,9 +4,9 @@
 #include "../include/CUSTOMIZE.h"
 #include "../include/my_crs_matrix.h"
 
-// the big one
 void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
-         double tolerance, int *iter, double *elapsed, double *fault_elapsed);
+         double tolerance, int *iter, double *elapsed, double *fault_elapsed,
+         int k);
 
 // cg preconditioning related functions
 void ichol(my_crs_matrix *M, double *L);

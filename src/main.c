@@ -5,11 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "../include/CCG.h"
 #include "../include/CUSTOMIZE.h"
 #include "../include/CuCG.h"
 #include "../include/my_crs_matrix.h"
+#include "../include/trisolv.h"
 
 // call_CuCG(files[i],b,x,maxit,tol);
 
@@ -64,70 +66,81 @@ char **find_files(const char *dir_path, int *num_files) {
 void *batch_CCG(void *arg) {
   Data_CG *data = (Data_CG *)arg;
   FILE *ofile = fopen("../Data/results_CCG_TEST.csv", "w");
-  int i, j;
+  int k = -1; // error location
+  int i, j, q;
   double *x;
   double *b;
   int iter;
+  double k_twonrm = -1.0;
   double elapsed = 0.0;
   double fault_elapsed = 0.0;
 
-  for (i = 0; i < data->matrix_count; i++) {
-    elapsed = 0.0;
-    fault_elapsed = 0.0;
-    // Create Matrix struct and Precond
-    my_crs_matrix *A = my_crs_read(data->files[i]);
+  for (j = 0; j < 1; j++) {
+    for (i = 0; i < data->matrix_count; i++) {
+      elapsed = 0.0;
+      fault_elapsed = 0.0;
+      // Create Matrix struct and Precond
+      my_crs_matrix *A = my_crs_read(data->files[i]);
+#ifdef INJECT_ERROR
+      k = rand() % A->n;
+      k_twonrm = sp2nrmrow(k, A->n, A->rowptr, A->val);
+#endif
 
-    my_crs_matrix *M;
-    if (data->pfiles)
-      M = my_crs_read(data->pfiles[i]);
+      my_crs_matrix *M;
+      if (data->pfiles)
+        M = my_crs_read(data->pfiles[i]);
 
-    // allocate arrays
-    x = calloc(A->n, sizeof(double));
-    b = malloc(sizeof(double) * A->n);
-    for (j = 0; j < A->n; j++)
-      b[j] = 1;
+      // allocate arrays
+      x = calloc(A->n, sizeof(double));
+      b = malloc(sizeof(double) * A->n);
+      for (q = 0; q < A->n; q++)
+        b[q] = 1;
 
-    // run cpu
-    printf("CPU CG : %s", data->files[i]);
-    if (data->pfiles) {
-      printf("    and    %s\n", data->pfiles[i]);
-      CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed);
-    } else {
-      printf("\n");
-      CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed,
-          &fault_elapsed);
+      // run cpu
+      printf("CPU CG : %s", data->files[i]);
+      if (data->pfiles) {
+        printf("    and    %s\n", data->pfiles[i]);
+        CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed,
+            k);
+      } else {
+        printf("\n");
+        CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed,
+            &fault_elapsed, k);
+      }
+
+      if (iter == 0)
+        return NULL;
+
+      elapsed -= fault_elapsed;
+
+      if (j == 0 && i == 0)
+        fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
+                       "TIME,FAULT_TIME,INJECT_SITE,ROW_2-NORM,"
+                       "X_VECTOR\n");
+      fprintf(ofile, "CPU,");
+      fprintf(ofile, "%s,", data->files[i]);
+      fprintf(ofile, "%s,%d,%lf,%lf,%lf,%d,%lf,", "double", iter, elapsed, 0.0,
+              fault_elapsed, k, k_twonrm);
+      /*printf("cpu time : %s,%d,%lf,%d,%lf \n", C_PRECI_NAME, iter, elapsed, 0,
+             fault_elapsed);*/
+      // printf("TOTAL C ITERATIONS: %d", iter);
+      for (q = 0; q < 5; q++) {
+        fprintf(ofile, "%0.10lf,", x[q]);
+        // printf("%0.10lf,", x[q]);
+      }
+      fprintf(ofile, "\n");
+
+      my_crs_free(A);
+      if (data->pfiles)
+        my_crs_free(M);
+      free(b);
+      free(x);
+
+      printf(" CPU CG Test %d complete in %d iterations!\n", i, iter);
     }
-
-    if (iter == 0)
-      return NULL;
-
-    elapsed -= fault_elapsed;
-
-    if (i == 0)
-      fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
-                     "TIME,FAULT_TIME,X_VECTOR\n");
-    fprintf(ofile, "CPU,");
-    fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%d,%lf,", C_PRECI_NAME, iter, elapsed, 0,
-            fault_elapsed);
-    printf("cpu time : %s,%d,%lf,%d,%lf \n", C_PRECI_NAME, iter, elapsed, 0,
-           fault_elapsed);
-    // printf("TOTAL C ITERATIONS: %d", iter);
-    for (j = 0; j < 5; j++) {
-      fprintf(ofile, "%0.10lf,", x[j]);
-      // printf("%0.10lf,", x[j]);
-    }
-    fprintf(ofile, "\n");
-
-    my_crs_free(A);
-    if (data->pfiles)
-      my_crs_free(M);
-    free(b);
-    free(x);
-
-    printf("CPU CG Test %d complete in %d iterations!\n", i, iter);
+    printf("\t CPU BATCH %d FINISHED!\n", j);
   }
-  printf("\t CPU COMPLETE!\n");
+  printf("\t\t CPU FULLY COMPLETE!\n");
   // fclose(ofile);
   return NULL;
 }
@@ -136,7 +149,9 @@ void *batch_CuCG(void *arg) {
   Data_CG *data = (Data_CG *)arg;
   FILE *ofile = fopen("../Data/results_CudaCG_TEST.csv", "w");
   printf("%d matrices\n", data->matrix_count);
-  int i, j, iter;
+  int i, j, q, iter;
+  int k = -1;             // error location
+  double k_twonrm = -1.0; // error location
   double elapsed = 0.0;
   double mem_elapsed = 0.0;
   double fault_elapsed = 0.0;
@@ -144,64 +159,74 @@ void *batch_CuCG(void *arg) {
   double *b;
   int n;
 
-  for (i = 0; i < data->matrix_count; i++) {
-    elapsed = 0.0;
-    fault_elapsed = 0.0;
-    mem_elapsed = 0.0;
-    // get matrix size
-    //  	file = fopen(data->files[i], "r");
-    my_crs_matrix *A = my_crs_read(data->files[i]);
-    n = A->n;
+  for (j = 0; j < 1; j++) {
+    for (i = 0; i < data->matrix_count; i++) {
+      elapsed = 0.0;
+      fault_elapsed = 0.0;
+      mem_elapsed = 0.0;
+      // get matrix size
+      //  	file = fopen(data->files[i], "r");
+      my_crs_matrix *A = my_crs_read(data->files[i]);
+#ifdef INJECT_ERROR
+      k = rand() % A->n;
+      k_twonrm = sp2nrmrow(k, A->n, A->rowptr, A->val);
+#endif
+      n = A->n;
 
-    // allocate arrays
-    x = calloc(n, sizeof(double));
-    b = malloc(sizeof(double) * n);
-    for (j = 0; j < n; j++)
-      b[j] = 1;
+      // allocate arrays
+      x = calloc(n, sizeof(double));
+      b = malloc(sizeof(double) * n);
+      for (q = 0; q < n; q++)
+        b[q] = 1;
 
-    // run gpu
-    printf("GPU CG : %s", data->files[i]);
-    if (data->pfiles) {
-      printf("    and    %s\n", data->pfiles[i]);
-      call_CuCG(data->files[i], data->pfiles[i], b, x, data->maxit,
-                (double)data->tol, &iter, &elapsed, &mem_elapsed,
-                &fault_elapsed);
-    } else {
-      printf("\n");
-      call_CuCG(data->files[i], NULL, b, x, data->maxit, (double)data->tol,
-                &iter, &elapsed, &mem_elapsed, &fault_elapsed);
+      // run gpu
+      printf("GPU CG : %s", data->files[i]);
+      if (data->pfiles) {
+        printf("    and    %s\n", data->pfiles[i]);
+        call_CuCG(data->files[i], data->pfiles[i], b, x, data->maxit,
+                  (double)data->tol, &iter, &elapsed, &mem_elapsed,
+                  &fault_elapsed, k);
+      } else {
+        printf("\n");
+        call_CuCG(data->files[i], NULL, b, x, data->maxit, (double)data->tol,
+                  &iter, &elapsed, &mem_elapsed, &fault_elapsed, k);
+      }
+      // printf("%d %lf\n", iter, elapsed);
+      elapsed -= mem_elapsed + fault_elapsed;
+      if (j == 0 && i == 0)
+        fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
+                       "TIME,FAULT_TIME,INJECT_SITE,ROW_2-NORM,"
+                       "X_VECTOR\n");
+      fprintf(ofile, "GPU,");
+      fprintf(ofile, "%s,", data->files[i]);
+      fprintf(ofile, "%s,%d,%lf,%lf,%lf,%d,%lf,", "double", iter, elapsed,
+              mem_elapsed, fault_elapsed, k, k_twonrm);
+      /*printf("gpu time : %s,%d,%lf,%lf,%lf\n", "double", iter, elapsed,
+             mem_elapsed, fault_elapsed);*/
+      // printf("TOTAL CUDA ITERATIONS: %d", iter);
+      for (q = 0; q < 5; q++) {
+        fprintf(ofile, "%0.10lf,", x[q]);
+        // printf("%0.10lf,", x[q]);
+      }
+      fprintf(ofile, "\n");
+
+      my_crs_free(A);
+      free(x);
+      free(b);
+
+      printf("  GPU CG Test %d complete in %d iterations!\n", i, iter);
     }
-    // printf("%d %lf\n", iter, elapsed);
-    elapsed -= mem_elapsed + fault_elapsed;
-    if (i == 0)
-      fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
-                     "TIME,FAULT_TIME,"
-                     "X_VECTOR\n");
-    fprintf(ofile, "GPU,");
-    fprintf(ofile, "%s,", data->files[i]);
-    fprintf(ofile, "%s,%d,%lf,%lf,%lf,", "double", iter, elapsed, mem_elapsed,
-            fault_elapsed);
-    printf("gpu time : %s,%d,%lf,%lf,%lf\n", "double", iter, elapsed,
-           mem_elapsed, fault_elapsed);
-    // printf("TOTAL CUDA ITERATIONS: %d", iter);
-    for (j = 0; j < 5; j++) {
-      fprintf(ofile, "%0.10lf,", x[j]);
-      // printf("%0.10lf,", x[j]);
-    }
-    fprintf(ofile, "\n");
-
-    my_crs_free(A);
-    free(x);
-    free(b);
-
-    printf("GPU CG Test %d complete in %d iterations!\n", i, iter);
+    printf("\t GPU BATCH %d FINISHED!\n", j);
   }
-  printf("\t GPU COMPLETE!\n");
+  printf("\t\t GPU FULLY COMPLETE!\n");
   fclose(ofile);
   return NULL;
 }
 
 int main(int argc, char *argv[]) {
+
+  srand(time(0));
+
   // Set inital values
   int i = 0;
   char precond, concurrent;

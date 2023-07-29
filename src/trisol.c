@@ -1,9 +1,66 @@
+#include <cuda_runtime.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
 #include "../include/trisolv.h"
+
+void vecErrorInj(double *p, int vector_size, int k) {
+
+  // Generate a random error e in the range of values in vector p
+  double min_value = p[0];
+  double max_value = p[0];
+  for (int i = 1; i < vector_size; i++) {
+    if (p[i] < min_value)
+      min_value = p[i];
+    if (p[i] > max_value)
+      max_value = p[i];
+  }
+  double e = ((double)rand() / RAND_MAX) * (max_value - min_value);
+
+  // Inject the error into vector p
+  p[k] += e;
+  // printf("CPU ERROR INJECTED INTO p[%d] += %lf = %lf\n", k, e, p[k]);
+}
+
+void vecErrorInj_gpu(double *p, int vector_size, int k) {
+  // Copy the vector from GPU to CPU
+  double *h_p = (double *)malloc(sizeof(double) * vector_size);
+  cudaMemcpy(h_p, p, sizeof(double) * vector_size, cudaMemcpyDeviceToHost);
+
+  // Generate a random error e in the range of values in the vector
+  double min_value = h_p[0];
+  double max_value = h_p[0];
+  for (int i = 1; i < vector_size; i++) {
+    if (h_p[i] < min_value)
+      min_value = h_p[i];
+    if (h_p[i] > max_value)
+      max_value = h_p[i];
+  }
+  double e = ((double)rand() / RAND_MAX) * (max_value - min_value);
+
+  // Inject the error into the vector
+  h_p[k] += e;
+
+  // Copy the modified vector back to the GPU
+  cudaMemcpy(p, h_p, sizeof(double) * vector_size, cudaMemcpyHostToDevice);
+
+  // Free memory on the CPU
+  free(h_p);
+  // printf("GPU ERROR INJECTED INTO p[%d] += %lf = %lf\n", k, e, h_p[k]);
+}
+
+double sp2nrmrow(int row_number, int num_rows, int *rowptr, double *val) {
+  double sum_squared_elements = 0.0;
+
+  // Loop through the elements of the given row
+  for (int j = rowptr[row_number]; j < rowptr[row_number + 1]; j++) {
+    sum_squared_elements += val[j] * val[j];
+  }
+
+  return sqrt(sum_squared_elements);
+}
 
 void forwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x) {
   int n = A->n;

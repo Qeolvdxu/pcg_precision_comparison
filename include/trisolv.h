@@ -2,7 +2,9 @@
 #define TRISOLV_H_
 
 #include "my_crs_matrix.h"
-
+void vecErrorInj_gpu(double *p, int vector_size, int k);
+void vecErrorInj(double *p, int vector_size, int k);
+double sp2nrmrow(int row_number, int num_rows, int *rowptr, double *val);
 void forwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x);
 int s_abft_forsub(double *val, int *col, int *rowptr, int n, double *r,
                   double *y, double tol);

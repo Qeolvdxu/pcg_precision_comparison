@@ -64,7 +64,7 @@ plt.bar(index + bar_width, fault_times_gpu, bar_width, bottom=mem_times_gpu, lab
 plt.bar(index + bar_width, wall_times_gpu, bar_width, bottom=np.array(mem_times_gpu) + np.array(fault_times_gpu),
         label='GPU WALL')
 
-# plt.yscale('log', base=10)
+plt.yscale('log', base=10)
 plt.subplots_adjust(bottom=0.5)
 
 # Add labels, titles, and legend
