@@ -181,20 +181,25 @@ int s_abft_backsub(double *val, int *col, int *rowptr, int n, double *r,
     return 1;
 }
 
+
+void calculate_checksum(double *val, int *col, int *rowptr, int n, double *checksum) {
+    int i, j;
+
+    for (j = 0; j < n; j++) {
+        for (i = rowptr[j]; i < rowptr[j + 1]; i++) {
+            checksum[col[i]] += val[i];
+        }
+    }
+}
+
 // s_abft t = A * p for c
-int s_abft_spmv(double *val, int *col, int *rowptr, int n, double *p, double *t,
+int s_abft_spmv(double* acChecksum, int n, double *p, double *t,
                 double tol) {
-  int i, j;
-  long double *acChecksum = calloc(n + 1, sizeof(long double));
+  int i;
   long double *dotp = calloc(n, sizeof(long double));
   //  printf("TVECONE = %.50lf\n", t[1]);
 
   // Calculate acChecksum for each column of the matrix A
-  for (j = 0; j < n; j++) {
-    for (i = rowptr[j]; i < rowptr[j + 1]; i++) {
-      acChecksum[col[i]] += val[i];
-    }
-  }
 
   for (i = 0; i < n; i++) {
     dotp[i] = acChecksum[i] * p[i];
@@ -211,7 +216,7 @@ int s_abft_spmv(double *val, int *col, int *rowptr, int n, double *p, double *t,
   tcSum = tcSum * tol;
   dotpSum = dotpSum;
 
-  free(acChecksum);
+  //free(acChecksum);
   free(dotp);
 
   // printf("tol: %lf\n", tol);

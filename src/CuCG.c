@@ -60,7 +60,7 @@ void cusparse_conjugate_gradient(
   // tolerance = 1e-6;
 #endif
 
-  int fault_freq = 1;
+  int fault_freq = 2;
 
   double faultcheck_start;
   double faultcheck_end;
@@ -89,15 +89,19 @@ void cusparse_conjugate_gradient(
   cudaMemcpy(val_host_A, A->val, A->nz * sizeof(double),
              cudaMemcpyDeviceToHost);*/
 
+  int n = A->n;
+
   double *fault_vec_one = (double *)malloc(sizeof(double) * A->n);
   double *fault_vec_two = (double *)malloc(sizeof(double) * A->n);
+
+  double *acChecksum = (double *)malloc(sizeof(double) * A->n);
+  calculate_checksum(val_host_A, col_host_A, rowptr_host_A, n, acChecksum);
 
   int error;
 
   cusparseStatus_t M_status;
   cusparseStatus_t MT_status;
 
-  int n = A->n;
 
   double *xfive = (double *)malloc(sizeof(double) * 5);
 
@@ -403,7 +407,7 @@ void cusparse_conjugate_gradient(
 #endif
 
 #ifdef INJECT_ERROR
-    // inject he error
+    // inject the error
     if (itert == 1)
       vecErrorInj_gpu(p_vec->val, n, k);
 #endif
@@ -428,7 +432,7 @@ void cusparse_conjugate_gradient(
       memcheck_end = omp_get_wtime();
       *mem_elapsed += (memcheck_end - memcheck_start) * 1000;
       faultcheck_start = omp_get_wtime();
-      if (1 == s_abft_spmv(val_host_A, col_host_A, rowptr_host_A, A->n,
+      if (1 == s_abft_spmv(acChecksum, A->n,
                            fault_vec_one, fault_vec_two, s_abft_tol)) {
         iter = iter + 0;
       }
