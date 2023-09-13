@@ -7,9 +7,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "../include/CUSTOMIZE.h"
-#include "../include/CuCG.h"
-#include "../include/trisolv.h"
+#include "CuCG.h"
+#include "trisolv.h"
 
 typedef struct {
   cusparseDnVecDescr_t desc;
@@ -71,6 +70,7 @@ void cusparse_conjugate_gradient(
 
   double s_abft_tol = tolerance;
 
+
   /*double *val_host_M = malloc(sizeof(double) * M->nz);
   int *col_host_M = malloc(sizeof(int) * M->nz);
   int *rowptr_host_M = malloc(sizeof(int) * (M->n + 1));
@@ -100,10 +100,6 @@ void cusparse_conjugate_gradient(
   int error;
 
   cusparseStatus_t M_status;
-  cusparseStatus_t MT_status;
-
-
-  double *xfive = (double *)malloc(sizeof(double) * 5);
 
 #ifdef ENABLE_TESTS
   double *onex = (double *)malloc(sizeof(double) * n);
@@ -152,7 +148,7 @@ void cusparse_conjugate_gradient(
 #endif
   // r = A * x
   cusparseSpMV_bufferSize(*handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &n_one,
-                          A->desc, b->desc, &one, x->desc, CUDA_PRECI_DT_DEVICE,
+                          A->desc, b->desc, &one, x->desc, CUDA_R_64F,
                           CUSPARSE_MV_ALG_DEFAULT, &bufferSizeMV);
   // printf("bufferSizeMV: %zu\n", bufferSizeMV);
   cudaMalloc(&buff, bufferSizeMV);
@@ -164,7 +160,7 @@ void cusparse_conjugate_gradient(
                x->desc,                          // vector
                &one,                             // beta
                r_vec->desc,                      // answer
-               CUDA_PRECI_DT_DEVICE,             // data type
+               CUDA_R_64F,             // data type
                CUSPARSE_MV_ALG_DEFAULT,          // algorithm
                buff                              // buffer
   );
@@ -188,8 +184,8 @@ void cusparse_conjugate_gradient(
     }
   */
   // r = b - r
-  AXPY_FUN(*handle_blas, n, &ne_one, r_vec->val, 1, b->val, 1);
-  COPY_FUN(*handle_blas, n, b->val, 1, r_vec->val, 1);
+  cublasDaxpy(*handle_blas, n, &ne_one, r_vec->val, 1, b->val, 1);
+  cublasDcopy(*handle_blas, n, b->val, 1, r_vec->val, 1);
 
   /*  if (M) { // z = MT\(M\r);
       csrsv2Info_t info;
@@ -199,13 +195,13 @@ void cusparse_conjugate_gradient(
                z_vec->val, CUSPARSE_SOLVE_POLICY_NO_LEVEL, NULL);
     } else {*/
   // z = r
-  // COPY_FUN(*handle_blas, n, r_vec->val, 1, z_vec->val, 1);
+  // cublasDcopy(*handle_blas, n, r_vec->val, 1, z_vec->val, 1);
   //}
   //
   // p = z
-  COPY_FUN(*handle_blas, n, z_vec->val, 1, p_vec->val, 1);
-  // COPY_FUN(*handle_blas, n, x->val, 1, z_vec->val, 1);
-  NORM_FUN(*handle_blas, n, r_vec->val, 1, &res_norm);
+  cublasDcopy(*handle_blas, n, z_vec->val, 1, p_vec->val, 1);
+  // cublasDcopy(*handle_blas, n, x->val, 1, z_vec->val, 1);
+  cublasDnrm2(*handle_blas, n, r_vec->val, 1, &res_norm);
   init_norm = res_norm;
   ratio = 1.0;
 
@@ -315,69 +311,8 @@ void cusparse_conjugate_gradient(
           *handle, CUSPARSE_OPERATION_NON_TRANSPOSE, M->m, M->nz, &n_one,
           M->desctwo, M->val, M->rowptr, M->col, info_nontrans, r_vec->val,
           y_vec->val, CUSPARSE_SOLVE_POLICY_USE_LEVEL, pBuffer_nontrans);
-      /*printf("Y ");
-      printGPUVector(y_vec->val, M->n);
-      printf("R ");
-      printGPUVector(r_vec->val, M->n);*/
-      // error = cudaGetLastError();
-      //  printf("fs %s - %s\n", cudaGetErrorName(error),
-      // cudaGetErrorString(error));
-      /*if (itert % fault_freq == 0) {
-        memcheck_start = omp_get_wtime();
-        cudaMemcpy(fault_vec_one, r_vec->val, M->n * sizeof(double),
-                   cudaMemcpyDeviceToHost);
-        cudaMemcpy(fault_vec_two, y_vec->val, M->n * sizeof(double),
-                   cudaMemcpyDeviceToHost);
-        memcheck_end = omp_get_wtime();
-        *mem_elapsed += (memcheck_end - memcheck_start) * 1000;*/
-      // cudaDeviceSynchronize();
-      /*faultcheck_start = omp_get_wtime();
-      if (1 == s_abft_forsub(val_host_M, col_host_M, rowptr_host_M, n,
-                             fault_vec_one, fault_vec_two, s_abft_tol)) {
-        /*printf("ERROR GPU (ITERATION %d): S-ABFT DETECTED FAULT IN FORWARD "
-               "SUB \n",
-               itert);
-        /*printf("Error: cusparseDcsrsv2_solve failed with status %d\n",
-               M_status);
-        // exit(1);
-      }
-      faultcheck_end = omp_get_wtime();
-      *fault_elapsed += (faultcheck_end - faultcheck_start) * 1000;
-    }
-  */
-      //  M*z=y
-      MT_status = cusparseDcsrsv2_solve(
-          *handle, CUSPARSE_OPERATION_TRANSPOSE, M->m, M->nz, &n_one,
-          M->desctwo, M->val, M->rowptr, M->col, info_trans, y_vec->val,
-          z_vec->val, CUSPARSE_SOLVE_POLICY_USE_LEVEL, pBuffer_trans);
-      error = cudaGetLastError();
-      // printf("bs %s - %s\n", cudaGetErrorName(error),
-      // cudaGetErrorString(error));
-
-      /*if (itert % fault_freq == 0) {
-        memcheck_start = omp_get_wtime();
-        cudaMemcpy(fault_vec_one, y_vec->val, M->n * sizeof(double),
-                   cudaMemcpyDeviceToHost);
-        cudaMemcpy(fault_vec_two, z_vec->val, M->n * sizeof(double),
-                   cudaMemcpyDeviceToHost);
-        memcheck_end = omp_get_wtime();
-        *mem_elapsed += (memcheck_end - memcheck_start) * 1000;
-        // cudaDeviceSynchronize();
-
-        faultcheck_start = omp_get_wtime();
-        if (1 == s_abft_backsub(val_host_M, col_host_M, rowptr_host_M, n,
-                                fault_vec_one, fault_vec_two, s_abft_tol)) {
-          /*printf("ERROR GPU (ITERATION %d): S-ABFT DETECTED FAULT IN
-      BACKWARD " "SUB \n", itert);
-          /*printf("Error: cusparseDcsrsv2_solve failed with status %d\n",
-                 MT_status);
-          // exit(1);
-        }
-        faultcheck_end = omp_get_wtime();
-        *fault_elapsed += (faultcheck_end - faultcheck_start) * 1000;
-      }*/
     } else // z = r
-      COPY_FUN(*handle_blas, n, r_vec->val, 1, z_vec->val, 1);
+      cublasDcopy(*handle_blas, n, r_vec->val, 1, z_vec->val, 1);
 
 #ifdef ENABLE_TESTS
     cudaMemcpy(onez, z_vec->val, n * sizeof(double), cudaMemcpyDeviceToHost);
@@ -386,7 +321,7 @@ void cusparse_conjugate_gradient(
 #endif
 
     // Rho = r z dot prod
-    DOT_FUN(*handle_blas, n, r_vec->val, 1, z_vec->val, 1, &Rho);
+    cublasDdot(*handle_blas, n, r_vec->val, 1, z_vec->val, 1, &Rho);
 
 #ifdef ENABLE_TESTS
     printf("Rho = %lf\n", Rho);
@@ -394,11 +329,11 @@ void cusparse_conjugate_gradient(
 
     // p = z + (beta * p)
     if (itert == 1) {
-      COPY_FUN(*handle_blas, n, z_vec->val, 1, p_vec->val, 1);
+      cublasDcopy(*handle_blas, n, z_vec->val, 1, p_vec->val, 1);
     } else {
       beta = Rho / (v + Tiny);
-      SCAL_FUN(*handle_blas, n, &beta, p_vec->val, 1);
-      AXPY_FUN(*handle_blas, n, &n_one, z_vec->val, 1, p_vec->val, 1);
+      cublasDscal(*handle_blas, n, &beta, p_vec->val, 1);
+      cublasDaxpy(*handle_blas, n, &n_one, z_vec->val, 1, p_vec->val, 1);
     }
 
 #ifdef ENABLE_TESTS
@@ -419,7 +354,7 @@ void cusparse_conjugate_gradient(
                  p_vec->desc,                      // vector
                  &one,                             // beta
                  q_vec->desc,                      // answer
-                 CUDA_PRECI_DT_DEVICE,             // data type
+                 CUDA_R_64F,             // data type
                  CUSPARSE_MV_ALG_DEFAULT,          // algorithm
                  buff                              // buffer
     );
@@ -445,14 +380,14 @@ void cusparse_conjugate_gradient(
 #endif
 
     // Rtmp = p q dot prod
-    DOT_FUN(*handle_blas, n, p_vec->val, 1, q_vec->val, 1, &Rtmp);
+    cublasDdot(*handle_blas, n, p_vec->val, 1, q_vec->val, 1, &Rtmp);
 
 #ifdef ENABLE_TESTS
     printf("Rtmp = %lf\n", Rtmp);
 #endif
 
     // v = r z dot prod
-    DOT_FUN(*handle_blas, n, r_vec->val, 1, z_vec->val, 1, &v);
+    cublasDdot(*handle_blas, n, r_vec->val, 1, z_vec->val, 1, &v);
 
 #ifdef ENABLE_TESTS
     cudaMemcpy(onep, p_vec->val, n * sizeof(double), cudaMemcpyDeviceToHost);
@@ -467,7 +402,7 @@ void cusparse_conjugate_gradient(
 #endif
 
     // x = x + alpha * p
-    AXPY_FUN(*handle_blas, n, &alpha, p_vec->val, 1, x->val, 1);
+    cublasDaxpy(*handle_blas, n, &alpha, p_vec->val, 1, x->val, 1);
 
 #ifdef ENABLE_TESTS
     cudaMemcpy(onex, x->val, n * sizeof(double), cudaMemcpyDeviceToHost);
@@ -476,7 +411,7 @@ void cusparse_conjugate_gradient(
 
     // r = r - alpha * q
     minus_alpha = -alpha;
-    AXPY_FUN(*handle_blas, n, &minus_alpha, q_vec->val, 1, r_vec->val, 1);
+    cublasDaxpy(*handle_blas, n, &minus_alpha, q_vec->val, 1, r_vec->val, 1);
 
 #ifdef ENABLE_TESTS
     cudaMemcpy(oner, r_vec->val, n * sizeof(double), cudaMemcpyDeviceToHost);
@@ -484,7 +419,7 @@ void cusparse_conjugate_gradient(
 #endif
 
     Rho = 0.0;
-    NORM_FUN(*handle_blas, n, r_vec->val, 1, &res_norm);
+    cublasDnrm2(*handle_blas, n, r_vec->val, 1, &res_norm);
 
 #ifdef ENABLE_TESTS
     printf("res_norm = %lf\n", res_norm);
@@ -503,7 +438,7 @@ void cusparse_conjugate_gradient(
                  x->desc,                          // vector
                  &one,                             // beta
                  r_vec->desc,                      // answer
-                 CUDA_PRECI_DT_DEVICE,             // data type
+                 CUDA_R_64F,             // data type
                  CUSPARSE_MV_ALG_DEFAULT,          // algorithm
                  buff                              // buffer
     );
@@ -533,8 +468,8 @@ void cusparse_conjugate_gradient(
 #endif
 
     // r = b - r
-    AXPY_FUN(*handle_blas, n, &ne_one, b->val, 1, r_vec->val, 1);
-    SCAL_FUN(*handle_blas, n, &ne_one, r_vec->val, 1);
+    cublasDaxpy(*handle_blas, n, &ne_one, b->val, 1, r_vec->val, 1);
+    cublasDscal(*handle_blas, n, &ne_one, r_vec->val, 1);
 
 #ifdef ENABLE_TESTS
     cudaMemcpy(oner, r_vec->val, n * sizeof(double), cudaMemcpyDeviceToHost);
@@ -599,7 +534,7 @@ my_cuda_csr_matrix *cusparse_crs_read(char *name) {
       }
     }
     for (i = 0; i < nz; i++) {
-      if (fscanf(file, CUDA_PRECI_S, &val[i]) < 0) {
+      if (fscanf(file, "%lf ", &val[i]) < 0) {
         printf("error scanning val file %s\n", name);
         break;
       }
@@ -618,7 +553,7 @@ my_cuda_csr_matrix *cusparse_crs_read(char *name) {
 
     printf("READ val : ");
     for (i = 0; i < nz; i++)
-      printf(CUDA_PRECI_S, val[i]);
+      printf("%lf ", val[i]);
     printf("\n");
 #endif
 
@@ -639,7 +574,7 @@ my_cuda_csr_matrix *cusparse_crs_read(char *name) {
     M->nz = nz;
     cusparseCreateCsr(&M->desc, n, n, nz, M->rowptr, M->col, M->val,
                       CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-                      CUSPARSE_INDEX_BASE_ZERO, CUDA_PRECI_DT_DEVICE);
+                      CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
     // Create the CSR matrix
 
   } else {
@@ -716,7 +651,7 @@ void call_CuCG(char *name, char *m_name, double *h_b, double *h_x, int maxit,
     }
   }
   for (int i = 0; i < nz; i++) {
-    if (fscanf(file, CUDA_PRECI_S, &val[i]) < 0) {
+    if (fscanf(file, "%lf ", &val[i]) < 0) {
       printf("Error scanning val file %s\n", name);
       fclose(file);
       free(val);
@@ -774,7 +709,7 @@ void call_CuCG(char *name, char *m_name, double *h_b, double *h_x, int maxit,
       }
     }
     for (int i = 0; i < m_nz; i++) {
-      if (fscanf(m_file, CUDA_PRECI_S, &m_val[i]) < 0) {
+      if (fscanf(m_file, "%lf ", &m_val[i]) < 0) {
         printf("Error scanning m val file %s\n", m_name);
         fclose(m_file);
         free(val);
@@ -832,7 +767,7 @@ void call_CuCG(char *name, char *m_name, double *h_b, double *h_x, int maxit,
     cusparseCreateCsr(&M_matrix->desc, M_matrix->n, M_matrix->n, M_matrix->nz,
                       M_matrix->rowptr, M_matrix->col, M_matrix->val,
                       CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-                      CUSPARSE_INDEX_BASE_ZERO, CUDA_PRECI_DT_DEVICE);
+                      CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
 
     cusparseCreateMatDescr(&M_matrix->desctwo);
     cusparseSetMatType(M_matrix->desctwo, CUSPARSE_MATRIX_TYPE_GENERAL);
@@ -842,7 +777,7 @@ void call_CuCG(char *name, char *m_name, double *h_b, double *h_x, int maxit,
     cudaMalloc((void **)&y_vec->val, m_n * sizeof(double));
     cudaMemcpy(y_vec->val, h_rpqz, m_n * sizeof(double),
                cudaMemcpyHostToDevice);
-    cusparseCreateDnVec(&y_vec->desc, m_n, y_vec->val, CUDA_PRECI_DT_DEVICE);
+    cusparseCreateDnVec(&y_vec->desc, m_n, y_vec->val, CUDA_R_64F);
   }
 
   cudaMalloc((void **)&A_matrix->rowptr, (n + 1) * sizeof(int));
@@ -866,15 +801,15 @@ void call_CuCG(char *name, char *m_name, double *h_b, double *h_x, int maxit,
   cudaMemcpy(q_vec->val, h_rpqz, n_t * sizeof(double), cudaMemcpyHostToDevice);
   cudaMemcpy(z_vec->val, h_rpqz, n_t * sizeof(double), cudaMemcpyHostToDevice);
 
-  cusparseCreateDnVec(&b_vec->desc, n_t, b_vec->val, CUDA_PRECI_DT_DEVICE);
-  cusparseCreateDnVec(&x_vec->desc, n_t, x_vec->val, CUDA_PRECI_DT_DEVICE);
-  cusparseCreateDnVec(&r_vec->desc, n_t, r_vec->val, CUDA_PRECI_DT_DEVICE);
-  cusparseCreateDnVec(&p_vec->desc, n_t, p_vec->val, CUDA_PRECI_DT_DEVICE);
-  cusparseCreateDnVec(&q_vec->desc, n_t, q_vec->val, CUDA_PRECI_DT_DEVICE);
-  cusparseCreateDnVec(&z_vec->desc, n_t, z_vec->val, CUDA_PRECI_DT_DEVICE);
+  cusparseCreateDnVec(&b_vec->desc, n_t, b_vec->val, CUDA_R_64F);
+  cusparseCreateDnVec(&x_vec->desc, n_t, x_vec->val, CUDA_R_64F);
+  cusparseCreateDnVec(&r_vec->desc, n_t, r_vec->val, CUDA_R_64F);
+  cusparseCreateDnVec(&p_vec->desc, n_t, p_vec->val, CUDA_R_64F);
+  cusparseCreateDnVec(&q_vec->desc, n_t, q_vec->val, CUDA_R_64F);
+  cusparseCreateDnVec(&z_vec->desc, n_t, z_vec->val, CUDA_R_64F);
   cusparseCreateCsr(&A_matrix->desc, n, n, nz, A_matrix->rowptr, A_matrix->col,
                     A_matrix->val, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-                    CUSPARSE_INDEX_BASE_ZERO, CUDA_PRECI_DT_DEVICE);
+                    CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
 
   cudaDeviceSynchronize();
 

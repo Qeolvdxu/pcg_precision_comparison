@@ -1,7 +1,6 @@
 #ifndef CCG_MATRIX_H_
 #define CCG_MATRIX_H_
 
-#include "../include/CUSTOMIZE.h"
 #include "../include/my_crs_matrix.h"
 
 void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
@@ -10,10 +9,10 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 
 // cg preconditioning related functions
 void ichol(my_crs_matrix *M, double *L);
-void forwardsub(my_crs_matrix *A, C_PRECI_DT *b, double *x);
+void forwardsub(my_crs_matrix *A, double *b, double *x);
 
 // various linear algebra functions needed for cg
-double matvec_dot(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y, int n);
+double matvec_dot(my_crs_matrix *A, double *x, double *y, int n);
 double dot(double *v, double *u, int n);
 void matvec(my_crs_matrix *A, double *x, double *y);
 double norm(int n, double *v);

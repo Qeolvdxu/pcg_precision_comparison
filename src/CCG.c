@@ -6,10 +6,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "../include/CCG.h"
-#include "../include/CUSTOMIZE.h"
-#include "../include/my_crs_matrix.h"
-#include "../include/trisolv.h"
+#include "CCG.h"
+#include "my_crs_matrix.h"
+#include "trisolv.h"
 
 void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
          double tolerance, int *iter, double *elapsed, double *fault_elapsed,
@@ -302,12 +301,12 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 
 // find z = M^(-1)r
 /*void precondition(my_crs_matrix *M, my_crs_matrix *L, double *r,
-  C_PRECI_DT *z)
+  double *z)
 {
   int n = M->n;
   int i, j;
 
-  C_PRECI_DT *y = (C_PRECI_DT *)malloc(sizeof * n);
+  double *y = (double *)malloc(sizeof * n);
   printf("test 1\n");
 
   for (i = 0; i < n; i++) {
@@ -334,7 +333,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   free(y);
 }
 */
-void forwardsub(my_crs_matrix *A, C_PRECI_DT *b, double *x) {
+void forwardsub(my_crs_matrix *A, double *b, double *x) {
   int n = A->n;
   for (int i = 0; i < n; i++) {
     double sum = 0.0;
@@ -348,7 +347,7 @@ void forwardsub(my_crs_matrix *A, C_PRECI_DT *b, double *x) {
   }
 }
 
-double matvec_dot(my_crs_matrix *A, C_PRECI_DT *x, C_PRECI_DT *y, int n) {
+double matvec_dot(my_crs_matrix *A, double *x, double *y, int n) {
 
   double result = 0.0;
   for (int i = 0; i < n; i++) {

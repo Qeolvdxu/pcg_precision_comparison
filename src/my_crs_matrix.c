@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../include/CUSTOMIZE.h"
 #include "../include/my_crs_matrix.h"
 
 my_crs_matrix *sparse_transpose(my_crs_matrix *input) {
@@ -196,7 +195,7 @@ void my_crs_print(my_crs_matrix *M) {
 
   printf("values,");
   for (i = 0; i < nz; i++) {
-    printf(C_PRECI_S, M->val[i]);
+    printf("%lf ", M->val[i]);
     printf(" ");
   }
   printf("\n");

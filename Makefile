@@ -1,41 +1,7 @@
 CC = gcc
 NVCC = nvcc
 
-CFLAGS = -O3 -Wall -Wextra -pedantic -gdwarf-4 #-DINJECT_ERROR
-NVCCFLAGS = -O3 -Wextra -Wall -Wpedantic #-DINJECT_ERROR
-
-# Retrieve the value of the 'gpu' variable from the command line
-GPU_MODE := $(gpu_mode)
-ifeq ($(GPU_MODE),debug)
-    NVCCFLAGS += -DENABLE_TESTS -g
-endif
-CPU_MODE := $(cpu_mode)
-ifeq ($(CPU_MODE),debug)
-    CFLAGS += -DENABLE_TESTS -g
-endif
-
-
-# Retrieve the value of the 'gpu' variable from the command line
-GPU_PRECI ?=single
-# Check the value of the 'gpu' variable and add corresponding compiler flags
-ifeq ($(GPU_PRECI),single)
-    NVCCFLAGS += -DCUDA_SINGLE
-    CFLAGS += -DCUDA_SINGLE
-endif
-ifeq ($(GPU_PRECI),double)
-    NVCCFLAGS += -DCUDA_DOUBLE
-    CFLAGS += -DCUDA_DOUBLE
-endif
-
-# Retrieve the value of the 'c' variable from the command line
-CPU_PRECI ?=double
-# Check the value of the 'c' variable and add corresponding compiler flags
-ifeq ($(CPU_PRECI),single)
-    CFLAGS += -DC_SINGLE
-endif
-ifeq ($(CPU_PRECI),double)
-    CFLAGS += -DC_DOUBLE
-endif
+CFLAGS = -Iinclude -O3 -Wall -Wextra -pedantic $(CONFIG)
 
 LIB_FLAGS = -lm -lcudart -lcusparse -lcuda -lcublas -lpthread -fopenmp
 
@@ -51,7 +17,7 @@ $(TARGET): $(BUILDDIR)cudacode.o
 
 $(BUILDDIR)cudacode.o:
 	mkdir -p $(BUILDDIR)
-	$(CC) $(NVCCFLAGS) -o $(BUILDDIR)CuCG.o -c $(SRCDIR)CuCG.c -lcusparse
+	$(CC) $(CFLAGS) -o $(BUILDDIR)CuCG.o -c $(SRCDIR)CuCG.c -lcusparse
 
 clean:
 	rm -rf $(BUILDDIR)*.o $(BUILDDIR)$(TARGET)

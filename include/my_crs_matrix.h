@@ -1,8 +1,6 @@
 #ifndef MY_CSR_MATRIX_H_
 #define MY_CSR_MATRIX_H_
 
-#include "../include/CUSTOMIZE.h"
-
 // compressed sparse row matrix
 typedef struct {
   int n;

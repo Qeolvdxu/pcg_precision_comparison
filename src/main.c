@@ -8,7 +8,6 @@
 #include <time.h>
 
 #include "../include/CCG.h"
-#include "../include/CUSTOMIZE.h"
 #include "../include/CuCG.h"
 #include "../include/my_crs_matrix.h"
 #include "../include/trisolv.h"
@@ -16,6 +15,10 @@
 // call_CuCG(files[i],b,x,maxit,tol);
 
 typedef struct {
+  char precond;
+  char concurrent;
+  char *name;
+  char *pname;
   int matrix_count;
   char **files;
   char **pfiles;
@@ -24,13 +27,13 @@ typedef struct {
 } Data_CG;
 
 char **find_files(const char *dir_path, int *num_files) {
+  printf("DIR = %s\n", dir_path);
   DIR *dir = opendir(dir_path);
   struct dirent *entry;
   char **files = NULL;
   int count = 0;
   int i, j;
   char *temp;
-
   if (dir == NULL) {
     perror("opendir");
     return NULL;
@@ -61,6 +64,49 @@ char **find_files(const char *dir_path, int *num_files) {
   *num_files = count;
 
   return files;
+}
+
+
+
+// Function to read the configuration from a config.ini file
+int readConfigFile(Data_CG *data, const char *configFileName) {
+  printf("test 1");
+  FILE *configFile = fopen(configFileName, "r");
+  if (configFile == NULL) {
+    perror("Failed to open configuration file");
+    return 0;
+  }
+
+  // Initialize default values
+  data->precond = 'N';
+  data->concurrent = 'N';
+  data->name = NULL;
+  data->pname = NULL;
+  data->tol = 1e-7;
+  data->maxit = 10000;
+
+  char line[256];
+  while (fgets(line, sizeof(line), configFile)) {
+    char key[64], value[256];
+    if (sscanf(line, "%63s = %255s", key, value) == 2) {
+      if (strcmp(key, "precond") == 0) {
+        data->precond = value[0];
+      } else if (strcmp(key, "concurrent") == 0) {
+        data->concurrent = value[0];
+      } else if (strcmp(key, "name") == 0) {
+        data->name = strdup(value);
+      } else if (strcmp(key, "pname") == 0) {
+        data->pname = strdup(value);
+      } else if (strcmp(key, "tol") == 0) {
+        data->tol = atof(value);
+      } else if (strcmp(key, "maxit") == 0) {
+        data->maxit = atoi(value);
+      }
+    }
+  }
+
+  fclose(configFile);
+  return 1;
 }
 
 void *batch_CCG(void *arg) {
@@ -194,9 +240,6 @@ void *batch_CuCG(void *arg) {
       // printf("%d %lf\n", iter, elapsed);
       elapsed -= mem_elapsed + fault_elapsed;
       if (j == 0 && i == 0)
-        fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
-                       "TIME,FAULT_TIME,INJECT_SITE,ROW_2-NORM,"
-                       "X_VECTOR\n");
       fprintf(ofile, "GPU,");
       fprintf(ofile, "%s,", data->files[i]);
       fprintf(ofile, "%s,%d,%lf,%lf,%lf,%d,%lf,", "double", iter, elapsed,
@@ -223,93 +266,55 @@ void *batch_CuCG(void *arg) {
   return NULL;
 }
 
-int main(int argc, char *argv[]) {
 
+int main(int argc, char *argv[]) {
+  printf("1\n");
   srand(time(0));
 
-  // Set inital values
+  // Set initial values
   int i = 0;
-  char precond, concurrent;
-  char *name;
-  char *pname;
-  int matrix_count = 0;
-  int precond_count = 0;
   pthread_t th1;
   pthread_t th2;
   Data_CG *data;
 
-  // Collect information from user
-  printf("Conjugate Gradient GPU and CPU Precision Comparison Test\n"
-         "Enter your options now, or pass them as arguments on launch\n\n");
-
-  // Read Directory of Matrices
-  name = "../test_subjects/rcm";
-  pname = "../test_subjects/precond_norm";
-  // printf("Enter the directory of matrices: ");
-  // scanf("%s",name);
-
   data = malloc(sizeof(Data_CG));
 
-  if (argc == 1) {
-    printf("Use preconditioning? (Y or N): ");
-    scanf(" %c", &precond);
-  } else if (argc >= 2) {
-    precond = argv[1][0];
+  printf("1\n");
+  if (!readConfigFile(data, "../config.ini")) {
+    return 1;
   }
 
-  concurrent = 'Y';
-  if (argc == 1) {
-    printf("Run CPU and GPU concurrently? (Y or N): ");
-    scanf(" %c", &concurrent);
-  } else if (argc >= 3) {
-    concurrent = argv[2][0];
-  }
+  printf("1\n");
+  data->files = find_files(data->name, &data->matrix_count);
+  printf("2\n");
+  int matrix_count = data->matrix_count;
+  int precond_count = data->precond == 'Y' ? matrix_count : 0;
 
-  data->files = find_files(name, &data->matrix_count);
-  // data->matrix_count = 4;
-
-  if (matrix_count != precond_count && precond == 'Y') {
-    printf("ERROR: number of matricies (%d) and precondtioners (%d) do not "
-           "match!\n",
+  if (matrix_count != precond_count && data->precond == 'Y') {
+    printf("ERROR: number of matrices (%d) and preconditioners (%d) do not match!\n",
            matrix_count, precond_count);
     return 1;
   }
 
-  if (precond == 'Y')
-    data->pfiles = find_files(pname, &precond_count);
-  else if (precond == 'N')
+  printf("1\n");
+  if (data->precond == 'Y')
+    data->pfiles = find_files(data->pname, &precond_count);
+  else if (data->precond == 'N')
     data->pfiles = NULL;
   else
     printf("Bad Precond Input!\n");
+  printf("1\n");
 
-  // Set answer precision tolerance
-  data->tol = 1e-7;
-  if (argc == 1) {
-    printf("Enter the tolerance : ");
-    scanf(" %lf", &data->tol);
-  } else if (argc >= 4) {
-    data->tol = strtof(argv[3], NULL);
-  }
-
-  // Stop algorithm from continuing after this many iterations
-  data->maxit = 10000; // 00000;
-  if (argc == 1) {
-    printf("Enter the maximum iterations : ");
-    scanf(" %d", &data->maxit);
-  } else if (argc >= 5) {
-    data->maxit = strtol(argv[4], NULL, 10);
-  }
-
-  // Iterativly run conjugate gradient for each matrix
+  // Iteratively run conjugate gradient for each matrix
   // Runs through C implementation on host and another thread for CUDA calling
 
-  if (concurrent == 'Y') {
+  if (data->concurrent == 'Y') {
     printf("\n\tlaunching CCG thread...");
     pthread_create(&th1, NULL, (void *(*)(void *))batch_CCG, data);
     printf("\n\tlaunching GPU CG thread...\n");
     // pthread_create(&th2, NULL, (void *(*)(void *))batch_CuCG, data);
     batch_CuCG(data);
-  } else if (concurrent == 'N') {
+  } else if (data->concurrent == 'N') {
     printf("\n\trunning GPU CG function...");
     batch_CuCG(data);
     printf("\n\trunning CCG function...");
@@ -317,7 +322,7 @@ int main(int argc, char *argv[]) {
   } else
     printf("Bad Concurrency Input!\n");
 
-  if (concurrent == 'Y') {
+  if (data->concurrent == 'Y') {
     pthread_join(th1, NULL);
     //  pthread_join(th2, NULL);
   }
@@ -326,9 +331,11 @@ int main(int argc, char *argv[]) {
   printf("cleaning memory\n");
   for (i = 0; i < matrix_count; i++) {
     free(data->files[i]);
-    if (precond == 'Y')
+    if (data->precond == 'Y')
       free(data->pfiles[i]);
   }
+  free(data->files);
+  free(data->pfiles);
   free(data);
   printf("Tests Complete!\n");
 

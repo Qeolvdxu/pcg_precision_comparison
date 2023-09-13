@@ -1,79 +1,145 @@
 #!/bin/bash
 
-set -e
+# Function to read configuration from config.ini
+read_config() {
+  local config_file="config.ini"
+  if [ -f "$config_file" ]; then
+    echo "Loading configuration from $config_file..."
+    force_precond=$(awk -F= '/^gen_precond_forced/ {print $2}' "$config_file" | tr -d ' ')
+    debug_mode=$(awk -F= '/^debug/ {print $2}' "$config_file" | tr -d ' ')
+    inject_error=$(awk -F= '/^inject_error/ {print $2}' "$config_file" | tr -d ' ')
+  else
+    echo "ERROR: Config file $config_file not found!"
+    exit
+  fi
 
-all_empty=true
+   # Check if the debug_mode variable is set and is equal to "true"
+  if [[ $debug_mode == "true" ]]; then
+    # Add "debug" to the MAKE_CONFIG variable
+    MAKE_CONFIG="$MAKE_CONFIG -DENABLE_TESTS -g "
+  fi
 
-# Exclude the mm directory from the find command
-if [[ -z $(find "test_subjects" -mindepth 1 -type d ! -name "mm" -exec sh -c 'find "$0" -mindepth 1 -type f -o -type d | grep -q .' {} \; -print 2>/dev/null) ]]; then
-    echo "All directories in test_subjects, except mm, are empty."
+  # Check if the inject_error variable is set and is equal to "true"
+  if [[ $inject_error == "true" ]]; then
+    # Add "inject_error" to the MAKE_CONFIG variable
+    MAKE_CONFIG="$MAKE_CONFIG -DINJECT_ERROR "
+  fi
+} 2> "./Build/build.log"
+
+# Function to check if preconditioning is required
+check_precond() {
+  local mm_dir="test_subjects/mm"
+  local precond_dir="test_subjects/precond"
+  local precond_norm_dir="test_subjects/precond_norm"
+  local precond_rcm_dir="test_subjects/precond_rcm"
+  local force_precond="$1"
+
+  # Check if the mm directory is empty
+  if [[ -z $(find "$mm_dir" -mindepth 1 -type f -print) ]]; then
+    echo "ERROR: No matrix files found in $mm_dir!"
+    exit
+  fi
+
+  # Get the counts of matrices in different directories
+  mm_count=$(find "$mm_dir" -type f | wc -l)
+  precond_count=$(find "$precond_dir" -type f | wc -l)
+  precond_norm_count=$(find "$precond_norm_dir" -type f | wc -l)
+  precond_rcm_count=$(find "$precond_rcm_dir" -type f | wc -l)
+
+  # Check if force_precond is set to true or if there are newer matrix files in mm
+  if [[ "$force_precond" = true || $(find "$mm_dir" -type f -newer "$precond_dir" -print -quit ) || "$mm_count" -ne "$precond_count" || "$mm_count" -ne "$precond_norm_count" || "$mm_count" -ne "$precond_rcm_count" ]]; then
+    echo "Preconditioning is required or forced. (this will take a bit)"
+    echo "Generating preconditioners..."
+    (cd scripts; octave converter.m) > ./Build/build.log
+  else
+    echo "Preconditioning is not required."
+  fi
+} 2>> "./Build/build.log"
+
+# Function to build the project
+build_project() {
+  echo "Building the project..."
+  make CONFIG="$MAKE_CONFIG"
+  MAKE_STATUS=$? 
+} >> "./Build/build.log" 2>&1
+
+# Function to create the Build directory if it doesn't exist
+create_build_dir() {
+  local build_dir="Build"
+
+  if [ ! -d "$build_dir" ]; then
+    mkdir -p "$build_dir"
+  fi
+}
+
+# Function to create the Data directory if it doesn't exist
+create_data_dir() {
+  local data_dir="Data"
+
+  if [ ! -d "$data_dir" ]; then
+    echo "Creating the Data directory..."
+    mkdir -p "$data_dir"
+  else
+    echo "Data directory was found."
+  fi
+  echo "Build Complete! :)"
+}  >> "./Build/build.log" 2>&1
+
+# Function to run cgpc
+run_cgpc() {
+  if [[ $debug_mode == "true" ]]; then
+    (cd Build; ./cgpc) #> "./Build/run.log" 2>&1
+    RUN_STATUS=$? 
+  else
+    (cd Build; ./cgpc) > "./Build/run.log" 2>&1
+    RUN_STATUS=$? 
+  fi
+}
+
+# Function to perform additional actions
+handle_data() {
+  echo "Performing additional actions..."
+  (cd Data; cat results_CCG_TEST.csv > combo.csv && cat results_CudaCG_TEST.csv >> combo.csv)
+  python3 scripts/gpu_percentages.py
+  python3 scripts/iteration_graph.py
+  python3 scripts/timings_graph.py
+} >> "./Build/run.log" 2>&1
+
+echo "Starting the Build..."
+# Main script
+create_build_dir
+
+echo "Reading config..."
+# Read configuration from config.ini
+read_config
+
+echo "Making sure preconditioners are set..."
+# Check if preconditioning is required
+check_precond "$force_precond"
+
+echo "Compiling the project..."
+# Build the project
+build_project
+if [[ $MAKE_STATUS == 0 ]]; then
+    echo "Build successful!"
 else
-    all_empty=false
+    echo "ERROR : Make has failed! ($MAKE_STATS) Check the logs in Build!"
+    exit
 fi
 
-# if there are already matrccies douns
-if [ "$all_empty" = false ]; then
-   echo "Do you want to generate new CSR and Preconditioners?"
-   read -rp "(this is only necessary if you changed matrices) [Y/n] " choice
-   if [[ "$choice" =~ ^[Yy]$ ]]; then
-      rm -f ../test_subjects/norm/* 2>/dev/null
-      rm -f ../test_subjects/rcm/* 2>/dev/null
-      rm -f ../test_subjects/precond*/* 2>/dev/null
-   fi
+# Create the Data directory if it doesn't exist
+create_data_dir
+
+echo "Running the project..."
+# Run cgpc
+run_cgpc
+if [[ $RUN_STATUS == 0 ]]; then
+    echo "Run successful!"
+    echo "Preparing the data..."
+    # Perform additional actions
+    handle_data
+    echo "Script completed successfully."
 else
-   echo "No CSR/Preconditioner matrix files found! Will generate new ones for you!"
+    echo "ERROR : Run has failed! ($RUN_STATUS) Check the logs in Build!"
+    exit
 fi
-choice=${choice:-Y}
-
-# Preconditioner matrices option
-read -rp "Use preconditioner matrices? [Y/N] (default: Y): " precond_choice
-precond_choice=${precond_choice:-Y}
-
-# CPU and GPU concurrent execution option
-read -rp "Run CPU and GPU concurrently? [Y/N] (default: Y): " concurrent_choice
-concurrent_choice=${concurrent_choice:-Y}
-
-# Convergence tolerance
-read -rp "Convergence tolerance (default: 1e-7): " tolerance
-tolerance=${tolerance:-1e-7}
-
-# Iteration cap
-read -rp "Iteration cap (default: 1000): " iteration_cap
-iteration_cap=${iteration_cap:-1000}
-
-echo "Select the flags for the make command:"
-
-# GPU Mode
-read -rp "GPU Mode (debug/release): " gpu_mode
-gpu_mode=${gpu_mode:-release}
-
-# CPU Mode
-read -rp "CPU Mode (debug/release): " cpu_mode
-cpu_mode=${cpu_mode:-release}
-
-# GPU Precision
-read -rp "GPU Precision (single/double): " gpu_preci
-gpu_preci=${gpu_preci:-single}
-
-# CPU Precision
-read -rp "CPU Precision (single/double): " cpu_preci
-cpu_preci=${cpu_preci:-double}
-
-if [[ "$choice" =~ ^[Yy]$ ]]; then
-    (cd scripts; octave converter.m)
-else
-    echo Using whatever is in the files.
-fi
-
-make cpu_mode="$cpu_mode" gpu_mode="$gpu_mode" GPU_PRECI="$gpu_preci" CPU_PRECI="$cpu_preci"
-
-mkdir -p Data 2>/dev/null
-echo -r "\n * Running the CG\n"
-(cd Build; ./cgpc "$precond_choice" "$concurrent_choice" "$tolerance" "$iteration_cap")
-
-echo -e "\n * Creating the Data\n"
-mkdir -p Data 2>/dev/null
-(cd Data; cat results_CCG_TEST.csv > combo.csv && cat results_CudaCG_TEST.csv >> combo.csv)
-python3 scripts/gpu_percentages.py
-python3 scripts/iteration_graph.py
-python3 scripts/timings_graph.py
