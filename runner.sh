@@ -8,6 +8,7 @@ read_config() {
     force_precond=$(awk -F= '/^gen_precond_forced/ {print $2}' "$config_file" | tr -d ' ')
     debug_mode=$(awk -F= '/^debug/ {print $2}' "$config_file" | tr -d ' ')
     inject_error=$(awk -F= '/^inject_error/ {print $2}' "$config_file" | tr -d ' ')
+    vocal_mode=$(awk -F= '/^vocal/ {print $2}' "$config_file" | tr -d ' ')
   else
     echo "ERROR: Config file $config_file not found!"
     exit
@@ -48,20 +49,36 @@ check_precond() {
 
   # Check if force_precond is set to true or if there are newer matrix files in mm
   if [[ "$force_precond" = true || $(find "$mm_dir" -type f -newer "$precond_dir" -print -quit ) || "$mm_count" -ne "$precond_count" || "$mm_count" -ne "$precond_norm_count" || "$mm_count" -ne "$precond_rcm_count" ]]; then
-    echo "Preconditioning is required or forced. (this will take a bit)"
+    echo "Precondition Generation is required or forced. (this will take a bit)"
     echo "Generating preconditioners..."
     (cd scripts; octave converter.m) > ./Build/build.log
   else
-    echo "Preconditioning is not required."
+    echo "Precondition Generation is not required."
   fi
 } 2>> "./Build/build.log"
 
 # Function to build the project
 build_project() {
-  echo "Building the project..."
-  make CONFIG="$MAKE_CONFIG"
+  if [[ $vocal_mode == "true" ]]; then
+    ( echo "Building the project..."; make CONFIG="$MAKE_CONFIG" ) | tee -a "./Build/build.log"
+  else
+    echo "Building the project..." >> "./Build/build.log"
+    make CONFIG="$MAKE_CONFIG" >> "./Build/build.log" 2>&1
+  fi
   MAKE_STATUS=$? 
-} >> "./Build/build.log" 2>&1
+}
+
+# Function to run cgpc
+run_cgpc() {
+  if [[ $vocal_mode == "true" ]]; then
+    echo "Running the project..."; 
+    ( cd Build; ./cgpc ) #| tee "./Build/run.log"
+  else
+    echo "Running the project..."  | tee -a "./Build/run.log"
+    ( cd Build; ./cgpc ) > "./Build/run.log" 2>&1
+  fi
+  RUN_STATUS=$? 
+}
 
 # Function to create the Build directory if it doesn't exist
 create_build_dir() {
@@ -85,16 +102,6 @@ create_data_dir() {
   echo "Build Complete! :)"
 }  >> "./Build/build.log" 2>&1
 
-# Function to run cgpc
-run_cgpc() {
-  if [[ $debug_mode == "true" ]]; then
-    (cd Build; ./cgpc) #> "./Build/run.log" 2>&1
-    RUN_STATUS=$? 
-  else
-    (cd Build; ./cgpc) > "./Build/run.log" 2>&1
-    RUN_STATUS=$? 
-  fi
-}
 
 # Function to perform additional actions
 handle_data() {
@@ -103,7 +110,7 @@ handle_data() {
   python3 scripts/gpu_percentages.py
   python3 scripts/iteration_graph.py
   python3 scripts/timings_graph.py
-} >> "./Build/run.log" 2>&1
+} > "./Build/run.log" 2>&1
 
 echo "Starting the Build..."
 # Main script
@@ -130,7 +137,6 @@ fi
 # Create the Data directory if it doesn't exist
 create_data_dir
 
-echo "Running the project..."
 # Run cgpc
 run_cgpc
 if [[ $RUN_STATUS == 0 ]]; then
