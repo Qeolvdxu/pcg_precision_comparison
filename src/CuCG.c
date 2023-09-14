@@ -343,7 +343,7 @@ void cusparse_conjugate_gradient(
 
 #ifdef INJECT_ERROR
     // inject the error
-    if (itert == 1)
+    if (itert == 1 && k != -1)
       vecErrorInj_gpu(p_vec->val, n, k);
 #endif
 
@@ -827,7 +827,7 @@ void call_CuCG(char *name, char *m_name, double *h_b, double *h_x, int maxit,
         x_vec, r_vec, p_vec, q_vec, z_vec, y_vec, maxit, tol, iter, elapsed,
         mem_elapsed, fault_elapsed, &cusparseHandle, &cublasHandle, k);
   } else {
-    printf("NOT PASSING PRECOND\n");
+    //printf("NOT PASSING PRECOND\n");
     cusparse_conjugate_gradient(
         A_matrix, NULL, NULL, NULL, val, col, rowptr, NULL, b_vec, x_vec, r_vec,
         p_vec, q_vec, z_vec, NULL, maxit, tol, iter, elapsed, mem_elapsed,

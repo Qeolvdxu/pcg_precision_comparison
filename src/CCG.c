@@ -169,7 +169,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 #endif
     // inject the error
 #ifdef INJECT_ERROR
-    if (itert == 1)
+    if (itert == 1 && k != -1)
       vecErrorInj(p, n, k);
 #endif
 
