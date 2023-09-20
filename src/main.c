@@ -145,6 +145,7 @@ void *batch_CG(void *arg) {
   double *b;
   int iter;
   int *crit_index;
+  double *row2norms;
   double k_twonrm = -1.0;
   double elapsed = 0.0;
   double fault_elapsed = 0.0;
@@ -174,7 +175,6 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
         k = -1;
       }
 #endif
-
       my_crs_matrix *M;
       if (data->pfiles)
         M = my_crs_read(data->pfiles[i]);
@@ -185,10 +185,12 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
       crit_index = malloc(sizeof(int) * A->n);
       for (q = 0; q < A->n; q++)
       {
+        row2norms[q] = sp2nrmrow(q, A->n, A->rowptr, A->val);
         crit_index[q] = q;
         b[q] = 1;
       }
-     lastSlash= strrchr(data->files[i], '/');
+    sortByImportance(crit_index, row2norms,A->n);
+    lastSlash= strrchr(data->files[i], '/');
     firstDot = strchr(lastSlash, '.');
 
       printf("%s CG : %.*s", (executionTarget == CPU_EXECUTION) ? "CPU" : "GPU", (int)(firstDot - lastSlash - 1), lastSlash + 1);

@@ -377,6 +377,48 @@ int checkSolution(my_crs_matrix *A, double *b, double *x, double tolerance)
   return 1; // Solution is correct
 }
 
+
+// Custom comparison function for sorting based on importances
+int compareImportance(const void *a, const void *b) {
+    const ValueWithImportance *va = (const ValueWithImportance *)a;
+    const ValueWithImportance *vb = (const ValueWithImportance *)b;
+
+    if (va->importance < vb->importance) return -1;
+    else if (va->importance > vb->importance) return 1;
+    else return 0;
+}
+
+// Function to sort array1 based on the order of array2
+void sortByImportance(double *array1, double *array2, int length) {
+    // Create an array of ValueWithImportance structures
+    ValueWithImportance values[length];
+
+    // Populate the custom structure
+    for (int i = 0; i < length; i++) {
+        values[i].value = array1[i];
+        values[i].importance = array2[i];
+    }
+
+    // Sort the custom structure based on importance
+    qsort(values, length, sizeof(ValueWithImportance), compareImportance);
+
+    // Copy the sorted values back to array1
+    for (int i = 0; i < length; i++) {
+        array1[i] = values[i].value;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 /*int main() {
   // Create and initialize the my_crs_matrix struct
   my_crs_matrix *A = my_crs_read(
