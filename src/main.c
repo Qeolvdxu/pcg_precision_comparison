@@ -27,6 +27,7 @@ typedef struct {
   char **pfiles;
   int maxit;
   double tol;
+  int num_of_batches;
 } Data_CG;
 
 typedef struct {
@@ -93,6 +94,7 @@ int readConfigFile(Data_CG *data, const char *configFileName) {
   data->pname = NULL;
   data->tol = 1e-7;
   data->maxit = 10000;
+  data->num_of_batches = 1;
 
   char line[256];
   while (fgets(line, sizeof(line), configFile)) {
@@ -108,6 +110,8 @@ int readConfigFile(Data_CG *data, const char *configFileName) {
         data->pname = strdup(value);
       } else if (strcmp(key, "tol") == 0) {
         data->tol = atof(value);
+      } else if (strcmp(key, "batches") == 0) {
+        data->num_of_batches = atoi(value);
       } else if (strcmp(key, "maxit") == 0) {
         data->maxit = atoi(value);
       }
@@ -140,22 +144,35 @@ void *batch_CG(void *arg) {
   double *x;
   double *b;
   int iter;
+  int *crit_index;
   double k_twonrm = -1.0;
   double elapsed = 0.0;
   double fault_elapsed = 0.0;
   double mem_elapsed = 0.0;
-const char *firstDot;
-const char *lastSlash;
-  for (j = 0; j < 1; j++) {
-    for (i = 0; i < data->matrix_count; i++) {
+  int normal_iteration_count = 0; 
+  double slowdown = 0;
+  const char *firstDot;
+  const char *lastSlash;
+
+printf("TOTAL BATCHES : %d\n",data->num_of_batches);
+  for (i = 0; i < data->matrix_count; i++) {
+    for (j = 0; j < data->num_of_batches; j++) {
       elapsed = 0.0;
       fault_elapsed = 0.0;
       mem_elapsed = 0.0;
       // Create Matrix struct and Precond
       my_crs_matrix *A = my_crs_read(data->files[i]);
 #ifdef INJECT_ERROR
-      k = rand() % A->n;
-      k_twonrm = sp2nrmrow(k, A->n, A->rowptr, A->val);
+      if (j > 0)
+      {
+        k = rand() % A->n;
+        k_twonrm = sp2nrmrow(k, A->n, A->rowptr, A->val);
+      }
+      else 
+      {
+        k_twonrm = -1;
+        k = -1;
+      }
 #endif
 
       my_crs_matrix *M;
@@ -165,8 +182,12 @@ const char *lastSlash;
       // allocate arrays
       x = calloc(A->n, sizeof(double));
       b = malloc(sizeof(double) * A->n);
+      crit_index = malloc(sizeof(int) * A->n);
       for (q = 0; q < A->n; q++)
+      {
+        crit_index[q] = q;
         b[q] = 1;
+      }
      lastSlash= strrchr(data->files[i], '/');
     firstDot = strchr(lastSlash, '.');
 
@@ -174,14 +195,14 @@ const char *lastSlash;
       if (data->pfiles) {
         printf(" with preconditioning\n", data->pfiles[i]);
         if (executionTarget == CPU_EXECUTION) {
-          CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed, k);
+          CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed, k, crit_index);
         } else if (executionTarget == GPU_EXECUTION) {
           call_CuCG(data->files[i], data->pfiles[i], b, x, data->maxit, (double)data->tol, &iter, &elapsed, &mem_elapsed, &fault_elapsed, k);
         }
       } else {
         printf("\n");
         if (executionTarget == CPU_EXECUTION) {
-          CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed, k);
+          CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed, k, crit_index);
         } else if (executionTarget == GPU_EXECUTION) {
           call_CuCG(data->files[i], NULL, b, x, data->maxit, (double)data->tol, &iter, &elapsed, &mem_elapsed, &fault_elapsed, k);
         }
@@ -190,20 +211,26 @@ const char *lastSlash;
       if (iter == 0)
         return NULL;
 
-      elapsed -= fault_elapsed;
+      #ifdef INJECT_ERROR
+      if (j == 0)
+        normal_iteration_count = iter;
+      printf("Sample Interation Count = %d,  (%d) k = %d\n",normal_iteration_count,iter,k);
+      #endif
 
+      elapsed -= fault_elapsed;
+      slowdown = (double)iter / (double)normal_iteration_count; // Slowdown = error iterrations / error free iterations
       if (j == 0 && i == 0)
         fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
-                       "TIME,FAULT_TIME,INJECT_SITE,ROW_2-NORM,"
+                       "TIME,FAULT_TIME,INJECT_SITE,ROW_2-NORM,SLOW_DOWN,"
                        "X_VECTOR\n");
       if (executionTarget == CPU_EXECUTION) fprintf(ofile, "CPU,");
       else if (executionTarget == GPU_EXECUTION) fprintf(ofile, "GPU,");
       fprintf(ofile, "%.*s,", (int)(firstDot - lastSlash - 1), lastSlash + 1);
-      fprintf(ofile, "%s,%d,%lf,%lf,%lf,%d,%lf,", "double", iter, elapsed, mem_elapsed,
-              fault_elapsed, k, k_twonrm);
+      fprintf(ofile, "%s,%d,%lf,%lf,%lf,%d,%lf,%lf,", "double", iter, elapsed, mem_elapsed,
+              fault_elapsed, k, k_twonrm, slowdown);
       /*printf("cpu time : %s,%d,%lf,%d,%lf \n", "double", iter, elapsed, 0,
              fault_elapsed);*/
-      // printf("TOTAL C ITERATIONS: %d", iter);
+      printf("TOTAL C ITERATIONS: %d / %d = %lf", iter, normal_iteration_count, slowdown);
       for (q = 0; q < 5; q++) {
         fprintf(ofile, "%0.10lf,", x[q]);
         // printf("%0.10lf,", x[q]);
@@ -222,14 +249,14 @@ const char *lastSlash;
       // Rest of your batch processing logic...
 
     }
-    printf("\t %s BATCH %d FINISHED!\n", (executionTarget == CPU_EXECUTION) ? "CPU" : "GPU", j);
+    printf("\t %s %*.s : ALL BATCHES FINISHED!\n", (executionTarget == CPU_EXECUTION) ? "CPU" : "GPU", (int)(firstDot - lastSlash - 1));
   }
   printf("\t\t %s FULLY COMPLETE!\n", (executionTarget == CPU_EXECUTION) ? "CPU" : "GPU");
   fclose(ofile);
   return NULL;
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
   srand(time(0));
 
   // Set initial values
@@ -269,18 +296,20 @@ int main(int argc, char *argv[]) {
     pthread_create(&th1, NULL, batch_CG, &args1);
     printf("\n\tlaunching GPU CG thread...\n");
     pthread_create(&th2, NULL, batch_CG, &args2);
+    pthread_join(th1, NULL);
+    pthread_join(th2, NULL);
   } else if (data->concurrent == 'N') {
-    printf("\n\trunning GPU CG function...");
-    batch_CG(&args2);
-    printf("\n\trunning CCG function...");
-    batch_CG(&args1);
+    printf("\n\tlaunching CCG thread...");
+    pthread_create(&th1, NULL, batch_CG, &args1);
+    pthread_join(th1, NULL);
+    printf("\n\tlaunching GPU CG thread...\n");
+    pthread_create(&th2, NULL, batch_CG, &args2);
+    pthread_join(th2, NULL);
   } else {
     printf("Bad Concurrency Input!\n");
   }
 
   if (data->concurrent == 'Y') {
-    pthread_join(th1, NULL);
-    pthread_join(th2, NULL);
   }
 
   // Clean

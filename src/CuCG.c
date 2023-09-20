@@ -343,7 +343,7 @@ void cusparse_conjugate_gradient(
 
 #ifdef INJECT_ERROR
     // inject the error
-    if (itert == 1 && k != -1)
+    if (itert == 5 && k != -1)
       vecErrorInj_gpu(p_vec->val, n, k);
 #endif
 

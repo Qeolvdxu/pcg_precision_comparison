@@ -5,7 +5,7 @@
 
 void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
          double tolerance, int *iter, double *elapsed, double *fault_elapsed,
-         int k);
+         int k, int *crit_index);
 
 // cg preconditioning related functions
 void ichol(my_crs_matrix *M, double *L);

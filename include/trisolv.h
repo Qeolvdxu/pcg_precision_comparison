@@ -18,5 +18,6 @@ int isLowerTriangular(my_crs_matrix *A);
 void printVector(const char *name, double *vec, int size);
 void printMatrix(const char *name, my_crs_matrix *mat);
 int checkSolution(my_crs_matrix *A, double *b, double *x, double tolerance);
+int abft_spmv_selective(double *val, int *col, int *rowptr, int n, double *p, double *t, double *buff, double tol, int k, int *critindex);
 
 #endif // TRISOLV_H_

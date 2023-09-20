@@ -6,25 +6,29 @@
 
 #include "../include/trisolv.h"
 
-void vecErrorInj(double *p, int vector_size, int k) {
+void vecErrorInj(double *p, int vector_size, int k)
+{
 
   // Generate a random error e in the range of values in vector p
   double min_value = p[0];
   double max_value = p[0];
-  for (int i = 1; i < vector_size; i++) {
+  for (int i = 1; i < vector_size; i++)
+  {
     if (p[i] < min_value)
       min_value = p[i];
     if (p[i] > max_value)
       max_value = p[i];
   }
   double e = ((double)rand() / RAND_MAX) * (max_value - min_value);
+  // printf("MIN = %lf     MAX = %lf\n",min_value,max_value);
 
   // Inject the error into vector p
   p[k] += e;
-  // printf("CPU ERROR INJECTED INTO p[%d] += %lf = %lf\n", k, e, p[k]);
+  printf("CPU ERROR INJECTED INTO p[%d] += %lf = %lf\n", k, e, p[k]);
 }
 
-void vecErrorInj_gpu(double *p, int vector_size, int k) {
+void vecErrorInj_gpu(double *p, int vector_size, int k)
+{
   // Copy the vector from GPU to CPU
   double *h_p = (double *)malloc(sizeof(double) * vector_size);
   cudaMemcpy(h_p, p, sizeof(double) * vector_size, cudaMemcpyDeviceToHost);
@@ -32,7 +36,8 @@ void vecErrorInj_gpu(double *p, int vector_size, int k) {
   // Generate a random error e in the range of values in the vector
   double min_value = h_p[0];
   double max_value = h_p[0];
-  for (int i = 1; i < vector_size; i++) {
+  for (int i = 1; i < vector_size; i++)
+  {
     if (h_p[i] < min_value)
       min_value = h_p[i];
     if (h_p[i] > max_value)
@@ -51,26 +56,31 @@ void vecErrorInj_gpu(double *p, int vector_size, int k) {
   // printf("GPU ERROR INJECTED INTO p[%d] += %lf = %lf\n", k, e, h_p[k]);
 }
 
-double sp2nrmrow(int row_number, int num_rows, int *rowptr, double *val) {
+double sp2nrmrow(int row_number, int num_rows, int *rowptr, double *val)
+{
   double sum_squared_elements = 0.0;
 
   // Loop through the elements of the given row
-  for (int j = rowptr[row_number]; j < rowptr[row_number + 1]; j++) {
+  for (int j = rowptr[row_number]; j < rowptr[row_number + 1]; j++)
+  {
     sum_squared_elements += val[j] * val[j];
   }
 
   return sqrt(sum_squared_elements);
 }
 
-void forwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x) {
+void forwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x)
+{
   int n = A->n;
   double sum = 0.0;
   int row_start, row_end, j;
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++)
+  {
     row_start = A->rowptr[i];
     row_end = A->rowptr[i + 1];
     sum = 0.0;
-    for (j = row_start; j < row_end - 1; j++) {
+    for (j = row_start; j < row_end - 1; j++)
+    {
       int col = A->col[j];
       sum += A->val[j] * x[col];
     }
@@ -84,15 +94,18 @@ void forwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x) {
   }
 }
 
-void backwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x) {
+void backwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x)
+{
   int n = A->n;
   double sum = 0.0;
   int row_start, row_end, j;
-  for (int i = n - 1; i >= 0; --i) {
+  for (int i = n - 1; i >= 0; --i)
+  {
     row_start = A->rowptr[i];
     row_end = A->rowptr[i + 1];
     sum = 0.0;
-    for (j = row_end - 1; j > row_start; --j) {
+    for (j = row_end - 1; j > row_start; --j)
+    {
       int col = A->col[j];
       sum += A->val[j] * x[col];
     }
@@ -109,13 +122,16 @@ void backwardSubstitutionCSR(my_crs_matrix *A, double *b, double *x) {
 
 // s_abft L x y = r for y
 int s_abft_forsub(double *val, int *col, int *rowptr, int n, double *r,
-                  double *y, double tol) {
+                  double *y, double tol)
+{
   // printVector("vector 1", r, n);
   // printVector("vector 2", y, n);
   //  Compute triangular matrix col checksum
   double *p = (double *)calloc(n, sizeof(double));
-  for (int i = 0; i < n; i++) {
-    for (int j = rowptr[i]; j < rowptr[i + 1]; j++) {
+  for (int i = 0; i < n; i++)
+  {
+    for (int j = rowptr[i]; j < rowptr[i + 1]; j++)
+    {
       int col_idx = col[j];
       p[col_idx] += val[j];
       // printf("forsub iter %d,%d : \n", j, i);
@@ -127,7 +143,8 @@ int s_abft_forsub(double *val, int *col, int *rowptr, int n, double *r,
 
   double dot_product = 0; // inner product between p^T and y
   double S = 0;           // Checksum of vector r
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++)
+  {
     dot_product += p[i] * y[i];
     // printf("dp %11lf += %11lf * %11lf\n", dot_product, p[i], y[i]);
     S += r[i];
@@ -147,13 +164,16 @@ int s_abft_forsub(double *val, int *col, int *rowptr, int n, double *r,
 }
 // s_abft U x y = r for y
 int s_abft_backsub(double *val, int *col, int *rowptr, int n, double *r,
-                   double *y, double tol) {
+                   double *y, double tol)
+{
   // printVector("vector 1", r, n);
   // printVector("vector 2", y, n);
   //   Compute triangular matrix col checksum
   double *p = (double *)calloc(n, sizeof(double));
-  for (int i = 0; i < n; i++) {
-    for (int j = rowptr[i]; j < rowptr[i + 1]; j++) {
+  for (int i = 0; i < n; i++)
+  {
+    for (int j = rowptr[i]; j < rowptr[i + 1]; j++)
+    {
       //     printf("backsub iteration %d,%d : \n", j, i);
       p[i] += val[j];
       //     printf(" %11lf += %11lf\n\n", p[i], val[j]);
@@ -162,7 +182,8 @@ int s_abft_backsub(double *val, int *col, int *rowptr, int n, double *r,
 
   double dot_product = 0; // inner product between p^T and y
   double S = 0;           // Checksum of vector r
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++)
+  {
     dot_product += p[i] * y[i];
     S += r[i];
   }
@@ -181,27 +202,63 @@ int s_abft_backsub(double *val, int *col, int *rowptr, int n, double *r,
     return 1;
 }
 
-
-void calculate_checksum(double *val, int *col, int *rowptr, int n, double *checksum) {
-    int i, j;
-
-    for (j = 0; j < n; j++) {
-        for (i = rowptr[j]; i < rowptr[j + 1]; i++) {
-            checksum[col[i]] += val[i];
-        }
-    }
+int selective_abft()
+{
+  return 0;
 }
 
-// s_abft t = A * p for c
-int s_abft_spmv(double* acChecksum, int n, double *p, double *t,
-                double tol) {
+void calculate_checksum(double *val, int *col, int *rowptr, int n, double *checksum)
+{
+  int i, j;
+
+  for (j = 0; j < n; j++)
+  {
+    for (i = rowptr[j]; i < rowptr[j + 1]; i++)
+    {
+      checksum[col[i]] += val[i];
+    }
+  }
+}
+
+// Full classical SPMV fault checking, 100% overhead
+// t = A * p
+int abft_spmv_selective(double *val, int *col, int *rowptr, int n, double *p, double *t, double *buff, double tol, int k, int *critindex)
+{
+  int col_index, row_index;
+
+  // SPMV
+  for (int i = 0; i < k; i++) {
+      buff[critindex[i]] = 0;
+      col_index = critindex[i];
+      for (int j = rowptr[col_index]; j < rowptr[col_index + 1]; j++) {
+          row_index = col[j];
+          buff[row_index] += val[j] * p[col_index];
+      }
+  }
+
+  // Compare vectors y and t
+  for (int i = 0; i < n; i++)
+  {
+    printf("abft: %.10lf vs\n%.10lf\n",buff[i],t[i]);
+    if (fabs(buff[i] - t[i]) > tol)
+      return 1;
+  }
+
+  return 0;
+}
+
+// s_abft t = A * p
+int s_abft_spmv(double *acChecksum, int n, double *p, double *t,
+                double tol)
+{
   int i;
   long double *dotp = calloc(n, sizeof(long double));
   //  printf("TVECONE = %.50lf\n", t[1]);
 
   // Calculate acChecksum for each column of the matrix A
 
-  for (i = 0; i < n; i++) {
+  for (i = 0; i < n; i++)
+  {
     dotp[i] = acChecksum[i] * p[i];
     // printf("%Lf = %Lf * %lf\n", dotp[i], acChecksum[i], p[i]);
   }
@@ -209,38 +266,46 @@ int s_abft_spmv(double* acChecksum, int n, double *p, double *t,
   long double tcSum = 0.0;
   long double dotpSum = 0.0;
 
-  for (i = 0; i < n; i++) {
+  for (i = 0; i < n; i++)
+  {
     tcSum += t[i];
     dotpSum += dotp[i];
   }
   tcSum = tcSum * tol;
   dotpSum = dotpSum;
 
-  //free(acChecksum);
+  // free(acChecksum);
   free(dotp);
 
   // printf("tol: %lf\n", tol);
   //  Check conditions (i) and (ii) of Theorem 1
   // printf("1: %.50Lf == %.50Lf\n", tcSum, dotpSum);
 
-  // printf("2: %.50lf <= %.50lf\n", fabs(tcSum - dotpSum), tol);
-  if (fabs(tcSum - t[n]) <= tol && fabs(tcSum - dotpSum) <= tol) {
+  printf("2: %.50lf <= %.50lf\n", fabs(tcSum - dotpSum), tol);
+  if (fabs(tcSum - t[n]) <= tol && fabs(tcSum - dotpSum) <= tol)
+  {
     // if (fabs(tcSum - dotpSum) <= tol) {
     //    printf("winner");
     return 0; // SpMV operation is correct based on Theorem 1
-  } else {
+  }
+  else
+  {
     //   printf("loser");
     return 1; // Error occurred during the SpMV operation
   }
 }
 
-int isLowerTriangular(my_crs_matrix *A) {
-  for (int i = 0; i < A->n; i++) {
+int isLowerTriangular(my_crs_matrix *A)
+{
+  for (int i = 0; i < A->n; i++)
+  {
     int row_start = A->rowptr[i];
     int row_end = A->rowptr[i + 1];
-    for (int j = row_start; j < row_end; j++) {
+    for (int j = row_start; j < row_end; j++)
+    {
       int col = A->col[j];
-      if (col > i) {
+      if (col > i)
+      {
         return 0; // Found an element above the diagonal
       }
     }
@@ -248,33 +313,41 @@ int isLowerTriangular(my_crs_matrix *A) {
   return 1; // Matrix is lower triangular
 }
 
-void printVector(const char *name, double *vec, int size) {
+void printVector(const char *name, double *vec, int size)
+{
   printf("%s:\n", name);
   long double sum = 0.0;
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < size; i++)
+  {
     printf("%.10f, ", vec[i]);
     sum += vec[i];
   }
   printf("\n%Lf\n\n", sum);
 }
 
-void printMatrix(const char *name, my_crs_matrix *mat) {
+void printMatrix(const char *name, my_crs_matrix *mat)
+{
   printf("%s:\n", name);
   long double sum = 0.0;
-  for (int i = 0; i < mat->n; i++) {
-    for (int j = 0; j < mat->n; j++) {
+  for (int i = 0; i < mat->n; i++)
+  {
+    for (int j = 0; j < mat->n; j++)
+    {
       int found = 0;
       int row_start = mat->rowptr[i];
       int row_end = mat->rowptr[i + 1];
-      for (int k = row_start; k < row_end; k++) {
-        if (mat->col[k] == j) {
+      for (int k = row_start; k < row_end; k++)
+      {
+        if (mat->col[k] == j)
+        {
           printf("%.10f, ", mat->val[k]);
           sum += mat->val[k];
           found = 1;
           break;
         }
       }
-      if (!found) {
+      if (!found)
+      {
         printf("0.00, ");
       }
     }
@@ -283,17 +356,21 @@ void printMatrix(const char *name, my_crs_matrix *mat) {
   printf("\n%Lf\n\n", sum);
 }
 
-int checkSolution(my_crs_matrix *A, double *b, double *x, double tolerance) {
+int checkSolution(my_crs_matrix *A, double *b, double *x, double tolerance)
+{
   int n = A->n;
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++)
+  {
     double sum = 0.0;
     int row_start = A->rowptr[i];
     int row_end = A->rowptr[i + 1];
-    for (int j = row_start; j < row_end; j++) {
+    for (int j = row_start; j < row_end; j++)
+    {
       int col = A->col[j];
       sum += A->val[j] * x[col];
     }
-    if (fabs(sum - b[i]) > tolerance) {
+    if (fabs(sum - b[i]) > tolerance)
+    {
       return 0; // Solution is incorrect
     }
   }

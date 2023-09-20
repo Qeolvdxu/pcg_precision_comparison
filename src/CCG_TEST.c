@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
   int test_count;
   char **files = find_files("../../test_subjects/rcm", &test_count);
   printf("files found\n");
-  PRECI_DT tol = (float)atof(argv[2]);
+  double tol = (float)atof(argv[2]);
   FILE *ofile = fopen("results_CCG_TEST.csv", "w");
   int iter, maxit;
 

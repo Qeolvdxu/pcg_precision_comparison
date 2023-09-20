@@ -12,8 +12,7 @@
 
 void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
          double tolerance, int *iter, double *elapsed, double *fault_elapsed,
-         int k) {
-
+         int k, int *crit_index) {
   int fault_freq = 2;
   int n = A->n;
   double s_abft_tol = tolerance;
@@ -22,6 +21,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
   double *q = (double *)malloc(n * sizeof(double));
   double *z = (double *)malloc(n * sizeof(double));
   double *y = (double *)malloc(n * sizeof(double));
+  double *fault_buff = (double *)malloc(n * sizeof(double));
   // double *temp = (double *)malloc(n * sizeof(double));
 
   double *acChecksum = (double *)malloc(n * sizeof(double));
@@ -169,7 +169,7 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 #endif
     // inject the error
 #ifdef INJECT_ERROR
-    if (itert == 1 && k != -1)
+    if (itert == 5 && k != -1)
       vecErrorInj(p, n, k);
 #endif
 
@@ -177,7 +177,8 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
     matvec(A, p, q);
     if (itert % fault_freq == 0) {
       fault_start = omp_get_wtime();
-      s_abft_spmv(acChecksum, A->n, p, q, s_abft_tol);
+      abft_spmv_selective(A->val, A->col, A->rowptr, n, p, q, fault_buff, s_abft_tol, n/4, crit_index);
+      //s_abft_spmv(acChecksum, A->n, p, q, s_abft_tol);
       fault_end = omp_get_wtime();
       *fault_elapsed += (fault_end - fault_start) * 1000;
     }
