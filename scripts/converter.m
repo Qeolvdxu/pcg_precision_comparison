@@ -6,9 +6,13 @@ for i = 1 : length(myFiles)
   fullFileName = fullfile(strcat(myDir, '/mm'), baseFileName);
   icholTOutFileName = fullfile(strcat(myDir, '/precond'), strcat(myFiles(i).name, '.PRECONDITIONER.mtx'));
   [ matrix, m, n, numnonzero ] = mmread(fullFileName);
+
+  perm = symrcm(matrix);
+  reordered = matrix(perm,perm);
+
   fprintf('icholing matrix %s...', baseFileName)
   alpha = max(sum(abs(matrix),2)./diag(matrix))-2;
-  precond = ichol(matrix, struct('type','ict','droptol',1e-3,'diagcomp',alpha));
+  precond = ichol(reordered, struct('type','ict','droptol',1e-3,'diagcomp',alpha));
   #precond = inv(precond)
 
   mmwrite(icholTOutFileName,precond);
