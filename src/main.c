@@ -219,11 +219,9 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
       if (iter == 0)
         return NULL;
 
-      #ifdef INJECT_ERROR
       if (j == 0)
         normal_iteration_count = iter;
       printf("Sample Interation Count = %d,  (%d) k = %d\n",normal_iteration_count,iter,k);
-      #endif
 
       elapsed -= fault_elapsed;
       slowdown = (double)iter / (double)normal_iteration_count; // Slowdown = error iterrations / error free iterations
