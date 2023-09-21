@@ -51,7 +51,7 @@ check_precond() {
   if [[ "$force_precond" = true || $(find "$mm_dir" -type f -newer "$precond_dir" -print -quit ) || "$mm_count" -ne "$precond_count" || "$mm_count" -ne "$precond_norm_count" || "$mm_count" -ne "$precond_rcm_count" ]]; then
     echo "Precondition Generation is required or forced. (this will take a bit)"
     echo "Generating preconditioners..."
-    (cd scripts; rm precond/* precond*/* norm/* rcm/* )
+    (cd test_subjects; rm precond/* precond*/* norm/* rcm/* )
     if [[ $vocal_mode == "true" ]]; then
       (cd scripts; octave converter.m) 
     else
