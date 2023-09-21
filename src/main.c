@@ -202,6 +202,7 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
       printf("%s CG : %.*s", (executionTarget == CPU_EXECUTION) ? "CPU" : "GPU", (int)(firstDot - lastSlash - 1), lastSlash + 1);
       if (data->pfiles) {
         printf(" with preconditioning\n", data->pfiles[i]);
+        printf("k2norm = %.5lf\n",k_twonrm);
         if (executionTarget == CPU_EXECUTION) {
           CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed, k, crit_index);
         } else if (executionTarget == GPU_EXECUTION) {
@@ -219,7 +220,7 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
       if (iter == 0)
         return NULL;
 
-      if (j == 0)
+      if (k == -1)
         normal_iteration_count = iter;
       printf("Sample Interation Count = %d,  (%d) k = %d\n",normal_iteration_count,iter,k);
 
