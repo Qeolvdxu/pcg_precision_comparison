@@ -143,6 +143,8 @@ void *batch_CG(void *arg) {
   int i, j, q;
   double *x;
   double *b;
+  double *xg;
+  double *bg;
   int iter;
   int *crit_index;
   double *row2norms;
@@ -182,7 +184,10 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
       // allocate arrays
       x = calloc(A->n, sizeof(double));
       b = malloc(sizeof(double) * A->n);
+      xg = calloc(A->n, sizeof(double));
+      bg = malloc(sizeof(double) * A->n);
       crit_index = malloc(sizeof(int) * A->n);
+      row2norms = malloc(sizeof(double) * A->n);
       for (q = 0; q < A->n; q++)
       {
         row2norms[q] = sp2nrmrow(q, A->n, A->rowptr, A->val);
@@ -199,14 +204,14 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
         if (executionTarget == CPU_EXECUTION) {
           CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed, k, crit_index);
         } else if (executionTarget == GPU_EXECUTION) {
-          call_CuCG(data->files[i], data->pfiles[i], b, x, data->maxit, (double)data->tol, &iter, &elapsed, &mem_elapsed, &fault_elapsed, k);
+          call_CuCG(data->files[i], data->pfiles[i], b, x, data->maxit, (double)data->tol, &iter, &elapsed, &mem_elapsed, &fault_elapsed, k, crit_index);
         }
       } else {
         printf("\n");
         if (executionTarget == CPU_EXECUTION) {
           CCG(A, NULL, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed, k, crit_index);
         } else if (executionTarget == GPU_EXECUTION) {
-          call_CuCG(data->files[i], NULL, b, x, data->maxit, (double)data->tol, &iter, &elapsed, &mem_elapsed, &fault_elapsed, k);
+          call_CuCG(data->files[i], NULL, bg, xg, data->maxit, (double)data->tol, &iter, &elapsed, &mem_elapsed, &fault_elapsed, k, crit_index);
         }
       }
 
@@ -244,6 +249,10 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
         my_crs_free(M);
       free(b);
       free(x);
+      free(bg);
+      free(xg);
+      free(crit_index);
+      free(row2norms);
 
       if (executionTarget == CPU_EXECUTION) printf("CPU ");
       else if (executionTarget == GPU_EXECUTION) printf("GPU ");

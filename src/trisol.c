@@ -222,25 +222,24 @@ void calculate_checksum(double *val, int *col, int *rowptr, int n, double *check
 
 // Full classical SPMV fault checking, 100% overhead
 // t = A * p
-int abft_spmv_selective(double *val, int *col, int *rowptr, int n, double *p, double *t, double *buff, double tol, int k, int *critindex)
+int abft_spmv_selective(double *val, int *col, int *rowptr, int n, double *p, double *t, double *buff, double tol, int k, int *critind)
 {
-  int col_index, row_index;
-
   // SPMV
+  int crit = 0;
   for (int i = 0; i < k; i++) {
-      buff[critindex[i]] = 0;
-      col_index = critindex[i];
-      for (int j = rowptr[col_index]; j < rowptr[col_index + 1]; j++) {
-          row_index = col[j];
-          buff[row_index] += val[j] * p[col_index];
-      }
+    crit = critind[i];
+    
+    buff[crit] = 0.0;
+    for (int j = rowptr[crit]; j < rowptr[crit + 1]; j++) {
+      buff[crit] += val[j] * p[col[j]];
+    }
   }
 
   // Compare vectors y and t
-  for (int i = 0; i < n; i++)
+  for (int i = 0; i < k; i++)
   {
-    printf("abft: %.10lf vs\n%.10lf\n",buff[i],t[i]);
-    if (fabs(buff[i] - t[i]) > tol)
+    printf("abft: %.10lf vs\n%.10lf\n",buff[critind[i]],t[critind[i]]);
+    if (fabs(buff[critind[i]] - t[critind[i]]) > tol)
       return 1;
   }
 
@@ -389,7 +388,7 @@ int compareImportance(const void *a, const void *b) {
 }
 
 // Function to sort array1 based on the order of array2
-void sortByImportance(double *array1, double *array2, int length) {
+void sortByImportance(int *array1, double *array2, int length) {
     // Create an array of ValueWithImportance structures
     ValueWithImportance values[length];
 

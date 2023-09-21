@@ -20,7 +20,7 @@ void printMatrix(const char *name, my_crs_matrix *mat);
 int checkSolution(my_crs_matrix *A, double *b, double *x, double tolerance);
 int abft_spmv_selective(double *val, int *col, int *rowptr, int n, double *p, double *t, double *buff, double tol, int k, int *critindex);
 int compareImportance(const void *a, const void *b);
-void sortByImportance(double *array1, double *array2, int length);
+void sortByImportance(int *array1, double *array2, int length);
 
 // Custom structure to hold values and importances together
 typedef struct {
