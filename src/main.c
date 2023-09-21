@@ -193,6 +193,7 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
         row2norms[q] = sp2nrmrow(q, A->n, A->rowptr, A->val);
         crit_index[q] = q;
         b[q] = 1;
+        bg[q] = 1;
       }
     sortByImportance(crit_index, row2norms,A->n);
     lastSlash= strrchr(data->files[i], '/');
@@ -230,6 +231,7 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
         fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
                        "TIME,FAULT_TIME,INJECT_SITE,ROW_2-NORM,SLOW_DOWN,"
                        "X_VECTOR\n");
+      
       if (executionTarget == CPU_EXECUTION) fprintf(ofile, "CPU,");
       else if (executionTarget == GPU_EXECUTION) fprintf(ofile, "GPU,");
       fprintf(ofile, "%.*s,", (int)(firstDot - lastSlash - 1), lastSlash + 1);
