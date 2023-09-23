@@ -199,7 +199,7 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
     lastSlash= strrchr(data->files[i], '/');
     firstDot = strchr(lastSlash, '.');
 
-      printf("%s CG : %.*s", (executionTarget == CPU_EXECUTION) ? "CPU" : "GPU", (int)(firstDot - lastSlash - 1), lastSlash + 1);
+      printf("Starting %s CG: %.*s ....", (executionTarget == CPU_EXECUTION) ? "CPU" : "GPU", (int)(firstDot - lastSlash - 1), lastSlash + 1);
       if (data->pfiles) {
         printf(" with preconditioning\n", data->pfiles[i]);
         printf("k2norm = %.5lf\n",k_twonrm);
@@ -228,8 +228,8 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
       slowdown = (double)iter / (double)normal_iteration_count; // Slowdown = error iterrations / error free iterations
       if (j == 0 && i == 0)
         fprintf(ofile, "DEVICE,MATRIX,PRECISION,ITERATIONS,WALL_TIME,MEM_WALL_"
-                       "TIME,FAULT_TIME,INJECT_SITE,ROW_2-NORM,SLOW_DOWN,"
-                       "X_VECTOR\n");
+          "TIME,FAULT_TIME,INJECT_SITE,ROW_2-NORM,SLOW_DOWN,"
+          "X_VECTOR\n");
       
       if (executionTarget == CPU_EXECUTION) fprintf(ofile, "CPU,");
       else if (executionTarget == GPU_EXECUTION) fprintf(ofile, "GPU,");
@@ -237,11 +237,17 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
       fprintf(ofile, "%s,%d,%lf,%lf,%lf,%d,%lf,%lf,", "double", iter, elapsed, mem_elapsed,
               fault_elapsed, k, k_twonrm, slowdown);
       /*printf("cpu time : %s,%d,%lf,%d,%lf \n", "double", iter, elapsed, 0,
-             fault_elapsed);*/
-      printf("TOTAL C ITERATIONS: %d / %d = %lf", iter, normal_iteration_count, slowdown);
-      for (q = 0; q < 5; q++) {
-        fprintf(ofile, "%0.10lf,", x[q]);
-        // printf("%0.10lf,", x[q]);
+        fault_elapsed);*/
+      /*printf("TOTAL C ITERATIONS: %d / %d = %lf", iter, normal_iteration_count, slowdown);*/
+      if (executionTarget == CPU_EXECUTION) 
+      {
+        for (q = 0; q < 5; q++) 
+          fprintf(ofile, "%0.10lf,", x[q]);
+      }
+      else if (executionTarget == GPU_EXECUTION)
+      {
+        for (q = 0; q < 5; q++)
+          fprintf(ofile, "%0.10lf,", xg[q]);
       }
       fprintf(ofile, "\n");
 
@@ -257,11 +263,11 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
 
       if (executionTarget == CPU_EXECUTION) printf("CPU ");
       else if (executionTarget == GPU_EXECUTION) printf("GPU ");
-      printf("CG : Test %d complete in %d iterations!\n", i, iter);
+      printf("CG : Test %d,%d (%.*s) complete in %d iterations!\n", i, j, (int)(firstDot - lastSlash - 1), lastSlash + 1 , iter);
       // Rest of your batch processing logic...
 
     }
-    printf("\t %s %*.s : ALL BATCHES FINISHED!\n", (executionTarget == CPU_EXECUTION) ? "CPU" : "GPU", (int)(firstDot - lastSlash - 1));
+    printf("\t %s %.*s : ALL BATCHES FINISHED!\n", (executionTarget == CPU_EXECUTION) ? "CPU" : "GPU", (int)(firstDot - lastSlash - 1), lastSlash + 1);
   }
   printf("\t\t %s FULLY COMPLETE!\n", (executionTarget == CPU_EXECUTION) ? "CPU" : "GPU");
   fclose(ofile);
@@ -288,8 +294,7 @@ int main(void) {
   int precond_count = data->precond == 'Y' ? matrix_count : 0;
 
   if (matrix_count != precond_count && data->precond == 'Y') {
-    printf("ERROR: number of matrices (%d) and preconditioners (%d) do not match!\n",
-           matrix_count, precond_count);
+    printf("ERROR: number of matrices (%d) and preconditioners (%d) do not match!\n", matrix_count, precond_count);
     return 1;
   }
 

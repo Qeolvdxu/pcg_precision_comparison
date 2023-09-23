@@ -167,20 +167,23 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
     printf("beta = %.11lf\n%.11lf / (%.11lf + %.11lf)\n", beta, Rho, v, Tiny);
     printf("p[1] = %lf\n", p[1]);
 #endif
-    // inject the error
-#ifdef INJECT_ERROR
-    if (itert == 5 && k != -1)
-      vecErrorInj(p, n, k);
-#endif
 
     // q = A*p
+// inject the error
+#ifdef INJECT_ERROR
+    if (itert == 5 && k != -1) 
+      faulty_matvec(A, p, q, k);
+    else 
+      matvec(A, p, q);
+#else
     matvec(A, p, q);
+#endif
     if (itert % fault_freq == 0) {
       fault_start = omp_get_wtime();
       if (0 != abft_spmv_selective(A->val, A->col, A->rowptr, n, p, q, fault_buff, s_abft_tol, n/4, crit_index))
       {
-        printf("CPU FAULT DETECTED!");
-        return ;
+        printf("CPU FAULT DETECTED! (recalculation this spmv)\n");
+        matvec(A, p, q);
       }
 
       //s_abft_spmv(acChecksum, A->n, p, q, s_abft_tol);
@@ -379,6 +382,18 @@ double dot(double *v, double *u, int n) {
     x += v[i] * u[i];
 
   return x;
+}
+
+void faulty_matvec(my_crs_matrix *A, double *x, double *y, int k) {
+  int n = A->n;
+  vecErrorInj(x, n, k);
+  for (int i = 0; i < n; i++) {
+    y[i] = 0.0;
+    for (int j = A->rowptr[i]; j < A->rowptr[i + 1]; j++) {
+      // printf("%d ? %d\n", A->col[j], n);
+      y[i] += A->val[j] * x[A->col[j]];
+    }
+  }
 }
 
 void matvec(my_crs_matrix *A, double *x, double *y) {

@@ -239,7 +239,8 @@ int abft_spmv_selective(double *val, int *col, int *rowptr, int n, double *p, do
   for (int i = 0; i < k; i++)
   {
     //printf("abft: %.10lf vs\n%.10lf\n",buff[critind[i]],t[critind[i]]);
-    if (fabs(buff[critind[i]] - t[critind[i]]) > tol)
+    //printf("      %.10lf > \n%.10lf\n",buff[critind[i]] - t[critind[i]], tol);
+    if (buff[critind[i]] - t[critind[i]] > tol)
       return 1;
   }
 
