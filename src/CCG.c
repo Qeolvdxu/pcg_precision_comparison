@@ -111,10 +111,10 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
       if (itert % fault_freq == 0) {
         if (1 ==
             s_abft_forsub(M->val, M->col, M->rowptr, M->n, r, y, s_abft_tol)) {
-          printf(" ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN FORWARD"
-                 "SUB \n",
-                 itert);
-          // exit(1);
+              printf(" ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN FORWARD"
+              "SUB \n",
+              itert);
+            // exit(1);
         }
         fault_end = omp_get_wtime();
         *fault_elapsed += (fault_end - fault_start) * 1000;
@@ -128,9 +128,9 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
       /*if (itert % fault_freq == 0) {
         fault_start = omp_get_wtime();
         if (1 ==
-            s_abft_backsub(M->val, M->col, M->rowptr, M->n, y, z, s_abft_tol)) {
-          /*printf("ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN BACKWARD
-             " "SUB \n", itert);
+          s_abft_backsub(M->val, M->col, M->rowptr, M->n, y, z, s_abft_tol)) {
+            /*printf("ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN BACKWARD
+            " "SUB \n", itert);
           // exit(1);
         }
         fault_end = omp_get_wtime();
@@ -247,8 +247,8 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
         if (1 ==
             s_abft_spmv(A->val, A->col, A->rowptr, A->n, x, r, s_abft_tol)) {
           printf("ERROR CPU (ITERATION %d): S-ABFT DETECTED FAULT IN SPMV 3 "
-                 "A*x=r \n",
-                 itert);
+          "A*x=r \n",
+          itert);
         }
         fault_end = omp_get_wtime();
         *fault_elapsed += (fault_end - fault_start) * 1000;
@@ -264,13 +264,13 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
     printf("r[1] = %lf\n", r[1]);
 #endif
     /*printf("\nend of iteration %d\n x1 = %lf \t alpha= %lf \t beta= %lf \t"
-           "res_norm ="
-           "%lf"
-           "\n v "
-           "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
-           "ratio(%lf) > tolerance(%lf)\n\n\n",
-           iter, x[0], alpha, beta, res_norm, v, r[0], p[0], q[0], z[0],
-       ratio, tolerance);*/
+      "res_norm ="
+      "%lf"
+      "\n v "
+      "= %lf\nr0 = %lf \n p0 = %lf\n q0 = %lf\n z0 = %lf\n if (norm "
+      "ratio(%lf) > tolerance(%lf)\n\n\n",
+      iter, x[0], alpha, beta, res_norm, v, r[0], p[0], q[0], z[0],
+      ratio, tolerance);*/
     //#ifdef STORE_PATH
     path = (double **)realloc(path, itert * sizeof(double *));
     path[itert - 1] = x;
@@ -366,7 +366,7 @@ double matvec_dot(my_crs_matrix *A, double *x, double *y, int n) {
       // y[A->col[j]]);
     }
     /*     if (result != result && i % 20 == 0)
-           printf("NaN moment :(\n");*/
+    printf("NaN moment :(\n");*/
   }
   return result;
 }
