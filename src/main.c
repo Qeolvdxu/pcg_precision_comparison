@@ -206,7 +206,7 @@ printf("TOTAL BATCHES : %d\n",data->num_of_batches);
         if (executionTarget == CPU_EXECUTION) {
           CCG(A, M, b, x, data->maxit, data->tol, &iter, &elapsed, &fault_elapsed, k, crit_index);
         } else if (executionTarget == GPU_EXECUTION) {
-          call_CuCG(data->files[i], data->pfiles[i], b, x, data->maxit, (double)data->tol, &iter, &elapsed, &mem_elapsed, &fault_elapsed, k, crit_index);
+          call_CuCG(data->files[i], data->pfiles[i], bg, xg, data->maxit, (double)data->tol, &iter, &elapsed, &mem_elapsed, &fault_elapsed, k, crit_index);
         }
       } else {
         printf("\n");
@@ -316,9 +316,9 @@ int main(void) {
     pthread_join(th1, NULL);
     pthread_join(th2, NULL);
   } else if (data->concurrent == 'N') {
-    printf("\n\tlaunching CCG thread...");
+    /*printf("\n\tlaunching CCG thread...");
     pthread_create(&th1, NULL, batch_CG, &args1);
-    pthread_join(th1, NULL);
+    pthread_join(th1, NULL);*/
     printf("\n\tlaunching GPU CG thread...\n");
     pthread_create(&th2, NULL, batch_CG, &args2);
     pthread_join(th2, NULL);
