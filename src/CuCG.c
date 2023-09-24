@@ -363,6 +363,7 @@ void cusparse_conjugate_gradient(
                  CUSPARSE_MV_ALG_DEFAULT,          // algorithm
                  buff                              // buffer
     );
+#ifdef FAULT_CHECK
     if (itert % fault_freq == 0) {
       memcheck_start = omp_get_wtime();
       cudaMemcpy(fault_vec_one, p_vec->val, A->n * sizeof(double),
@@ -371,19 +372,18 @@ void cusparse_conjugate_gradient(
                 cudaMemcpyDeviceToHost);
       memcheck_end = omp_get_wtime();
       *mem_elapsed += (memcheck_end - memcheck_start) * 1000;
+
       faultcheck_start = omp_get_wtime();
       if (0 != abft_spmv_selective(val_host_A, col_host_A, rowptr_host_A, n, fault_vec_one, fault_vec_two, fault_buff, s_abft_tol, n/4, crit_index))
       {
         printf("GPU FAULT DETECTED!");
-        return ;
       }
-      /*if (1 == s_abft_spmv(acChecksum, A->n,
-                          fault_vec_one, fault_vec_two, s_abft_tol)) {
-        iter = iter + 0;
-      }*/
       faultcheck_end = omp_get_wtime();
       *fault_elapsed += (faultcheck_end - faultcheck_start) * 1000;
     }
+#endif
+
+
 #ifdef ENABLE_TESTS
     cudaMemcpy(oneq, q_vec->val, n * sizeof(double), cudaMemcpyDeviceToHost);
     printf("q[1] = %lf\n", oneq[1]);

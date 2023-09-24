@@ -24,7 +24,7 @@ void vecErrorInj(double *p, int vector_size, int k)
 
   // Inject the error into vector p
   p[k] += e;
-  printf("CPU ERROR INJECTED INTO p[%d] += %lf = %lf\n", k, e, p[k]);
+  //printf("CPU ERROR INJECTED INTO p[%d] += %lf = %lf\n", k, e, p[k]);
 }
 
 void vecErrorInj_gpu(double *p, int vector_size, int k)

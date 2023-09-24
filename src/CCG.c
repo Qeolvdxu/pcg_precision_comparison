@@ -172,24 +172,26 @@ void CCG(my_crs_matrix *A, my_crs_matrix *M, double *b, double *x, int max_iter,
 // inject the error
 #ifdef INJECT_ERROR
     if (itert == 5 && k != -1) 
-      faulty_matvec(A, p, q, k);
-    else 
-      matvec(A, p, q);
-#else
-    matvec(A, p, q);
+      vecErrorInj(p, n, k);
 #endif
+
+    matvec(A, p, q);
+
+#ifdef FAULT_CHECK
+  printf("CHECKINNN FAULTS!!\n");
     if (itert % fault_freq == 0) {
       fault_start = omp_get_wtime();
       if (0 != abft_spmv_selective(A->val, A->col, A->rowptr, n, p, q, fault_buff, s_abft_tol, n/4, crit_index))
       {
-        printf("CPU FAULT DETECTED! (recalculation this spmv)\n");
-        matvec(A, p, q);
+        printf("CPU FAULT DETECTED!\n");
       }
 
       //s_abft_spmv(acChecksum, A->n, p, q, s_abft_tol);
       fault_end = omp_get_wtime();
       *fault_elapsed += (fault_end - fault_start) * 1000;
     }
+#endif
+
 #ifdef ENABLE_TESTS
     printf("S-ABFT : 0\n");
     printf("q[1] = %lf\n", q[1]);

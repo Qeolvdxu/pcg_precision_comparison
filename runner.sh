@@ -8,13 +8,14 @@ read_config() {
     force_precond=$(awk -F= '/^gen_precond_forced/ {print $2}' "$config_file" | tr -d ' ')
     debug_mode=$(awk -F= '/^debug/ {print $2}' "$config_file" | tr -d ' ')
     inject_error=$(awk -F= '/^inject_error/ {print $2}' "$config_file" | tr -d ' ')
+    fault_check=$(awk -F= '/^check_faults/ {print $2}' "$config_file" | tr -d ' ')
     vocal_mode=$(awk -F= '/^vocal/ {print $2}' "$config_file" | tr -d ' ')
   else
     echo "ERROR: Config file $config_file not found!"
     exit
   fi
 
-   # Check if the debug_mode variable is set and is equal to "true"
+  # Check if the debug_mode variable is set and is equal to "true"
   if [[ $debug_mode == "true" ]]; then
     # Add "debug" to the MAKE_CONFIG variable
     MAKE_CONFIG="$MAKE_CONFIG -DENABLE_TESTS -g "
@@ -24,6 +25,12 @@ read_config() {
   if [[ $inject_error == "true" ]]; then
     # Add "inject_error" to the MAKE_CONFIG variable
     MAKE_CONFIG="$MAKE_CONFIG -DINJECT_ERROR "
+  fi
+
+  # Check if the check_faults variable is set and is equal to "true"
+  if [[ $fault_check == "true" ]]; then
+    # Add "inject_error" to the MAKE_CONFIG variable
+    MAKE_CONFIG="$MAKE_CONFIG -DFAULT_CHECK "
   fi
 } 2> "./Build/build.log"
 
@@ -148,10 +155,9 @@ run_cgpc
 if [[ $RUN_STATUS == 0 ]]; then
     echo "Run successful!"
     echo "Preparing the data..."
-    # Perform additional actions
-    handle_data
-    echo "Script completed successfully."
 else
     echo "ERROR : Run has failed! ($RUN_STATUS) Check the logs in Build!"
     exit
 fi
+handle_data
+echo "Script completed successfully."
