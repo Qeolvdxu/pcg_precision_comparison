@@ -346,11 +346,14 @@ void cusparse_conjugate_gradient(
     printf("p[1] = %lf\n", onep[1]);
 #endif
 
+Makem 
+/* NO GPU ERRORS FOR CONSISTANCY
 #ifdef INJECT_ERROR
     // inject the error
     if (itert == 5 && k != -1)
       vecErrorInj_gpu(p_vec->val, n, k);
 #endif
+*/
 
     cusparseSpMV(*handle,
                  CUSPARSE_OPERATION_NON_TRANSPOSE, // operation
